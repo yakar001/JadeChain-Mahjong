@@ -32,7 +32,7 @@ export function ShardCard({ name, price, image, 'data-ai-hint': dataAiHint }: Sh
           <span>{price.toFixed(2)}</span>
         </div>
         <Button size="sm" variant="secondary">
-          Buy
+          Buy (购买)
         </Button>
       </CardFooter>
     </Card>

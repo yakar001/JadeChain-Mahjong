@@ -50,15 +50,15 @@ export function KeyNftCard({ name, level, cap, energy, weightH, weightW, price, 
         <CardTitle className="text-base font-headline truncate">{name}</CardTitle>
         <div className="text-xs text-muted-foreground space-y-1">
             <div className='flex justify-between items-center'>
-                <span className='flex items-center gap-1'><Zap size={12} className='text-primary'/> Energy</span>
+                <span className='flex items-center gap-1'><Zap size={12} className='text-primary'/> Energy (能量)</span>
                 <span>{energy}</span>
             </div>
             <div className='flex justify-between items-center'>
-                <span className='flex items-center gap-1'><Shield size={12} className='text-primary'/> Weight H</span>
+                <span className='flex items-center gap-1'><Shield size={12} className='text-primary'/> Weight H (权重 H)</span>
                 <span>{weightH.toFixed(1)}</span>
             </div>
             <div className='flex justify-between items-center'>
-                <span className='flex items-center gap-1'><Weight size={12} className='text-primary'/> Weight W</span>
+                <span className='flex items-center gap-1'><Weight size={12} className='text-primary'/> Weight W (权重 W)</span>
                 <span>{weightW.toFixed(1)}</span>
             </div>
         </div>
@@ -70,7 +70,7 @@ export function KeyNftCard({ name, level, cap, energy, weightH, weightW, price, 
           <span>{price.toLocaleString()}</span>
         </div>
         <Button size="sm">
-          Buy
+          Buy (购买)
         </Button>
       </CardFooter>
     </Card>

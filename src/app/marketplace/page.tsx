@@ -72,7 +72,7 @@ export default function MarketplacePage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold font-headline text-primary">Marketplace</h1>
+        <h1 className="text-3xl font-bold font-headline text-primary">Marketplace (市场)</h1>
         <div className="flex items-center gap-4 text-primary">
           <div className="flex items-center gap-2">
             <Coins />
@@ -84,11 +84,11 @@ export default function MarketplacePage() {
         <TabsList className="mb-4">
           <TabsTrigger value="keys">
             <Package className="mr-2 h-4 w-4" />
-            NFT Keys
+            NFT Keys (NFT 密钥)
           </TabsTrigger>
           <TabsTrigger value="shards">
             <Package className="mr-2 h-4 w-4" />
-            Shards
+            Shards (碎片)
           </TabsTrigger>
         </TabsList>
         <TabsContent value="keys">
