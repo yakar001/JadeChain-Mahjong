@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -56,30 +57,30 @@ export default function WorkshopPage() {
 
     return (
     <div>
-      <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Hammer /> NFT Workshop</h1>
+      <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Hammer /> NFT 工坊 (NFT Workshop)</h1>
       <Tabs defaultValue="upgrade">
         <TabsList className="mb-4">
-          <TabsTrigger value="upgrade">Upgrade Key</TabsTrigger>
-          <TabsTrigger value="synthesize">Synthesize</TabsTrigger>
-          <TabsTrigger value="energy">Refill Energy</TabsTrigger>
+          <TabsTrigger value="upgrade">升级密钥 (Upgrade Key)</TabsTrigger>
+          <TabsTrigger value="synthesize">合成密钥 (Synthesize)</TabsTrigger>
+          <TabsTrigger value="energy">补充能量 (Refill Energy)</TabsTrigger>
         </TabsList>
         
         <TabsContent value="upgrade">
             <Card>
                 <CardHeader>
-                    <CardTitle>Upgrade Your NFT Key</CardTitle>
-                    <CardDescription>Combine lower-level keys and pay a fee to get a more powerful key with higher weights.</CardDescription>
+                    <CardTitle>升级您的 NFT 密钥 (Upgrade Your NFT Key)</CardTitle>
+                    <CardDescription>合并低级密钥并支付费用，以获取更高权重的强大密钥。</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                    <div>
-                        <label className="text-sm font-medium">Select Target Level</label>
+                        <label className="text-sm font-medium">选择目标等级 (Select Target Level)</label>
                          <Select onValueChange={setTargetUpgradeLevel} defaultValue={targetUpgradeLevel}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a level to upgrade to..." />
+                                <SelectValue placeholder="选择要升级到的等级..." />
                             </SelectTrigger>
                             <SelectContent>
                                 {Object.entries(upgradeRecipes).map(([level, r]) => (
-                                    <SelectItem key={level} value={level}>Upgrade to Level {level}: {r.toName}</SelectItem>
+                                    <SelectItem key={level} value={level}>升级至 Level {level}: {r.toName}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -89,7 +90,7 @@ export default function WorkshopPage() {
                         <div className="grid md:grid-cols-3 gap-6 items-center">
                             {/* Materials Required */}
                             <div className="flex flex-col items-center gap-2">
-                                <p className="font-bold">Required Materials</p>
+                                <p className="font-bold">需求材料 (Required Materials)</p>
                                 <Card className="p-4 w-full text-sm space-y-2">
                                     <div>
                                         <div className="flex justify-between">
@@ -117,7 +118,7 @@ export default function WorkshopPage() {
                             
                             {/* Result */}
                             <div className="flex flex-col items-center gap-2">
-                                <p className="font-bold">Result</p>
+                                <p className="font-bold">结果 (Result)</p>
                                 <div className="w-40">
                                     <Image src={recipe.toImage} alt={recipe.toName} width={400} height={500} className="rounded-lg border" data-ai-hint={recipe.toDataAiHint}/>
                                     <p className="text-center mt-1 font-semibold">1x {recipe.toName}</p>
@@ -127,7 +128,7 @@ export default function WorkshopPage() {
                     )}
                 </CardContent>
                 <CardFooter>
-                    <Button className="w-full md:w-auto ml-auto" disabled={!recipe}>Upgrade to Level {targetUpgradeLevel}</Button>
+                    <Button className="w-full md:w-auto ml-auto" disabled={!recipe}>升级至 Level {targetUpgradeLevel}</Button>
                 </CardFooter>
             </Card>
         </TabsContent>
@@ -135,14 +136,14 @@ export default function WorkshopPage() {
         <TabsContent value="synthesize">
             <Card>
                 <CardHeader>
-                    <CardTitle>Synthesize NFT Key</CardTitle>
-                    <CardDescription>Combine shards to create a new Level 1 NFT Key.</CardDescription>
+                    <CardTitle>合成 NFT 密钥 (Synthesize NFT Key)</CardTitle>
+                    <CardDescription>合并碎片以创建一个新的 Level 1 NFT 密钥。</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid md:grid-cols-3 gap-6 items-center">
                         {/* Materials Required */}
                         <div className="flex flex-col items-center gap-2">
-                            <p className="font-bold">Required Materials</p>
+                            <p className="font-bold">需求材料 (Required Materials)</p>
                             <Card className="p-4 w-full text-sm space-y-2">
                                 {synthesizeRecipe.shards.map(shard => {
                                     const owned = ownedShards.find(s => s.name === shard.name)?.count || 0;
@@ -164,7 +165,7 @@ export default function WorkshopPage() {
                         
                         {/* Result */}
                         <div className="flex flex-col items-center gap-2">
-                            <p className="font-bold">Result</p>
+                            <p className="font-bold">结果 (Result)</p>
                             <div className="w-40">
                                 <Image src={synthesizeRecipe.toImage} alt={synthesizeRecipe.toName} width={400} height={500} className="rounded-lg border" data-ai-hint={synthesizeRecipe.toDataAiHint}/>
                                 <p className="text-center mt-1 font-semibold">1x {synthesizeRecipe.toName}</p>
@@ -175,7 +176,7 @@ export default function WorkshopPage() {
                 <CardFooter>
                     <Button className="w-full md:w-auto ml-auto" disabled={!canSynthesize}>
                         <Package className="mr-2 h-4 w-4" />
-                        Synthesize
+                        合成 (Synthesize)
                     </Button>
                 </CardFooter>
             </Card>
@@ -184,15 +185,15 @@ export default function WorkshopPage() {
         <TabsContent value="energy">
             <Card>
                  <CardHeader>
-                    <CardTitle>Refill Energy</CardTitle>
-                    <CardDescription>Use $JIN to refill your NFT Key's energy. Energy is required for staking and affects your rewards.</CardDescription>
+                    <CardTitle>补充能量 (Refill Energy)</CardTitle>
+                    <CardDescription>使用 $JIN 为您的 NFT 密钥补充能量。能量是质押所必需的，并会影响您的奖励。</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
-                        <label className="text-sm font-medium">Select NFT Key</label>
+                        <label className="text-sm font-medium">选择 NFT 密钥 (Select NFT Key)</label>
                         <Select onValueChange={(val) => setSelectedKeyId(Number(val))} defaultValue={selectedKeyId?.toString()}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a key..." />
+                                <SelectValue placeholder="选择一个密钥..." />
                             </SelectTrigger>
                             <SelectContent>
                                 {ownedKeys.map(key => (
@@ -208,14 +209,14 @@ export default function WorkshopPage() {
                                 <Image src={selectedKey.image} alt={selectedKey.name} width={80} height={100} className="rounded-md border" data-ai-hint={selectedKey['data-ai-hint']} />
                                 <div className="w-full">
                                     <div className="flex justify-between items-center mb-1">
-                                        <p className="font-semibold flex items-center gap-1"><Zap size={14} /> Energy</p>
+                                        <p className="font-semibold flex items-center gap-1"><Zap size={14} /> 能量 (Energy)</p>
                                         <p>{selectedKey.energy} / {selectedKey.energyMax}</p>
                                     </div>
                                     <Progress value={(selectedKey.energy / selectedKey.energyMax) * 100} />
                                 </div>
                             </div>
                             <p className="text-sm text-center text-muted-foreground">
-                                Cost to fully refill: <span className="text-primary font-bold">{(selectedKey.energyMax - selectedKey.energy) * 0.5} $JIN</span> (0.5 $JIN per energy point)
+                                充满所需费用: <span className="text-primary font-bold">{(selectedKey.energyMax - selectedKey.energy) * 0.5} $JIN</span> (0.5 $JIN / 能量点)
                             </p>
                         </div>
                     )}
@@ -223,7 +224,7 @@ export default function WorkshopPage() {
                  <CardFooter>
                     <Button className="w-full md:w-auto ml-auto" disabled={!selectedKey || selectedKey.energy === selectedKey.energyMax}>
                         <Zap className="mr-2 h-4 w-4" />
-                        Refill Energy
+                        补充能量 (Refill Energy)
                     </Button>
                 </CardFooter>
             </Card>
@@ -232,3 +233,5 @@ export default function WorkshopPage() {
     </div>
   );
 }
+
+    
