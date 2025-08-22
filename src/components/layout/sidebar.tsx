@@ -1,3 +1,4 @@
+
 'use client';
 import {
   SidebarHeader,
@@ -18,7 +19,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <Gem className="w-8 h-8 text-primary" />
-          <h1 className="text-xl font-headline font-semibold text-primary">泉金量化麻将</h1>
+          <h1 className="text-xl font-headline font-semibold text-primary">QuanJin Mahjong</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -27,7 +28,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/'}>
               <Link href="/">
                 <Home />
-                Lobby
+                Lobby (游戏大厅)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -35,7 +36,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/workshop'}>
               <Link href="/workshop">
                 <Hammer />
-                NFT Workshop
+                Workshop (NFT 工坊)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -43,7 +44,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/staking'}>
               <Link href="/staking">
                 <Shield />
-                Staking Center
+                Staking (质押中心)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -51,7 +52,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/vault'}>
               <Link href="/vault">
                 <Banknote />
-                Vault & PnL
+                Vault (金库与损益)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -59,7 +60,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/marketplace'}>
               <Link href="/marketplace">
                 <Store />
-                Marketplace
+                Marketplace (市场)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -67,7 +68,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/dao'}>
               <Link href="/dao">
                 <Vote />
-                DAO
+                DAO (治理)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -75,7 +76,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/profile'}>
               <Link href="/profile">
                 <User />
-                Profile
+                Profile (个人中心)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
