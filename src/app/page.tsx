@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Trophy, Feather, Sword, Crown, Diamond } from "lucide-react";
+import { Users, Trophy, Feather, Sword, Crown, Diamond, Shield, Award } from "lucide-react";
 import type { ReactElement } from "react";
 
 const rooms = [
@@ -46,8 +46,8 @@ export default function Home() {
       <Tabs defaultValue="standard">
         <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
           <TabsTrigger value="standard">标准场</TabsTrigger>
-          <TabsTrigger value="ranked" disabled>排位赛 (Soon)</TabsTrigger>
-          <TabsTrigger value="tournament" disabled>锦标赛 (Soon)</TabsTrigger>
+          <TabsTrigger value="ranked">排位赛</TabsTrigger>
+          <TabsTrigger value="tournament">锦标赛</TabsTrigger>
         </TabsList>
         <TabsContent value="standard" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -83,6 +83,23 @@ export default function Home() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+        <TabsContent value="ranked" className="mt-6">
+          <Card className="flex flex-col items-center justify-center p-8 text-center border-dashed">
+             <Shield size={48} className="text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-bold font-headline">排位赛即将开放</h2>
+            <p className="text-muted-foreground mt-2">敬请期待！在这里挑战更高的段位，赢取专属荣誉。
+            </p>
+          </Card>
+        </TabsContent>
+        <TabsContent value="tournament" className="mt-6">
+          <Card className="flex flex-col items-center justify-center p-8 text-center border-dashed">
+            <Award size={48} className="text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-bold font-headline">锦标赛功能正在开发中</h2>
+            <p className="text-muted-foreground mt-2">
+              未来将在这里举办大型赛事，争夺丰厚奖金和稀有NFT！
+            </p>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
