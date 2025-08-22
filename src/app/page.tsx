@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Trophy, Feather, Sword, Crown, Diamond, Shield, Award, Star, BarChart, Calendar } from "lucide-react";
+import { Users, Trophy, Feather, Sword, Crown, Diamond, Shield, Award, Star, BarChart, Calendar, Clock } from "lucide-react";
 import type { ReactElement } from "react";
 import Image from "next/image";
 import { Progress } from "@/components/ui/progress";
@@ -49,6 +49,39 @@ const rankTiers = [
     { name: "铂金 (Platinum)", color: "text-cyan-400" },
     { name: "钻石 (Diamond)", color: "text-violet-400" },
     { name: "雀圣 (Mahjong Saint)", color: "text-red-500" },
+];
+
+const tournaments = [
+  {
+    name: "泉金杯周赛 #23",
+    status: "报名中",
+    prizePool: 100000,
+    entryFee: 500,
+    players: 88,
+    maxPlayers: 128,
+    startTime: "今天 20:00",
+    statusColor: "bg-green-500",
+  },
+  {
+    name: "金龙争霸赛",
+    status: "进行中",
+    prizePool: 500000,
+    entryFee: 2000,
+    players: 64,
+    maxPlayers: 64,
+    startTime: "已开始",
+    statusColor: "bg-blue-500",
+  },
+    {
+    name: "新手选拔赛",
+    status: "已结束",
+    prizePool: 10000,
+    entryFee: 100,
+    players: 256,
+    maxPlayers: 256,
+    startTime: "昨天 18:00",
+    statusColor: "bg-gray-500",
+  }
 ];
 
 export default function Home() {
@@ -180,13 +213,41 @@ export default function Home() {
            </div>
         </TabsContent>
         <TabsContent value="tournament" className="mt-6">
-          <Card className="flex flex-col items-center justify-center p-8 text-center border-dashed">
-            <Award size={48} className="text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-bold font-headline">锦标赛功能正在开发中</h2>
-            <p className="text-muted-foreground mt-2">
-              未来将在这里举办大型赛事，争夺丰厚奖金和稀有NFT！
-            </p>
-          </Card>
+          <div className="space-y-6">
+            {tournaments.map((t, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                    <CardTitle>{t.name}</CardTitle>
+                    <Badge className={t.statusColor}>{t.status}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center sm:text-left">
+                  <div>
+                    <p className="text-sm text-muted-foreground">总奖池</p>
+                    <p className="text-lg font-bold text-primary flex items-center justify-center sm:justify-start gap-1"><Trophy size={16} /> {t.prizePool.toLocaleString()} $JIN</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">报名费</p>
+                    <p className="text-lg font-bold">{t.entryFee.toLocaleString()} $JIN</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">参赛人数</p>
+                    <p className="text-lg font-bold flex items-center justify-center sm:justify-start gap-1"><Users size={16} /> {t.players}/{t.maxPlayers}</p>
+                  </div>
+                   <div>
+                    <p className="text-sm text-muted-foreground">开始时间</p>
+                    <p className="text-lg font-bold flex items-center justify-center sm:justify-start gap-1"><Clock size={16} /> {t.startTime}</p>
+                  </div>
+                </CardContent>
+                 <CardFooter className="flex justify-end">
+                  <Button disabled={t.status !== '报名中'}>
+                    {t.status === '报名中' ? '报名参赛' : t.status === '进行中' ? '查看对局' : '查看结果'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
