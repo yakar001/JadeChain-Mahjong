@@ -1,7 +1,10 @@
+
+'use client';
 import { KeyNftCard } from '@/components/marketplace/key-nft-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Coins, Package } from 'lucide-react';
 import { ShardCard } from '@/components/marketplace/shard-card';
+import { useToast } from '@/hooks/use-toast';
 
 const keyNfts = [
   {
@@ -69,6 +72,22 @@ const shards = [
 ];
 
 export default function MarketplacePage() {
+  const { toast } = useToast();
+
+  const handleBuyKey = (keyName: string, price: number) => {
+    toast({
+      title: '购买成功 (Purchase Successful)',
+      description: `您已花费 ${price} $JIN 购买了 ${keyName}。`
+    });
+  };
+
+  const handleBuyShard = (shardName: string, price: number) => {
+    toast({
+      title: '购买成功 (Purchase Successful)',
+      description: `您已花费 ${price.toFixed(2)} $JIN 购买了 ${shardName}。`
+    });
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -94,14 +113,14 @@ export default function MarketplacePage() {
         <TabsContent value="keys">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {keyNfts.map((nft) => (
-              <KeyNftCard key={nft.level} {...nft} />
+              <KeyNftCard key={nft.level} {...nft} onBuy={() => handleBuyKey(nft.name, nft.price)} />
             ))}
           </div>
         </TabsContent>
         <TabsContent value="shards">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {shards.map((shard, index) => (
-                <ShardCard key={index} {...shard} />
+                <ShardCard key={index} {...shard} onBuy={() => handleBuyShard(shard.name, shard.price)} />
             ))}
           </div>
         </TabsContent>
@@ -109,3 +128,5 @@ export default function MarketplacePage() {
     </div>
   );
 }
+
+    

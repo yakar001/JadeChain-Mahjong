@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ interface KeyNftCardProps {
   price: number;
   image: string;
   'data-ai-hint'?: string;
+  onBuy: () => void;
 }
 
 const levelColors = {
@@ -25,7 +27,7 @@ const levelColors = {
   5: 'bg-yellow-400/80 border-yellow-300 text-black',
 };
 
-export function KeyNftCard({ name, level, cap, energy, weightH, weightW, price, image, 'data-ai-hint': dataAiHint }: KeyNftCardProps) {
+export function KeyNftCard({ name, level, cap, energy, weightH, weightW, price, image, 'data-ai-hint': dataAiHint, onBuy }: KeyNftCardProps) {
   return (
     <Card className="overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1">
       <CardHeader className="p-0 relative">
@@ -69,10 +71,12 @@ export function KeyNftCard({ name, level, cap, energy, weightH, weightW, price, 
           <Coins className="w-4 h-4" />
           <span>{price.toLocaleString()}</span>
         </div>
-        <Button size="sm">
+        <Button size="sm" onClick={onBuy}>
           Buy (购买)
         </Button>
       </CardFooter>
     </Card>
   );
 }
+
+    

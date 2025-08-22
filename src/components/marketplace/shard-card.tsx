@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +9,10 @@ interface ShardCardProps {
   price: number;
   image: string;
   'data-ai-hint'?: string;
+  onBuy: () => void;
 }
 
-export function ShardCard({ name, price, image, 'data-ai-hint': dataAiHint }: ShardCardProps) {
+export function ShardCard({ name, price, image, 'data-ai-hint': dataAiHint, onBuy }: ShardCardProps) {
   return (
     <Card className="overflow-hidden flex flex-col group transition-all hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1">
       <div className="aspect-square bg-card-foreground/5 p-2">
@@ -31,10 +33,12 @@ export function ShardCard({ name, price, image, 'data-ai-hint': dataAiHint }: Sh
           <Coins className="w-4 h-4" />
           <span>{price.toFixed(2)}</span>
         </div>
-        <Button size="sm" variant="secondary">
+        <Button size="sm" variant="secondary" onClick={onBuy}>
           Buy (购买)
         </Button>
       </CardFooter>
     </Card>
   );
 }
+
+    

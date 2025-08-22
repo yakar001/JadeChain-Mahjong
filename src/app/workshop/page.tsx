@@ -5,9 +5,10 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowRight, Hammer, Zap, Coins, Package, Minus, Plus } from 'lucide-react';
+import { ArrowRight, Hammer, Zap, Coins, Package } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 
 const ownedKeys = [
   { id: 1, name: '金砂 #9101', level: 1, energy: 45, energyMax: 50, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold sand particle' },
@@ -45,15 +46,49 @@ const synthesizeRecipe = {
 export default function WorkshopPage() {
     const [selectedKeyId, setSelectedKeyId] = useState<number | undefined>(ownedKeys[0]?.id);
     const [targetUpgradeLevel, setTargetUpgradeLevel] = useState<string>("2");
+    const { toast } = useToast();
 
     const selectedKey = ownedKeys.find(k => k.id === selectedKeyId);
     const recipe = upgradeRecipes[targetUpgradeLevel];
     const userKeysOfRequiredLevel = ownedKeys.filter(k => k.level === recipe?.fromLevel).length;
 
+    const canUpgrade = recipe && userKeysOfRequiredLevel >= recipe.fromCount && recipe.shards.every(shard => (ownedShards.find(s => s.name === shard.name)?.count || 0) >= shard.count);
+    
     const canSynthesize = synthesizeRecipe.shards.every(shard => {
         const owned = ownedShards.find(s => s.name === shard.name)?.count || 0;
         return owned >= shard.count;
     });
+
+    const handleUpgrade = () => {
+        if (canUpgrade) {
+            toast({
+                title: "升级成功 (Upgrade Successful)",
+                description: `您已成功将 ${recipe.fromCount}x ${recipe.fromName} 升级为 1x ${recipe.toName}!`
+            });
+            // Here you would typically update the state of owned keys and shards
+        }
+    };
+
+    const handleSynthesize = () => {
+        if (canSynthesize) {
+            toast({
+                title: "合成成功 (Synthesis Successful)",
+                description: `您已成功合成了 1x ${synthesizeRecipe.toName}!`
+            });
+            // Here you would typically update the state of owned keys and shards
+        }
+    };
+    
+    const handleRefill = () => {
+        if (selectedKey && selectedKey.energy < selectedKey.energyMax) {
+            const cost = (selectedKey.energyMax - selectedKey.energy) * 0.5;
+            toast({
+                title: "能量补充成功 (Energy Refilled)",
+                description: `您已花费 ${cost.toFixed(2)} $JIN 为 ${selectedKey.name} 补充了能量。`
+            });
+             // Here you would typically update the state of the selected key
+        }
+    };
 
     return (
     <div>
@@ -128,7 +163,7 @@ export default function WorkshopPage() {
                     )}
                 </CardContent>
                 <CardFooter>
-                    <Button className="w-full md:w-auto ml-auto" disabled={!recipe}>升级至 Level {targetUpgradeLevel}</Button>
+                    <Button className="w-full md:w-auto ml-auto" disabled={!canUpgrade} onClick={handleUpgrade}>升级至 Level {targetUpgradeLevel}</Button>
                 </CardFooter>
             </Card>
         </TabsContent>
@@ -174,7 +209,7 @@ export default function WorkshopPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button className="w-full md:w-auto ml-auto" disabled={!canSynthesize}>
+                    <Button className="w-full md:w-auto ml-auto" disabled={!canSynthesize} onClick={handleSynthesize}>
                         <Package className="mr-2 h-4 w-4" />
                         合成 (Synthesize)
                     </Button>
@@ -222,7 +257,7 @@ export default function WorkshopPage() {
                     )}
                 </CardContent>
                  <CardFooter>
-                    <Button className="w-full md:w-auto ml-auto" disabled={!selectedKey || selectedKey.energy === selectedKey.energyMax}>
+                    <Button className="w-full md:w-auto ml-auto" disabled={!selectedKey || selectedKey.energy === selectedKey.energyMax} onClick={handleRefill}>
                         <Zap className="mr-2 h-4 w-4" />
                         补充能量 (Refill Energy)
                     </Button>

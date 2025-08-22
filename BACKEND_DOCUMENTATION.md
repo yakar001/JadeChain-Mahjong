@@ -1,3 +1,4 @@
+
 # Backend Development Documentation
 
 This document outlines the backend architecture and development practices for the QuanJin Mahjong application.
@@ -115,3 +116,5 @@ Server Actions are the interface between the client (React components) and the b
     ```
 
 This completes the backend setup for the new feature, making it available for use in the UI.
+
+    

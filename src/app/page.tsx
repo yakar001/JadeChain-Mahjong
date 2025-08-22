@@ -1,11 +1,14 @@
+
+'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Trophy, Feather, Sword, Crown, Diamond, Shield, Award, Star, BarChart, Calendar, Clock } from "lucide-react";
+import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star } from "lucide-react";
 import type { ReactElement } from "react";
 import Image from "next/image";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 const rooms = [
   { 
@@ -85,6 +88,8 @@ const tournaments = [
 ];
 
 export default function Home() {
+  const { toast } = useToast();
+
   return (
     <div>
       <h1 className="text-3xl font-bold font-headline text-primary mb-6">游戏大厅 (Game Lobby)</h1>
@@ -121,7 +126,7 @@ export default function Home() {
                    <p className="text-sm text-center text-muted-foreground mb-2">
                     入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
                   </p>
-                  <Button className="w-full">
+                  <Button className="w-full" onClick={() => toast({ title: "正在加入对局...", description: `已加入 ${room.tier} 场` })}>
                     加入对局
                   </Button>
                 </CardFooter>
@@ -159,7 +164,7 @@ export default function Home() {
                        </div>
                     </CardContent>
                     <CardFooter>
-                        <Button size="lg" className="w-full sm:w-auto ml-auto">
+                        <Button size="lg" className="w-full sm:w-auto ml-auto" onClick={() => toast({ title: "开始匹配排位赛", description: "正在为您寻找旗鼓相当的对手..." })}>
                             <Sword className="mr-2" />
                             开始排位赛
                         </Button>
@@ -241,7 +246,10 @@ export default function Home() {
                   </div>
                 </CardContent>
                  <CardFooter className="flex justify-end">
-                  <Button disabled={t.status !== '报名中'}>
+                  <Button 
+                    disabled={t.status !== '报名中'}
+                    onClick={() => toast({ title: "报名成功!", description: `您已成功报名 ${t.name}。`})}
+                  >
                     {t.status === '报名中' ? '报名参赛' : t.status === '进行中' ? '查看对局' : '查看结果'}
                   </Button>
                 </CardFooter>
@@ -253,3 +261,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
