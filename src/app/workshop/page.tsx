@@ -29,6 +29,18 @@ const upgradeRecipes: Record<string, { fromLevel: number; fromName: string; from
     "3": { fromLevel: 2, fromName: "金潮 (Golden Tide)", fromCount: 3, jin: 500, shards: [{ name: "Dragon Shard", count: 10 }], toName: '金脉 (Golden Vein)', toImage: 'https://placehold.co/400x500.png', toDataAiHint: 'gold glowing lines' },
 };
 
+const synthesizeRecipe = {
+    shards: [
+        { name: "Bamboo Shard", count: 10 },
+        { name: "Dots Shard", count: 10 },
+        { name: "Character Shard", count: 10 },
+    ],
+    jin: 10,
+    toName: '金砂 (Golden Sand)',
+    toImage: 'https://placehold.co/400x500.png',
+    toDataAiHint: 'gold sand particle',
+};
+
 export default function WorkshopPage() {
     const [selectedKeyId, setSelectedKeyId] = useState<number | undefined>(ownedKeys[0]?.id);
     const [targetUpgradeLevel, setTargetUpgradeLevel] = useState<string>("2");
@@ -37,13 +49,18 @@ export default function WorkshopPage() {
     const recipe = upgradeRecipes[targetUpgradeLevel];
     const userKeysOfRequiredLevel = ownedKeys.filter(k => k.level === recipe?.fromLevel).length;
 
+    const canSynthesize = synthesizeRecipe.shards.every(shard => {
+        const owned = ownedShards.find(s => s.name === shard.name)?.count || 0;
+        return owned >= shard.count;
+    });
+
     return (
     <div>
       <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Hammer /> NFT Workshop</h1>
       <Tabs defaultValue="upgrade">
         <TabsList className="mb-4">
           <TabsTrigger value="upgrade">Upgrade Key</TabsTrigger>
-          <TabsTrigger value="synthesize" disabled>Synthesize (Soon)</TabsTrigger>
+          <TabsTrigger value="synthesize">Synthesize</TabsTrigger>
           <TabsTrigger value="energy">Refill Energy</TabsTrigger>
         </TabsList>
         
@@ -111,6 +128,55 @@ export default function WorkshopPage() {
                 </CardContent>
                 <CardFooter>
                     <Button className="w-full md:w-auto ml-auto" disabled={!recipe}>Upgrade to Level {targetUpgradeLevel}</Button>
+                </CardFooter>
+            </Card>
+        </TabsContent>
+        
+        <TabsContent value="synthesize">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Synthesize NFT Key</CardTitle>
+                    <CardDescription>Combine shards to create a new Level 1 NFT Key.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid md:grid-cols-3 gap-6 items-center">
+                        {/* Materials Required */}
+                        <div className="flex flex-col items-center gap-2">
+                            <p className="font-bold">Required Materials</p>
+                            <Card className="p-4 w-full text-sm space-y-2">
+                                {synthesizeRecipe.shards.map(shard => {
+                                    const owned = ownedShards.find(s => s.name === shard.name)?.count || 0;
+                                    return (
+                                        <div key={shard.name} className="flex justify-between">
+                                            <span>{shard.count}x {shard.name}</span>
+                                            <span className={owned >= shard.count ? 'text-green-400' : 'text-red-400'}>({owned} owned)</span>
+                                        </div>
+                                    )
+                                })}
+                                <p className="flex items-center gap-1 pt-2 border-t mt-2"><Coins size={14}/> {synthesizeRecipe.jin} $JIN</p>
+                            </Card>
+                        </div>
+                        
+                        {/* Arrow */}
+                        <div className="flex justify-center items-center">
+                            <ArrowRight size={48} className="text-primary animate-pulse" />
+                        </div>
+                        
+                        {/* Result */}
+                        <div className="flex flex-col items-center gap-2">
+                            <p className="font-bold">Result</p>
+                            <div className="w-40">
+                                <Image src={synthesizeRecipe.toImage} alt={synthesizeRecipe.toName} width={400} height={500} className="rounded-lg border" data-ai-hint={synthesizeRecipe.toDataAiHint}/>
+                                <p className="text-center mt-1 font-semibold">1x {synthesizeRecipe.toName}</p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button className="w-full md:w-auto ml-auto" disabled={!canSynthesize}>
+                        <Package className="mr-2 h-4 w-4" />
+                        Synthesize
+                    </Button>
                 </CardFooter>
             </Card>
         </TabsContent>
