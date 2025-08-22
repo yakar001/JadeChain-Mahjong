@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
 
 export const metadata: Metadata = {
-  title: '泉金量化麻将 (QuanJin Mahjong)',
+  title: 'QuanJin Mahjong',
   description: '麻将娱乐 × 黄金期货 5m 策略分红 × 挖矿算力映射',
 };
 
