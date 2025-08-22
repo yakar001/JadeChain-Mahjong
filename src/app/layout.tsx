@@ -4,8 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
 
 export const metadata: Metadata = {
-  title: 'JadeChain Mahjong',
-  description: 'A sophisticated WEB3 Mahjong chain game.',
+  title: '泉金量化麻将 (QuanJin Mahjong)',
+  description: '麻将娱乐 × 黄金期货 5m 策略分红 × 挖矿算力映射',
 };
 
 export default function RootLayout({

@@ -7,7 +7,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Gem, Home, Store, User, Bot } from 'lucide-react';
+import { Gem, Home, Store, User, Bot, Vote, Shield, Hammer, Banknote } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -18,7 +18,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <Gem className="w-8 h-8 text-primary" />
-          <h1 className="text-xl font-headline font-semibold text-primary">JadeChain Mahjong</h1>
+          <h1 className="text-xl font-headline font-semibold text-primary">泉金量化麻将</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -27,7 +27,31 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/'}>
               <Link href="/">
                 <Home />
-                Live Match
+                Lobby
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/workshop'}>
+              <Link href="/workshop">
+                <Hammer />
+                NFT Workshop
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/staking'}>
+              <Link href="/staking">
+                <Shield />
+                Staking Center
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/vault'}>
+              <Link href="/vault">
+                <Banknote />
+                Vault & PnL
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -36,6 +60,14 @@ export function AppSidebar() {
               <Link href="/marketplace">
                 <Store />
                 Marketplace
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/dao'}>
+              <Link href="/dao">
+                <Vote />
+                DAO
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
