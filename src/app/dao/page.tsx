@@ -49,10 +49,10 @@ export default function DaoPage() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold font-headline text-primary flex items-center gap-2"><Vote /> DAO Governance</h1>
+        <h1 className="text-3xl font-bold font-headline text-primary flex items-center gap-2"><Vote /> DAO Governance (DAO 治理)</h1>
         <Button>
             <FileText className="mr-2 h-4 w-4" />
-            Create New Proposal
+            Create New Proposal (创建新提案)
         </Button>
       </div>
 
@@ -73,14 +73,14 @@ export default function DaoPage() {
                     <div>
                         <div className="mb-2">
                             <div className="flex justify-between items-center text-sm mb-1">
-                                <span className="font-semibold text-green-400">For</span>
+                                <span className="font-semibold text-green-400">For (赞成)</span>
                                 <span>{p.for}%</span>
                             </div>
                             <Progress value={p.for} className="h-2 [&>div]:bg-green-400" />
                         </div>
                          <div>
                              <div className="flex justify-between items-center text-sm mb-1">
-                                <span className="font-semibold text-red-400">Against</span>
+                                <span className="font-semibold text-red-400">Against (反对)</span>
                                 <span>{p.against}%</span>
                             </div>
                             <Progress value={p.against} className="h-2 [&>div]:bg-red-400"/>
@@ -89,8 +89,8 @@ export default function DaoPage() {
                 </CardContent>
                 {p.status === 'Active' && (
                     <CardFooter className="flex justify-end gap-4">
-                        <Button variant="outline">Vote Against</Button>
-                        <Button>Vote For</Button>
+                        <Button variant="outline">Vote Against (反对)</Button>
+                        <Button>Vote For (赞成)</Button>
                     </CardFooter>
                 )}
             </Card>
