@@ -34,7 +34,7 @@ export default function ProfilePage() {
           </div>
           <div className="sm:ml-auto flex flex-col items-center gap-2">
              <ShieldCheck className="w-8 h-8 text-green-500" />
-             <span className="text-sm text-muted-foreground">KYC Level: 1</span>
+             <span className="text-sm text-muted-foreground">KYC Level: 1 (KYC 等级)</span>
           </div>
         </CardContent>
       </Card>
@@ -43,7 +43,7 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart />
-            Player Statistics
+            Player Statistics (玩家统计)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -53,27 +53,27 @@ export default function ProfilePage() {
                 <Gamepad2 className="text-accent" />
                 <span>152</span>
               </div>
-              <p className="text-muted-foreground">Matches Played</p>
+              <p className="text-muted-foreground">Matches Played (比赛场次)</p>
             </div>
             <div>
               <div className="flex items-center justify-center gap-2 text-2xl font-bold">
                 <Trophy className="text-primary" />
                 <span>88</span>
               </div>
-              <p className="text-muted-foreground">Wins</p>
+              <p className="text-muted-foreground">Wins (胜利次数)</p>
             </div>
             <div>
               <div className="flex items-center justify-center gap-2 text-2xl font-bold">
                 <span className="text-foreground">57.9%</span>
               </div>
-              <p className="text-muted-foreground">Win Rate</p>
+              <p className="text-muted-foreground">Win Rate (胜率)</p>
             </div>
           </div>
         </CardContent>
       </Card>
       
       <div>
-        <h2 className="text-2xl font-bold font-headline mb-4">NFT Key Collection</h2>
+        <h2 className="text-2xl font-bold font-headline mb-4">NFT Key Collection (NFT 密钥收藏)</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {ownedNfts.map((nft, index) => (
             <div key={index} className="group relative aspect-[4/5] overflow-hidden rounded-lg border">
