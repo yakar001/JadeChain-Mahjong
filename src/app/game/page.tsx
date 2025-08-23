@@ -102,6 +102,7 @@ function GameRoom() {
   const [pot, setPot] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult>(null);
   const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
+  const [canPerformAction, setCanPerformAction] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
 
@@ -215,10 +216,16 @@ function GameRoom() {
         }
     }
     
-    // Switch to next player
-    if(players.length > 1) {
-        const nextPlayerIndex = (activePlayer + 1) % players.length;
-        setActivePlayer(nextPlayerIndex);
+    // Check if other players can perform an action (Pong, Kong, Chow)
+    // For simulation, we'll just enable it for the human player if it's an AI's turn
+    if (playerIndex !== 0) {
+        // Placeholder logic: just enable buttons for demo
+        setCanPerformAction(true);
+    } else {
+         if(players.length > 1) {
+            const nextPlayerIndex = (activePlayer + 1) % players.length;
+            setActivePlayer(nextPlayerIndex);
+        }
     }
   }, [players, activePlayer, isMuted]);
 
@@ -457,6 +464,19 @@ function GameRoom() {
       handleEndGame(winner, opponent.balance);
   }
 
+  const handleAction = (action: 'pong' | 'kong' | 'chow' | 'skip') => {
+    setCanPerformAction(false); // Hide buttons after action
+    toast({
+        title: `执行操作 (${action})`,
+        description: `您选择了 ${action}。`,
+    });
+    // Placeholder for actual game logic (e.g., forming a meld)
+    
+    // After action, it's this player's turn to discard. For now, we just pass to next player for simulation flow.
+    const nextPlayerIndex = (activePlayer + 1) % players.length;
+    setActivePlayer(nextPlayerIndex);
+  };
+
   useEffect(() => {
     if (audioSrc) {
       const audio = new Audio(audioSrc);
@@ -613,13 +633,24 @@ function GameRoom() {
                  </div>
             </div>
             
-            <PlayerHand 
-                hand={humanPlayer?.hand || []} 
-                onTileClick={handleSelectOrDiscardTile}
-                canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
-                goldenTile={goldenTile}
-                selectedTileIndex={selectedTileIndex}
-            />
+            <div className="relative">
+                <PlayerHand 
+                    hand={humanPlayer?.hand || []} 
+                    onTileClick={handleSelectOrDiscardTile}
+                    canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
+                    goldenTile={goldenTile}
+                    selectedTileIndex={selectedTileIndex}
+                />
+                {canPerformAction && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 rounded-lg">
+                        <Button onClick={() => handleAction('chow')} size="lg">吃 (Chow)</Button>
+                        <Button onClick={() => handleAction('pong')} size="lg">碰 (Pong)</Button>
+                        <Button onClick={() => handleAction('kong')} size="lg">杠 (Kong)</Button>
+                        <Button onClick={() => handleAction('skip')} size="lg" variant="secondary">跳过 (Skip)</Button>
+                    </div>
+                )}
+            </div>
+
         </div>
         <div className="text-xs text-muted-foreground break-all">
             <strong>Shuffle Hash (确保公平):</strong> {shuffleHash}
@@ -696,3 +727,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    

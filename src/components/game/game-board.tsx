@@ -106,26 +106,22 @@ const PlayerInfo = ({ player, position, isActive, isBanker, turnTimer, turnDurat
 };
 
 const DiscardArea = ({ discards, position }: { discards: Tile[]; position: 'bottom' | 'right' | 'top' | 'left' }) => {
-    const gridStyles = {
-        bottom: 'grid-rows-3 grid-flow-col-dense',
-        top: 'grid-rows-3 grid-flow-col-dense',
-        left: 'grid-cols-3 grid-flow-row-dense h-3/5',
-        right: 'grid-cols-3 grid-flow-row-dense h-3/5',
-    };
     const positionClasses = {
-        bottom: 'bottom-[52%] left-1/2 -translate-x-1/2 w-2/5',
-        right: 'top-1/2 right-[52%] -translate-y-1/2 w-1/5',
-        top: 'top-[52%] left-1/2 -translate-x-1/2 w-2/5',
-        left: 'top-1/2 left-[52%] -translate-y-1/2 w-1/5'
-    }
+        bottom: 'bottom-[52%] left-1/2 -translate-x-1/2 w-2/5 h-1/4 transform-none',
+        right: 'top-1/2 right-[52%] -translate-y-1/2 w-1/4 h-2/5 transform rotate-90',
+        top: 'top-[52%] left-1/2 -translate-x-1/2 w-2/5 h-1/4 transform rotate-180',
+        left: 'top-1/2 left-[52%] -translate-y-1/2 w-1/4 h-2/5 transform -rotate-90'
+    };
 
     return (
-        <div className={cn('absolute grid gap-1 p-1 justify-center items-center', positionClasses[position], gridStyles[position])}>
+        <div className={cn('absolute flex flex-row flex-wrap items-start justify-center gap-1 p-1', positionClasses[position])}>
             {discards.map((tile, index) => (
-                <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
+                <div key={index} className={cn(position === 'top' && 'transform rotate-180', (position === 'left' || position === 'right') && 'transform-none')}>
+                     <MahjongTile suit={tile.suit} value={tile.value as any} size="sm" />
+                </div>
             ))}
         </div>
-    )
+    );
 }
 
 const Dice = ({ value }: { value: number }) => {
@@ -228,3 +224,5 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
+
+    
