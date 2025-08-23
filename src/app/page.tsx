@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star, ShieldCheck } from "lucide-react";
-import type { ReactElement } from "react";
+import type { ReactElement, MouseEvent } from "react";
 import Image from "next/image";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -102,17 +102,16 @@ const tournaments = [
 export default function Home() {
   const { toast } = useToast();
 
-  const handleJoinRoom = (room: typeof rooms[0]) => {
+  const handleJoinRoom = (event: MouseEvent, room: typeof rooms[0]) => {
     if (room.kycRequired > userKycLevel) {
+      event.preventDefault(); // Prevent navigation
       toast({
         variant: "destructive",
         title: "KYC 等级不足 (KYC Level Too Low)",
         description: `进入 ${room.tierDisplay} 需要 KYC 等级 ${room.kycRequired}。请先提升您的 KYC 等级。`,
       });
-      return null; // Prevents Link from navigating
     }
-    return `/game?tier=${room.tier}&fee=${room.fee}`;
-  }
+  };
 
   return (
     <div>
@@ -157,7 +156,10 @@ export default function Home() {
                     入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
                   </p>
                   <Button className="w-full" asChild>
-                    <Link href={handleJoinRoom(room) || '#'}>
+                    <Link
+                      href={`/game?tier=${room.tier}&fee=${room.fee}`}
+                      onClick={(e) => handleJoinRoom(e, room)}
+                    >
                       加入对局 (Join Game)
                     </Link>
                   </Button>
