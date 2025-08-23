@@ -62,11 +62,11 @@ const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number 
 };
 
 
-const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, goldenTile }: { player: Player; isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number, goldenTile: Tile | null }) => {
+const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, goldenTile, orientation = 'horizontal' }: { player: Player; isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number, goldenTile: Tile | null, orientation?: 'horizontal' | 'vertical' }) => {
   const showTimer = isActive && player.id === 0;
 
   return (
-    <div className='flex items-center gap-2 z-10'>
+    <div className={cn('flex items-center gap-2 z-10', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
         {player.melds.length > 0 && (
             <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
                 {player.melds.map((meld, i) => (
@@ -76,7 +76,7 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
                 ))}
             </div>
         )}
-        <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg border-2', isActive ? 'border-primary' : 'border-transparent')}>
+        <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg border-2', isActive ? 'border-primary' : 'border-transparent', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
             <Avatar className={cn('h-10 w-10')}>
                 <AvatarImage src={player.avatar} />
                 <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
@@ -195,13 +195,13 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
           {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
         </div>
         <div className="absolute -right-2 top-1/2 -translate-y-1/2">
-          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
         </div>
         <div className="absolute -top-2 left-1/2 -translate-x-1/2">
             {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
         </div>
         <div className="absolute -left-2 top-1/2 -translate-y-1/2">
-            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
         </div>
 
 
