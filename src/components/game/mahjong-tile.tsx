@@ -51,7 +51,7 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
             return <div key={i} className={cn("rounded-sm", bambooColor, sizeClass.bamboo, isRed && redColor, isBlue && dotColor )} />;
         });
         switch (value) {
-            case '1': return <svg className={cn("w-10 h-10", size === 'sm' && "w-8 h-8")} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#4CAF50"/><path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="#4CAF50"/><path d="M16.5 8.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM7.5 8.5c-.83 0-1.5.67-1.5 1.5S6.67 11.5 7.5 11.5 9 10.83 9 10s-.67-1.5-1.5-1.5z" fill="#4CAF50"/><path d="M12 14c-2.33 0-4.31 1.46-5.11 3.5h10.22c-.8-2.04-2.78-3.5-5.11-3.5z" fill="#4CAF50"/></svg>;
+            case '1': return <svg className={cn("w-10 h-10", size === 'sm' && "w-8 h-8")} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50,10 a15,15 0 1,0 0,20 a15,15 0 1,0 0,-20 M40,40 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M20,50 a5,5 0 1,0 60,0 a5,5 0 1,0 -60,0" fill="#006400" /><path d="M30,70 l40,0 l-20,20 z" fill="#006400" /></svg>;
             case '2': case '3': case '4': return <div className="w-full h-full flex flex-col justify-around items-center p-1">{sticks}</div>;
             case '5': return <div className="w-full h-full flex justify-around items-center"><div className="flex flex-col justify-around h-3/5">{sticks.slice(0,2)}</div> {sticks[2]} <div className="flex flex-col justify-around h-3/5">{sticks.slice(3,5)}</div></div>;
             case '6': return <div className="w-full h-full flex flex-col justify-around"><div className="flex justify-around">{sticks.slice(0,3)}</div><div className="flex justify-around">{sticks.slice(3,6)}</div></div>;
@@ -67,17 +67,17 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
     const baseFontSize = size === 'md' ? 'text-4xl' : 'text-2xl';
     
     if (suit === 'characters') {
-        return <div className="flex flex-col items-center justify-between h-full p-1 font-bold"><span className={cn('text-red-600 self-end', size === 'md' ? 'text-xs' : 'text-[10px]')}>{symbolMap[value]}</span><span className={cn('text-black', baseFontSize)}>{characterMap[value]}</span></div>;
+        return <div className="flex flex-col items-center justify-between h-full p-1 font-bold font-headline"><span className={cn('text-red-600 self-end', size === 'md' ? 'text-xs' : 'text-[10px]')}>{symbolMap[value]}</span><span className={cn('text-black', baseFontSize)}>{characterMap[value]}</span></div>;
     }
     if (suit === 'wind') {
-        return <span className={cn('font-bold', baseFontSize)}>{symbolMap[value]}</span>;
+        return <span className={cn('font-bold font-headline', baseFontSize)}>{symbolMap[value]}</span>;
     }
     if (suit === 'dragon') {
         if (value === 'B') {
             return <div className={cn("w-4/5 h-4/5 border-4 border-blue-600 rounded", size === 'sm' && "border-2")} />;
         }
         const color = value === 'R' ? 'text-red-600' : 'text-green-600';
-        return <span className={cn('font-bold', color, baseFontSize)}>{symbolMap[value]}</span>;
+        return <span className={cn('font-bold font-headline', color, baseFontSize)}>{symbolMap[value]}</span>;
     }
     return null;
 }
