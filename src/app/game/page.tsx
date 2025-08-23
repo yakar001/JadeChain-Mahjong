@@ -5,28 +5,30 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
 import { MahjongTile } from '@/components/game/mahjong-tile';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[] };
+type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; balance: number; };
 type DiceRoll = [number, number];
-type GameState = 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing';
+type GameState = 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
+type RoundResult = { winner: Player; losers: Player[]; amount: number } | null;
 
 
 // 初始牌的数据
 const suits = ['dots', 'bamboo', 'characters'];
 const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B'];
+const STAKE_AMOUNT = 100;
 
 const createDeck = (): Tile[] => {
   let deck: Tile[] = [];
@@ -76,10 +78,13 @@ export default function GamePage() {
   const [isMuted, setIsMuted] = useState(false);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
+  const [pot, setPot] = useState(0);
+  const [roundResult, setRoundResult] = useState<RoundResult>(null);
 
 
   const initializeGame = () => {
     setGameState('pre-roll');
+    setRoundResult(null);
     const newDeck = createDeck();
     
     // Create a hash for shuffle fairness
@@ -93,12 +98,13 @@ export default function GamePage() {
     setWall(shuffled);
     setGoldenTile(null);
     const initialPlayers: Player[] = [
-      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [] },
-      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [] },
-      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [] },
-      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [] },
+      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], balance: 1000 },
+      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000 },
+      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000 },
+      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000 },
     ];
     setPlayers(initialPlayers);
+    setPot(0);
     setActivePlayer(0);
     setDrawnTile(null);
     setSelectedTileIndex(null);
@@ -112,6 +118,11 @@ export default function GamePage() {
     setGameState('rolling');
     const newDice: DiceRoll = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     setDice(newDice);
+
+    // Stake tokens
+    const playersWithStake = players.map(p => ({...p, balance: p.balance - STAKE_AMOUNT}));
+    setPlayers(playersWithStake);
+    setPot(players.length * STAKE_AMOUNT);
     
     setTimeout(() => {
         const total = newDice[0] + newDice[1];
@@ -120,7 +131,7 @@ export default function GamePage() {
         
         const wallCopy = [...wall];
         
-        const initialPlayers: Player[] = [...players];
+        const initialPlayers: Player[] = [...playersWithStake];
         // Deal 13 tiles to each player
         for (let i = 0; i < 13; i++) {
             for (const player of initialPlayers) {
@@ -222,6 +233,26 @@ export default function GamePage() {
     }
   };
 
+  const handleWin = () => {
+      const winner = players[activePlayer];
+      if (!winner) return;
+
+      const losers = players.filter(p => p.id !== winner.id);
+      const winAmount = pot;
+      const lossAmount = winAmount / losers.length;
+
+      const updatedPlayers = players.map(p => {
+          if (p.id === winner.id) {
+              return { ...p, balance: p.balance + winAmount };
+          }
+          return { ...p, balance: p.balance - lossAmount };
+      });
+      
+      setPlayers(updatedPlayers);
+      setRoundResult({ winner, losers, amount: winAmount });
+      setGameState('game-over');
+  }
+
   useEffect(() => {
     if (audioSrc) {
       const audio = new Audio(audioSrc);
@@ -237,6 +268,10 @@ export default function GamePage() {
       <div className="lg:col-span-3 space-y-6">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <h1 className="text-2xl font-bold font-headline text-primary">新手场 (Novice Room)</h1>
+           <div className="flex items-center gap-2 text-xl font-bold text-primary border-2 border-primary/50 bg-primary/10 px-3 py-1 rounded-lg">
+                <Trophy />
+                <span>奖池 (Pot): {pot} $JIN</span>
+            </div>
           <div className="flex items-center gap-2 flex-wrap">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -253,22 +288,29 @@ export default function GamePage() {
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
                                     <li><strong>开金 (Reveal Golden Tile)：</strong>庄家再次掷骰子，根据点数从牌墙的何处翻开一张牌作为“金”。</li>
                                     <li><strong>作用 (Function)：</strong>金牌可以用来替代任何你需要的牌来组成顺子、刻子或将牌。</li>
-                                    <li><strong>胜负 (Winning)：</strong>拥有金牌可以极大地提高胡牌的概率和牌型的大小。</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-foreground">计分规则 (Scoring)</h3>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                     <li><strong>普通胡牌 (Standard Win)：</strong>赢家获得奖池内所有押金。输家均分损失。</li>
+                                     <li><strong>自摸 (Self-Drawn Win)：</strong>自摸胡牌的赢家，奖金翻倍。</li>
+                                     <li><strong>游金 (Golden Tour Win)：</strong>使用“金牌”作为胡牌的关键张时，称为“游金”。根据打出金牌的时机获得额外翻倍奖励。本次模拟中，自摸胡牌即视为游金成功。</li>
                                 </ul>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-foreground">公平性保证 (Fairness Guarantee)</h3>
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>洗牌哈希 (Shuffle Hash)：</strong>游戏开始前，系统会对一副完整的、排序好的麻将牌进行加密哈希计算，并立即显示该哈希值。这意味着牌墙在发牌前就已完全确定，无法被篡改，确保了洗牌的绝对公平。</li>
-                                    <li><strong>掷骰子 (Dice Roll)：</strong>所有的掷骰子操作均在服务器端完成，以防止任何客户端的作弊行为，保证结果的随机性。</li>
+                                    <li><strong>洗牌哈希 (Shuffle Hash)：</strong>游戏开始前，系统会对一副完整的、排序好的麻将牌进行加密哈希计算，并立即显示该哈希值。这意味着牌墙在发牌前就已完全确定，无法被篡改。</li>
+                                    <li><strong>掷骰子 (Dice Roll)：</strong>所有的掷骰子操作均在服务器端完成，保证结果的随机性。</li>
                                 </ul>
                             </div>
                              <div>
-                                <h3 className="font-semibold text-foreground">游金规则详解 (Golden Tile Rules)</h3>
+                                <h3 className="font-semibold text-foreground">游金规则详解 (Golden Tour Rules)</h3>
                                 <p>当玩家以“金牌”作为胡牌的关键张时，称为“游金”，并根据打出金牌的时机获得额外翻倍奖励。</p>
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>一游 (Single Tour)：</strong>在胡牌时，将一张金牌作为普通牌打出，让其他玩家看到。如果成功胡牌，则总分翻2倍。</li>
-                                    <li><strong>双游 (Double Tour)：</strong>在“一游”的基础上，再次轮到自己摸牌时，摸到的牌恰好是可以胡的牌，此时再次打出一张金牌并声明胡牌。如果成功，则总分翻4倍。</li>
+                                    <li><strong>一游 (Single Tour)：</strong>在胡牌时，将一张金牌作为普通牌打出。如果成功胡牌，则总分翻2倍。</li>
+                                    <li><strong>双游 (Double Tour)：</strong>在“一游”的基础上，再次摸牌时恰好胡牌，此时再次打出一张金牌并声明胡牌。如果成功，则总分翻4倍。</li>
                                     <li><strong>三游 (Triple Tour)：</strong>极为罕见。在“双游”成功后，若摸牌后仍未胡牌，则再次打出一张金牌。若最终成功胡牌，则总分翻8倍。</li>
                                 </ul>
                             </div>
@@ -332,6 +374,12 @@ export default function GamePage() {
                           摸牌 (Draw Tile)
                       </Button>
                     )}
+                    {gameState === 'playing' && activePlayer === 0 && drawnTile && (
+                        <Button onClick={handleWin} variant="destructive">
+                            <Trophy className="mr-2 h-4 w-4 text-yellow-300"/>
+                            自摸胡牌 (Win)
+                        </Button>
+                    )}
                  </div>
             </div>
             
@@ -350,8 +398,37 @@ export default function GamePage() {
       <div className="lg:col-span-1">
         <AiTutor />
       </div>
+
+       <AlertDialog open={gameState === 'game-over'}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+                <Trophy className="text-yellow-400" />
+                对局结束 (Game Over)
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {roundResult?.winner.name} 获得了胜利!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4">
+            <p className="font-bold text-center text-lg">{roundResult?.winner.name} +{roundResult?.amount} $JIN</p>
+             <div className="space-y-2 mt-2 text-center">
+                {roundResult?.losers.map(l => (
+                    <p key={l.id} className="text-sm text-muted-foreground">{l.name} -{roundResult.amount / roundResult.losers.length} $JIN</p>
+                ))}
+             </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={initializeGame}>
+                <Shuffle className="mr-2"/>
+                再来一局 (Play Again)
+            </AlertDialogAction>
+             <AlertDialogCancel asChild>
+                <Link href="/">返回大厅 (Back to Lobby)</Link>
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-    

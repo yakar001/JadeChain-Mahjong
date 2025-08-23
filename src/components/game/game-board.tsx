@@ -3,11 +3,11 @@ import { MahjongTile } from './mahjong-tile';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2 } from 'lucide-react';
+import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins } from 'lucide-react';
 import React from 'react';
 
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[] };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; balance: number; };
 type DiceRoll = [number, number];
 
 interface GameBoardProps {
@@ -15,7 +15,7 @@ interface GameBoardProps {
   activePlayerId: number;
   wallCount: number;
   dice: DiceRoll;
-  gameState: 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden';
+  gameState: 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden' | 'game-over';
   bankerId: number | null;
 }
 
@@ -34,22 +34,34 @@ const PlayerInfo = ({ player, position, isActive, isBanker }: { player: Player; 
         <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
       </Avatar>
       <div className={cn('transition-opacity duration-300 flex items-center gap-1', isActive ? 'opacity-100' : 'opacity-70')}>
-        <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
-        {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
+        <div className='text-center'>
+            <div className='flex items-center gap-1'>
+                <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
+                {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
+            </div>
+            <p className='text-xs text-primary font-mono flex items-center gap-1'><Coins size={12}/> {player.balance}</p>
+        </div>
       </div>
     </div>
   );
 };
 
 const DiscardArea = ({ discards, position }: { discards: Tile[]; position: 'bottom' | 'right' | 'top' | 'left' }) => {
+    const gridStyles = {
+        bottom: 'grid-rows-3 grid-flow-col-dense',
+        top: 'grid-rows-3 grid-flow-col-dense',
+        left: 'grid-cols-3 grid-flow-row-dense',
+        right: 'grid-cols-3 grid-flow-row-dense',
+    };
     const positionClasses = {
-        bottom: 'bottom-[20%] left-1/2 -translate-x-1/2 w-3/5 h-1/4',
-        right: 'top-1/2 right-[20%] -translate-y-1/2 h-3/5 w-1/4',
-        top: 'top-[20%] left-1/2 -translate-x-1/2 w-3/5 h-1/4',
-        left: 'top-1/2 left-[20%] -translate-y-1/2 h-3/5 w-1/4'
+        bottom: 'bottom-[calc(50%+1rem)] left-1/2 -translate-x-1/2 w-3/5',
+        right: 'top-1/2 right-[calc(50%+1rem)] -translate-y-1/2 h-3/5',
+        top: 'top-[calc(50%+1rem)] left-1/2 -translate-x-1/2 w-3/5',
+        left: 'top-1/2 left-[calc(50%+1rem)] -translate-y-1/2 h-3/5'
     }
+
     return (
-        <div className={cn('absolute flex flex-wrap-reverse gap-1 p-1 justify-center items-center', positionClasses[position])}>
+        <div className={cn('absolute grid gap-1 p-1 justify-center items-center', positionClasses[position], gridStyles[position])}>
             {discards.map((tile, index) => (
                 <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
             ))}
@@ -66,8 +78,8 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     <div className={cn('flex gap-px', orientation === 'horizontal' ? 'flex-row' : 'flex-col')}>
         {Array.from({ length: Math.ceil(count / 2) }).map((_, i) => (
             <div key={i} className="relative">
-                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-3 h-5 border-b-2' : 'w-5 h-3 border-r-2')}></div>
-                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-3 h-5 border-b-2 ml-px -mt-px' : 'w-5 h-3 border-r-2 mt-px -ml-px')}></div>
+                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-4 h-6 border-b-2' : 'w-6 h-4 border-r-2')}></div>
+                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-4 h-6 border-b-2 ml-px -mt-px' : 'w-6 h-4 border-r-2 mt-px -ml-px')}></div>
             </div>
         ))}
     </div>
@@ -82,29 +94,48 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     
     // Total tiles = 136. Each side has 17 pairs (34 tiles).
     const tilesPerSide = 34;
+    const initialWallCount = 136;
+    const tilesDealt = 52; // 13 tiles for 4 players
+    const dealtWallCount = initialWallCount - tilesDealt - 1; // 1 for banker
+    const tilesDrawn = dealtWallCount - wallCount;
 
-    // Simulate wall reduction based on banker position
-    // For simplicity, let's assume banker is always East (player 1) for wall breaking
-    // This part can get very complex, so we simplify for visuals
-    const totalTiles = 136;
-    const tilesDealt = (13 * 4) + 1;
-    const remainingAfterDeal = totalTiles - tilesDealt;
-    const wallTilesToShow = Math.max(0, wallCount - (remainingAfterDeal - wallCount));
+    const getWallCounts = () => {
+        let counts = { east: tilesPerSide, south: tilesPerSide, west: tilesPerSide, north: tilesPerSide };
+        if (gameState === 'pre-roll') return counts;
 
-    const eastCount = Math.min(tilesPerSide, wallTilesToShow);
-    const southCount = Math.min(tilesPerSide, Math.max(0, wallTilesToShow - tilesPerSide));
-    const westCount = Math.min(tilesPerSide, Math.max(0, wallTilesToShow - tilesPerSide * 2));
-    const northCount = Math.min(tilesPerSide, Math.max(0, wallTilesToShow - tilesPerSide * 3));
+        let tilesToRemove = (initialWallCount - wallCount);
+        const startSide = bankerId === 0 ? 'south' : bankerId === 1 ? 'east' : bankerId === 2 ? 'north' : 'west';
+        
+        const sides: Array<keyof typeof counts> = ['east', 'south', 'west', 'north'];
+        let currentSideIndex = sides.indexOf(startSide);
+
+        while (tilesToRemove > 0) {
+            const side = sides[currentSideIndex];
+            const removable = counts[side];
+            if (tilesToRemove >= removable) {
+                tilesToRemove -= removable;
+                counts[side] = 0;
+            } else {
+                counts[side] -= tilesToRemove;
+                tilesToRemove = 0;
+            }
+            currentSideIndex = (currentSideIndex + 1) % 4; // Move to next player (counter-clockwise)
+        }
+        
+        return counts;
+    }
+
+    const { east, south, west, north } = getWallCounts();
 
   return (
     <div className="aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative flex items-center justify-center">
-        <div className="absolute inset-12 border-2 border-yellow-800/30 rounded" />
+        <div className="absolute inset-16 border-2 border-yellow-800/30 rounded" />
         
         {/* Walls */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2"><WallSegment count={northCount} orientation="horizontal" /></div>
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2"><WallSegment count={southCount} orientation="horizontal" /></div>
-        <div className="absolute left-4 top-1/2 -translate-y-1/2"><WallSegment count={westCount} orientation="vertical" /></div>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2"><WallSegment count={eastCount} orientation="vertical" /></div>
+        <div className="absolute top-8 left-1/2 -translate-x-1/2"><WallSegment count={north} orientation="horizontal" /></div>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2"><WallSegment count={south} orientation="horizontal" /></div>
+        <div className="absolute left-8 top-1/2 -translate-y-1/2"><WallSegment count={west} orientation="vertical" /></div>
+        <div className="absolute right-8 top-1/2 -translate-y-1/2"><WallSegment count={east} orientation="vertical" /></div>
         
         {/* Player Areas */}
         {playerSouth && <PlayerInfo player={playerSouth} position="bottom" isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} />}
