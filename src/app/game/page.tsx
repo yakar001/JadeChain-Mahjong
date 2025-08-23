@@ -126,7 +126,7 @@ function GameRoom() {
                     setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: true } : p));
                 },
                 (error) => {
-                    console.error("Error getting location:", error);
+                    console.error("Error getting location:", error.message);
                     setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
                     toast({
                         variant: 'destructive',
