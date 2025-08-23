@@ -13,7 +13,8 @@ import Link from "next/link";
 
 const rooms = [
   { 
-    tier: "新手场 (Novice)", 
+    tier: "Novice", 
+    tierDisplay: "新手场 (Novice)",
     fee: 10, 
     prize: 38, 
     players: 1234, 
@@ -21,7 +22,8 @@ const rooms = [
     description: "轻松入门，熟悉规则"
   },
   { 
-    tier: "进阶场 (Adept)", 
+    tier: "Adept", 
+    tierDisplay: "进阶场 (Adept)",
     fee: 50, 
     prize: 190, 
     players: 876,
@@ -29,7 +31,8 @@ const rooms = [
     description: "磨炼技巧，初显锋芒"
    },
   { 
-    tier: "高手场 (Expert)", 
+    tier: "Expert", 
+    tierDisplay: "高手场 (Expert)",
     fee: 200, 
     prize: 760, 
     players: 451,
@@ -37,7 +40,8 @@ const rooms = [
     description: "高手过招，一较高下"
   },
   { 
-    tier: "大师场 (Master)", 
+    tier: "Master", 
+    tierDisplay: "大师场 (Master)",
     fee: 1000, 
     prize: 3800, 
     players: 102,
@@ -106,7 +110,7 @@ export default function Home() {
               <Card key={room.tier} className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>{room.tier}</span>
+                    <span>{room.tierDisplay}</span>
                     {room.icon}
                   </CardTitle>
                   <CardDescription>{room.description}</CardDescription>
@@ -128,7 +132,7 @@ export default function Home() {
                     入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
                   </p>
                   <Button className="w-full" asChild>
-                    <Link href="/game">
+                    <Link href={`/game?tier=${room.tier}&fee=${room.fee}`}>
                       加入对局 (Join Game)
                     </Link>
                   </Button>
@@ -264,3 +268,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

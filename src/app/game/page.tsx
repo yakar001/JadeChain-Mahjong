@@ -1,6 +1,7 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,6 @@ type RoundResult = { winner: Player; losers: Player[]; amount: number } | null;
 const suits = ['dots', 'bamboo', 'characters'];
 const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B'];
-const STAKE_AMOUNT = 100;
 
 const createDeck = (): Tile[] => {
   let deck: Tile[] = [];
@@ -65,7 +65,12 @@ const getTileName = (tile: Tile): string => {
     return honorMap[tile.value] || '';
 }
 
-export default function GamePage() {
+function GameRoom() {
+  const searchParams = useSearchParams();
+  const roomTier = searchParams.get('tier') || 'Novice';
+  const roomFee = parseInt(searchParams.get('fee') || '10', 10);
+  
+  const [STAKE_AMOUNT] = useState(roomFee);
   const [gameState, setGameState] = useState<GameState>('pre-roll');
   const [wall, setWall] = useState<Tile[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -112,7 +117,7 @@ export default function GamePage() {
 
   useEffect(() => {
     initializeGame();
-  }, []);
+  }, [STAKE_AMOUNT]);
 
   const handleRollDice = () => {
     setGameState('rolling');
@@ -262,12 +267,19 @@ export default function GamePage() {
 
   const humanPlayer = players.find(p => p.id === 0);
   const isBankerAndHuman = bankerId === 0;
+  
+  const roomTierMap: Record<string, string> = {
+    Novice: "新手场",
+    Adept: "进阶场",
+    Expert: "高手场",
+    Master: "大师场",
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-3 space-y-6">
         <div className="flex flex-wrap justify-between items-center gap-4">
-          <h1 className="text-2xl font-bold font-headline text-primary">新手场 (Novice Room)</h1>
+          <h1 className="text-2xl font-bold font-headline text-primary">{`${roomTierMap[roomTier]} (${roomTier} Room)`}</h1>
            <div className="flex items-center gap-2 text-xl font-bold text-primary border-2 border-primary/50 bg-primary/10 px-3 py-1 rounded-lg">
                 <Trophy />
                 <span>奖池 (Pot): {pot} $JIN</span>
@@ -280,8 +292,8 @@ export default function GamePage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                     <AlertDialogTitle>闽南游金麻将 (Minnan Golden Mahjong Rules)</AlertDialogTitle>
-                    <AlertDialogDescription className="text-left max-h-[60vh] overflow-y-auto pr-4">
-                        <div className="space-y-4">
+                    <AlertDialogDescription>
+                        <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
                             <div>
                                 <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
                                 <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
@@ -432,3 +444,13 @@ export default function GamePage() {
     </div>
   );
 }
+
+export default function GamePage() {
+    return (
+        <Suspense fallback={<div>Loading room...</div>}>
+            <GameRoom />
+        </Suspense>
+    )
+}
+
+    
