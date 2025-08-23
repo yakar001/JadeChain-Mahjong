@@ -106,20 +106,31 @@ const PlayerInfo = ({ player, position, isActive, isBanker, turnTimer, turnDurat
 };
 
 const DiscardArea = ({ discards, position }: { discards: Tile[]; position: 'bottom' | 'right' | 'top' | 'left' }) => {
+    // Defines the container position and rotation
     const positionClasses = {
-        bottom: 'bottom-[52%] left-1/2 -translate-x-1/2 w-2/5 h-1/4 transform-none',
-        right: 'top-1/2 right-[52%] -translate-y-1/2 w-1/4 h-2/5 transform rotate-90',
-        top: 'top-[52%] left-1/2 -translate-x-1/2 w-2/5 h-1/4 transform rotate-180',
-        left: 'top-1/2 left-[52%] -translate-y-1/2 w-1/4 h-2/5 transform -rotate-90'
+        bottom: 'bottom-[25%] left-1/2 -translate-x-1/2',
+        right: 'top-1/2 right-[25%] -translate-y-1/2 -rotate-90',
+        top: 'top-[25%] left-1/2 -translate-x-1/2 rotate-180',
+        left: 'top-1/2 left-[25%] -translate-y-1/2 rotate-90'
+    };
+    
+    // Defines the tile rotation inside the container to counteract the container's rotation
+    const tileRotationClass = {
+        bottom: '',
+        right: 'rotate-90',
+        top: '',
+        left: '-rotate-90'
     };
 
     return (
-        <div className={cn('absolute flex flex-row flex-wrap items-start justify-center gap-1 p-1', positionClasses[position])}>
-            {discards.map((tile, index) => (
-                <div key={index} className={cn(position === 'top' && 'transform rotate-180', (position === 'left' || position === 'right') && 'transform-none')}>
-                     <MahjongTile suit={tile.suit} value={tile.value as any} size="sm" />
-                </div>
-            ))}
+        <div className={cn('absolute w-[45%] h-[20%] p-1', positionClasses[position])}>
+             <div className="flex flex-wrap items-start justify-start gap-1 w-full h-full">
+                {discards.map((tile, index) => (
+                    <div key={index} className={cn('transform', tileRotationClass[position])}>
+                         <MahjongTile suit={tile.suit} value={tile.value as any} size="sm" />
+                    </div>
+                ))}
+             </div>
         </div>
     );
 }
@@ -198,7 +209,7 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
         {playerWest && <PlayerInfo player={playerWest} position="left" isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration}/>}
 
         {/* Center Area */}
-        <div className="w-3/5 h-3/5 flex items-center justify-center relative">
+        <div className="w-4/5 h-4/5 flex items-center justify-center relative">
             {(gameState === 'pre-roll' || gameState === 'banker-roll-for-golden') && (
                 <div className="text-center text-background/80">
                     {gameState === 'pre-roll' && <p className="font-bold text-lg">等待掷骰子开局...</p>}
@@ -224,5 +235,3 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
-
-    

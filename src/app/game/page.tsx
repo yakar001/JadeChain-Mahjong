@@ -6,7 +6,7 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -596,13 +596,7 @@ function GameRoom() {
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold">您的手牌 (Your Hand)</h2>
-                    {goldenTile && (
-                        <div className="flex items-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
-                            <span>金牌 (Wild):</span>
-                             <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" />
-                        </div>
-                    )}
+                    <h2 className="text-xl font-bold">您的区域 (Your Area)</h2>
                 </div>
                  <div className="flex items-center gap-4 flex-wrap justify-center">
                     <div className="flex items-center space-x-2">
@@ -633,16 +627,43 @@ function GameRoom() {
                  </div>
             </div>
             
-            <div className="relative">
-                <PlayerHand 
-                    hand={humanPlayer?.hand || []} 
-                    onTileClick={handleSelectOrDiscardTile}
-                    canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
-                    goldenTile={goldenTile}
-                    selectedTileIndex={selectedTileIndex}
-                />
+            <div className="relative p-4 bg-background/50 rounded-lg min-h-[14rem] flex justify-between items-end">
+                {/* Meld Area (Left) */}
+                <div className="w-1/4">
+                    <div className="flex flex-col items-start gap-2">
+                         <Label className="text-xs text-muted-foreground flex items-center gap-1"><Layers /> 鸣牌区 (Melds)</Label>
+                         {/* Placeholder for melded sets */}
+                         <div className="flex gap-1">
+                             <MahjongTile suit="bamboo" value="2" size="sm" />
+                             <MahjongTile suit="bamboo" value="2" size="sm" />
+                             <MahjongTile suit="bamboo" value="2" size="sm" />
+                         </div>
+                    </div>
+                </div>
+                
+                {/* Hand Area (Center) */}
+                <div className="absolute inset-x-0 bottom-4">
+                    <PlayerHand 
+                        hand={humanPlayer?.hand || []} 
+                        onTileClick={handleSelectOrDiscardTile}
+                        canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
+                        goldenTile={goldenTile}
+                        selectedTileIndex={selectedTileIndex}
+                    />
+                </div>
+
+                {/* Golden Tile Area (Right) */}
+                <div className="w-1/4 flex justify-end">
+                     {goldenTile && (
+                        <div className="flex flex-col items-center gap-2">
+                             <Label className="text-xs text-muted-foreground">金牌 (Wild)</Label>
+                             <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
+                        </div>
+                    )}
+                </div>
+
                 {canPerformAction && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 rounded-lg">
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 rounded-lg z-20">
                         <Button onClick={() => handleAction('chow')} size="lg">吃 (Chow)</Button>
                         <Button onClick={() => handleAction('pong')} size="lg">碰 (Pong)</Button>
                         <Button onClick={() => handleAction('kong')} size="lg">杠 (Kong)</Button>
@@ -727,5 +748,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
