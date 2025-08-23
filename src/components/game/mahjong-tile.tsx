@@ -96,7 +96,7 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
   return (
     <div
       className={cn(
-        'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80',
+        'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80 overflow-hidden',
         'dark:bg-gradient-to-b from-stone-50 to-stone-200',
         size === 'md' ? 'w-[6.5vw] h-[9vw]' : 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
         isClickable && 'transform transition-transform hover:-translate-y-2 cursor-pointer active:scale-95',

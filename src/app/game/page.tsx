@@ -6,7 +6,7 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus, Layers } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -24,7 +24,7 @@ const SIMULATION_ENABLED = false;
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
+type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[][]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 
@@ -38,27 +38,36 @@ type RoundResult = {
 // 初始牌的数据
 const suits = ['dots', 'bamboo', 'characters'];
 const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
-const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B'];
+const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B']; // East, South, West, North, Red, Green, White
 const INITIAL_BALANCE = 100;
 const TURN_DURATION = 15; // 15 seconds per turn
 
+// A correct deck has 136 tiles (4 of each).
 const createDeck = (): Tile[] => {
-  let deck: Tile[] = [];
-  // 万筒索
-  for (let i = 0; i < 4; i++) {
-    for (const suit of suits) {
-      for (const value of values) {
+  const deck: Tile[] = [];
+
+  // Add 4 copies of each numbered tile (Dots, Bamboo, Characters)
+  // 3 suits * 9 values * 4 copies = 108 tiles
+  for (const suit of suits) {
+    for (const value of values) {
+      for (let i = 0; i < 4; i++) {
         deck.push({ suit, value });
       }
     }
-    // 字牌
-    for (const honor of honors) {
-        const suit = ['E', 'S', 'W', 'N'].includes(honor) ? 'wind' : 'dragon';
-        deck.push({ suit, value: honor });
+  }
+
+  // Add 4 copies of each honor tile (Winds and Dragons)
+  // 7 honors * 4 copies = 28 tiles
+  for (const honor of honors) {
+    const suit = ['E', 'S', 'W', 'N'].includes(honor) ? 'wind' : 'dragon';
+    for (let i = 0; i < 4; i++) {
+      deck.push({ suit, value: honor });
     }
   }
-  return deck;
+
+  return deck; // Total: 108 + 28 = 136 tiles
 };
+
 
 // 洗牌
 const shuffleDeck = (deck: Tile[]): Tile[] => {
@@ -194,7 +203,7 @@ function GameRoom() {
     const tileToDiscard = player.hand[tileIndex];
     
     player.hand.splice(tileIndex, 1);
-    player.discards.push(tileToDiscard);
+    player.discards.push([tileToDiscard]);
     
     setPlayers(updatedPlayers);
     setDrawnTile(null);
@@ -376,6 +385,7 @@ function GameRoom() {
             total: rolls[index][0] + rolls[index][1],
         }));
 
+        // Sort by highest roll total to determine seating
         playerRolls.sort((a, b) => b.total - a.total);
 
         const windNames = ['(东)', '(南)', '(西)', '(北)'];
@@ -387,12 +397,14 @@ function GameRoom() {
             const rollInfo = playerRolls.find(pr => pr.player.id === p.id);
             const windIndex = playerRolls.indexOf(rollInfo!);
             const windName = windNames[windIndex];
-            const newName = p.isAI ? `Player ${p.id + 1} ${windName}` : `You ${windName}`;
+            // Adjust name based on human player vs AI
+            const baseName = p.isAI ? `Player ${p.id === 0 ? 1 : p.id + 1}` : 'You';
+            const newName = `${baseName} ${windName}`;
             return { ...p, name: newName, isEast: p.id === newEastPlayer.id };
         });
 
         setPlayers(finalPlayers);
-        setGameState('pre-roll-banker'); // New state to decide the banker
+        setGameState('pre-roll-banker');
     }, 5500); // Wait for dice animation + a bit more
   }
 
@@ -404,11 +416,10 @@ function GameRoom() {
      
      setTimeout(() => {
         // In this implementation, East always becomes the banker.
-        // This roll is ceremonial and determines the wall break.
         const newBanker = players.find(p => p.isEast);
         if (newBanker) {
             setBankerId(newBanker.id);
-            setGameState('pre-roll');
+            setGameState('pre-roll'); // Transition to next state for banker to roll for deal
         }
     }, 5500); // Wait for dice animation
   }
@@ -427,14 +438,17 @@ function GameRoom() {
     
     setTimeout(() => {
         const wallCopy = [...wall];
-        
-        // Use a temporary copy for dealing to avoid state update issues in the loop
         const tempPlayers = JSON.parse(JSON.stringify(playersWithStake));
+        
+        // Accurate dealing logic based on dice roll
+        // The dice total determines the starting player for the deal, counting counter-clockwise from the banker.
+        const diceTotal = newDice[0] + newDice[1];
+        const dealStartIndex = (bankerId + diceTotal - 1) % players.length;
 
         // Deal 13 tiles to each player
         for (let i = 0; i < 13; i++) {
             for (let j = 0; j < tempPlayers.length; j++) {
-                 const playerIndex = (bankerId + j) % tempPlayers.length;
+                 const playerIndex = (dealStartIndex + j) % tempPlayers.length;
                  const tile = wallCopy.pop();
                  if(tile) tempPlayers[playerIndex].hand.push(tile);
             }
@@ -447,9 +461,7 @@ function GameRoom() {
         setPlayers(tempPlayers);
         setWall(wallCopy);
         
-        // Transition to the next state: rolling for the golden tile
         setGameState('banker-roll-for-golden');
-
     }, 5500); // Wait for dice roll animation
   }
 
@@ -461,20 +473,27 @@ function GameRoom() {
     setTimeout(() => {
         const total = newDice[0] + newDice[1];
         const wallCopy = [...wall];
-        // In a real game, this would be counted from the end of the wall.
-        // For simplicity, we'll take it from a calculated index.
-        const goldenIndex = Math.min(total, wallCopy.length - 1);
-        const golden = wallCopy.splice(goldenIndex, 1)[0];
-        setGoldenTile(golden);
+        
+        // The golden tile is revealed from the back of the wall.
+        // Count `total` stacks from the end. The revealed tile is the first tile of that stack.
+        // Index from the end of the wall: (total * 2) - 1
+        const goldenRevealIndex = wallCopy.length - ((total * 2) -1);
+
+        if (goldenRevealIndex >= 0 && goldenRevealIndex < wallCopy.length) {
+            const golden = wallCopy.splice(goldenRevealIndex, 1)[0];
+            setGoldenTile(golden);
+        } else {
+            // Fallback in case of index out of bounds, take the last possible tile.
+            const golden = wallCopy.pop()!;
+            setGoldenTile(golden);
+        }
+
         setWall(wallCopy);
         setGameState('playing');
         
-        // After revealing the golden tile, it's the banker's turn to discard.
         setActivePlayer(bankerId);
 
-        if (bankerId === 0) { // If human is the banker
-            // The human banker already has 14 tiles, so they need to discard.
-            // We set a "drawn" tile to enable the hand for discarding.
+        if (bankerId === 0) { 
             setDrawnTile(players.find(p => p.id === 0)!.hand.slice(-1)[0]);
         }
         
@@ -550,14 +569,6 @@ function GameRoom() {
     Master: "大师场",
   };
   
-  const playerIsEast = players.find(p => p.id === 0)?.isEast;
-  const isBankerTurn = activePlayer === bankerId;
-
-  const showRollForBankerButton = gameState === 'pre-roll-banker' && players.find(p => p.id === 0)?.isEast;
-  const showRollForStartButton = gameState === 'pre-roll' && isHumanBanker;
-  const showRollForGoldenButton = gameState === 'banker-roll-for-golden' && isHumanBanker;
-
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-3 space-y-6">
@@ -580,10 +591,10 @@ function GameRoom() {
                              <div>
                                 <h3 className="font-semibold text-foreground">开局流程 (Starting the Game)</h3>
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>掷骰定座 (Roll for Seating)：</strong>游戏开始前，所有玩家掷一对骰子比大小。点数最大者为东风位。您的视角将始终是南风位。</li>
-                                    <li><strong>掷骰定庄 (Roll for Banker)：</strong>由东风位玩家掷骰子，点数最高者成为第一局的庄家。</li>
-                                     <li><strong>开局掷骰 (Banker's Roll)：</strong>庄家掷骰子，决定从牌墙的何处开始抓牌。</li>
-                                     <li><strong>掷骰开金 (Roll for Golden Tile)：</strong>发牌结束后，庄家再次掷骰子，根据点数从牌墙末尾翻开一张牌作为“金”。</li>
+                                    <li><strong>掷骰定座 (Roll for Seating)：</strong>游戏开始前，所有玩家掷一对骰子比大小。点数最大者为东风位，其余玩家按点数高低逆时针就座。您的视角将始终是南风位。</li>
+                                    <li><strong>东风定庄 (East Wind is Banker)：</strong>东风位玩家自动成为第一局的庄家。</li>
+                                     <li><strong>庄家掷骰开局 (Banker's Roll for Deal)：</strong>庄家掷骰子，根据点数决定从牌墙的何处开始抓牌。</li>
+                                     <li><strong>庄家掷骰开金 (Banker's Roll for Golden Tile)：</strong>发牌结束后，庄家再次掷骰子，根据点数从牌墙末尾翻开一张牌作为“金”。</li>
                                 </ul>
                             </div>
                             <div>
@@ -790,5 +801,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
