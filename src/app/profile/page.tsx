@@ -3,10 +3,11 @@
 
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from "@/components/ui/button";
-import { Coins, BarChart, Trophy, Gamepad2, ShieldCheck, Camera } from 'lucide-react';
+import { Coins, BarChart, Trophy, Gamepad2, ShieldCheck, ArrowRight } from 'lucide-react';
+import Link from "next/link";
 
 const ownedNfts = [
   { name: '金脉 #1234', image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold glowing lines' },
@@ -18,13 +19,6 @@ const kycLevel = 1; // Simulated KYC level
 
 export default function ProfilePage() {
     const { toast } = useToast();
-
-    const handleKyc = () => {
-        toast({
-            title: "认证流程启动 (Verification Process Started)",
-            description: "即将跳转至认证服务页面。(You will be redirected to the verification service.)"
-        });
-    }
 
   return (
     <div>
@@ -46,14 +40,24 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <div className="sm:ml-auto flex flex-col items-center gap-2">
-             <ShieldCheck className="w-8 h-8 text-green-500" />
-             <span className="text-sm text-muted-foreground">KYC Level: 1 (KYC 等级)</span>
+           <div className="sm:ml-auto flex flex-col items-center gap-2">
+             <div className="flex items-center gap-2 p-3 bg-accent/50 rounded-lg">
+                <ShieldCheck className="w-8 h-8 text-green-500" />
+                <div>
+                    <span className="text-sm text-muted-foreground">KYC 等级 (KYC Level)</span>
+                    <p className="font-bold text-lg">Level {kycLevel}</p>
+                </div>
+                 <Button variant="ghost" size="icon" asChild>
+                    <Link href="/kyc">
+                        <ArrowRight />
+                    </Link>
+                 </Button>
+             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-8 mb-8">
+      <div className="mb-8">
         <Card>
             <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -86,32 +90,6 @@ export default function ProfilePage() {
             </div>
             </CardContent>
         </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ShieldCheck /> KYC 认证中心 (KYC Center)</CardTitle>
-                <CardDescription>提升您的KYC等级以解锁更高级别的游戏房间和功能。(Increase your KYC level to unlock higher-tier rooms and features.)</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
-                    <div>
-                        <p className="text-sm text-muted-foreground">当前等级 (Current Level)</p>
-                        <p className="text-lg font-bold text-green-400">KYC Level {kycLevel}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">下一等级 (Next Level)</p>
-                        <p className="text-lg font-bold">KYC Level {kycLevel + 1}</p>
-                    </div>
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Button className="w-full" onClick={handleKyc}>
-                    <Camera className="mr-2" />
-                    开始 Level {kycLevel + 1} 认证 (Start Level {kycLevel + 1} Verification)
-                </Button>
-            </CardFooter>
-        </Card>
-
       </div>
       
       <div>

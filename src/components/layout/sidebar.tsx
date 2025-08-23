@@ -81,8 +81,8 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/profile#kyc')}>
-              <Link href="/profile#kyc">
+            <SidebarMenuButton asChild isActive={pathname === '/kyc'}>
+              <Link href="/kyc">
                 <ShieldCheck />
                 KYC (身份认证)
               </Link>
