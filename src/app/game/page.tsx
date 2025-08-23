@@ -357,7 +357,6 @@ function GameRoom() {
                     setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: true } : p));
                 },
                 (error) => {
-                    console.error("Error getting location:", error.message);
                     setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
                 }
             );
@@ -477,7 +476,7 @@ function GameRoom() {
         // The golden tile is revealed from the back of the wall.
         // Count `total` stacks from the end. The revealed tile is the first tile of that stack.
         // Index from the end of the wall: (total * 2) - 1
-        const goldenRevealIndex = wallCopy.length - ((total * 2) -1);
+        const goldenRevealIndex = wallCopy.length - ((total * 2));
 
         if (goldenRevealIndex >= 0 && goldenRevealIndex < wallCopy.length) {
             const golden = wallCopy.splice(goldenRevealIndex, 1)[0];
