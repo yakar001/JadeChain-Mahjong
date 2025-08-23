@@ -559,7 +559,6 @@ function GameRoom() {
   }, [audioSrc]);
 
   const humanPlayer = players.find(p => p.id === 0);
-  const isHumanBanker = bankerId === 0;
   
   const roomTierMap: Record<string, string> = {
     Novice: "新手场",
@@ -686,7 +685,7 @@ function GameRoom() {
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
                         <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
-                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && (
+                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && !canPerformAction && (
                       <Button onClick={handleDrawTile}>
                           <Hand className="mr-2 h-4 w-4" />
                           摸牌 (Draw Tile)
@@ -800,3 +799,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
