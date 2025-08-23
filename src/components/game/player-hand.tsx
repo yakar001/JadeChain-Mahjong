@@ -34,7 +34,7 @@ export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selecte
   }
 
   return (
-    <div className="flex flex-wrap gap-2 justify-center p-4 bg-background/50 rounded-lg min-h-[8rem]">
+    <div className="flex flex-wrap gap-2 justify-center p-2">
       {sortedHand.map((tile) => (
         <button
           key={`${tile.suit}-${tile.value}-${tile.originalIndex}`}

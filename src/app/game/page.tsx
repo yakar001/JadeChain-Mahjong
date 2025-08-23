@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
-import { MahjongTile } from '@/components/game/mahjong-tile';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -26,7 +25,7 @@ const SIMULATION_ENABLED = false;
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; balance: number; hasLocation: boolean | null; };
+type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 
@@ -314,10 +313,10 @@ function GameRoom() {
     setWall(shuffled);
     setGoldenTile(null);
     const initialPlayers: Player[] = [
-      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: null },
-      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: true },
-      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: false },
-      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: true },
+      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null },
+      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [[{ suit: 'bamboo', value: '2' }, { suit: 'bamboo', value: '2' }, { suit: 'bamboo', value: '2' }]], balance: INITIAL_BALANCE, hasLocation: true },
+      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: false },
+      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
     ];
     setPlayers(initialPlayers);
     setPot(0);
@@ -332,6 +331,7 @@ function GameRoom() {
             p.balance = INITIAL_BALANCE;
             p.hand = [];
             p.discards = [];
+            p.melds = [];
         });
     }
 
@@ -587,6 +587,7 @@ function GameRoom() {
                 bankerId={bankerId}
                 turnTimer={turnTimer}
                 turnDuration={TURN_DURATION}
+                goldenTile={goldenTile}
              />
           </CardContent>
         </Card>
@@ -627,40 +628,16 @@ function GameRoom() {
                  </div>
             </div>
             
-            <div className="relative p-4 bg-background/50 rounded-lg min-h-[14rem] flex justify-between items-end">
-                {/* Meld Area (Left) */}
-                <div className="w-1/4">
-                    <div className="flex flex-col items-start gap-2">
-                         <Label className="text-xs text-muted-foreground flex items-center gap-1"><Layers /> 鸣牌区 (Melds)</Label>
-                         {/* Placeholder for melded sets */}
-                         <div className="flex gap-1">
-                             <MahjongTile suit="bamboo" value="2" size="sm" />
-                             <MahjongTile suit="bamboo" value="2" size="sm" />
-                             <MahjongTile suit="bamboo" value="2" size="sm" />
-                         </div>
-                    </div>
-                </div>
+            <div className="relative p-4 bg-background/50 rounded-lg min-h-[12rem] flex items-center justify-center">
                 
                 {/* Hand Area (Center) */}
-                <div className="absolute inset-x-0 bottom-4">
-                    <PlayerHand 
-                        hand={humanPlayer?.hand || []} 
-                        onTileClick={handleSelectOrDiscardTile}
-                        canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
-                        goldenTile={goldenTile}
-                        selectedTileIndex={selectedTileIndex}
-                    />
-                </div>
-
-                {/* Golden Tile Area (Right) */}
-                <div className="w-1/4 flex justify-end">
-                     {goldenTile && (
-                        <div className="flex flex-col items-center gap-2">
-                             <Label className="text-xs text-muted-foreground">金牌 (Wild)</Label>
-                             <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
-                        </div>
-                    )}
-                </div>
+                <PlayerHand 
+                    hand={humanPlayer?.hand || []} 
+                    onTileClick={handleSelectOrDiscardTile}
+                    canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
+                    goldenTile={goldenTile}
+                    selectedTileIndex={selectedTileIndex}
+                />
 
                 {canPerformAction && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 rounded-lg z-20">
