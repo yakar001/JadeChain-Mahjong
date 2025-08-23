@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Gem, Home, Store, User, Bot, Vote, Shield, Hammer, Banknote, ShieldCheck } from 'lucide-react';
+import { Gem, Home, Store, User, Bot, Vote, Shield, Hammer, Banknote, ShieldCheck, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 

@@ -1,6 +1,7 @@
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Banknote, TrendingUp, TrendingDown, Shield } from "lucide-react";
+import { Banknote, TrendingUp, TrendingDown, Shield, DollarSign } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const chartData = [
@@ -23,7 +24,7 @@ export default function VaultPage() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">总锁仓价值 (Total Value Locked)</CardTitle>
-                <span className="text-muted-foreground">$</span>
+                <DollarSign className="text-muted-foreground" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">$4,567,890.12</div>

@@ -2,7 +2,7 @@
 'use client';
 import { KeyNftCard } from '@/components/marketplace/key-nft-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Coins, Package } from 'lucide-react';
+import { Coins, Package, KeyRound } from 'lucide-react';
 import { ShardCard } from '@/components/marketplace/shard-card';
 import { useToast } from '@/hooks/use-toast';
 
@@ -102,7 +102,7 @@ export default function MarketplacePage() {
       <Tabs defaultValue="keys">
         <TabsList className="mb-4">
           <TabsTrigger value="keys">
-            <Package className="mr-2 h-4 w-4" />
+            <KeyRound className="mr-2 h-4 w-4" />
             NFT Keys (NFT 密钥)
           </TabsTrigger>
           <TabsTrigger value="shards">

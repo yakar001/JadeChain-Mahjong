@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Coins, Zap } from "lucide-react";
+import { Shield, Coins, Zap, Clock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
 
@@ -57,7 +57,7 @@ export default function StakingPage() {
                     <p className="text-sm text-muted-foreground">当前周期 (Current Epoch)</p>
                 </div>
                  <div>
-                    <p className="text-2xl font-bold">1h 25m 10s</p>
+                    <p className="text-2xl font-bold flex items-center justify-center gap-1"><Clock /> 1h 25m</p>
                     <p className="text-sm text-muted-foreground">剩余时间 (Time Remaining)</p>
                 </div>
                  <div>
