@@ -83,7 +83,7 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
     }
     if (suit === 'dragon') {
         if (value === 'B') {
-            return <div className={cn("w-4/5 h-4/5 border-[0.6vh] border-blue-600 rounded", size === 'sm' && "border-2")} />;
+            return <div className={cn("w-4/5 h-4/5 border-2 border-blue-600 rounded", size === 'sm' ? "border-2" : "border-[0.6vh]")} />;
         }
         const color = value === 'R' ? 'text-red-600' : 'text-green-600';
         return <span className={cn('font-bold font-headline', color, baseFontSize)}>{symbolMap[value]}</span>;
@@ -110,3 +110,4 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
     </div>
   );
 }
+
