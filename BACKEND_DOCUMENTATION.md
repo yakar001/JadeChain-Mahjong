@@ -98,3 +98,24 @@ Server Actions are the interface between the client (React components) and the b
       // ...
     }
     ```
+
+## 6. KYC (Know Your Customer) Verification (KYC 身份认证)
+
+To ensure compliance and security, the application implements a multi-level KYC system. Each level unlocks access to higher-tier features.
+为确保合规性与安全性，本应用实现了一个多等级的KYC系统。每个等级会解锁更高级别的功能。
+
+### Backend Verification Flow (后端验证流程)
+
+While the frontend provides a simulated UI, a production backend would follow this secure flow:
+尽管前端提供的是一个模拟的用户界面，一个生产环境的后端应遵循以下安全流程：
+
+1.  **Data Submission (数据提交)**: The client securely submits user information (e.g., name, ID number) and biometric data (e.g., a photo for facial recognition) to a dedicated server action.
+    (客户端通过一个专用的服务器动作，安全地提交用户信息（如姓名、身份证号）和生物识别数据（如用于面部识别的照片）。)
+2.  **Third-Party Integration (第三方集成)**: The backend **does not store sensitive identification documents**. Instead, it will securely forward the verification request to a professional third-party KYC provider (e.g., Sumsub, Persona, Veriff).
+    (后端**不会存储敏感的身份证明文件**。相反，它会将验证请求安全地转发给专业的第三方KYC服务提供商（例如 Sumsub, Persona, Veriff）。)
+3.  **Process Webhooks (处理 Webhooks)**: The KYC provider will process the data and notify our backend of the verification result (success or failure) via a secure webhook.
+    (KYC 提供商将处理数据，并通过一个安全的 webhook 将验证结果（成功或失败）通知我们的后端。)
+4.  **Update User Profile (更新用户资料)**: Upon receiving a successful verification webhook, the backend updates the user's KYC level in the application database.
+    (在收到成功的验证 webhook 后，后端将在应用数据库中更新用户的 KYC 等级。)
+5.  **Enforce Access Control (强制执行访问控制)**: Other backend services (e.g., game room matchmaking, marketplace transactions) **must** check the user's KYC level from the database before granting access to restricted features.
+    (其他后端服务（例如，游戏房间匹配、市场交易）**必须**在授权访问受限功能之前，从数据库中检查用户的 KYC 等级。)
