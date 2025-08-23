@@ -296,10 +296,12 @@ export default function GamePage() {
                     </div>
                     {gameState === 'pre-roll' && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局 (Roll Dice)</Button>}
                     {gameState === 'banker-roll-for-golden' && isBankerAndHuman && <Button onClick={handleRollForGolden}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
-                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && <Button onClick={handleDrawTile}>
-                        <Hand className="mr-2 h-4 w-4" />
-                        摸牌 (Draw Tile)
-                    </Button>}
+                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && (
+                      <Button onClick={handleDrawTile}>
+                          <Hand className="mr-2 h-4 w-4" />
+                          摸牌 (Draw Tile)
+                      </Button>
+                    )}
                  </div>
             </div>
             
@@ -321,5 +323,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
