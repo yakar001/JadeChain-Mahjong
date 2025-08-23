@@ -44,15 +44,15 @@ export function AiTutor() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-headline">
           <Bot className="text-primary" />
-          AI Tutor
+          AI Tutor (AI 导师)
         </CardTitle>
-        <CardDescription>Feeling stuck? Get a strategic tip from our AI expert.</CardDescription>
+        <CardDescription>Feeling stuck? Get a strategic tip. (遇到困难了？获取策略提示。)</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4">Thinking...</p>
+            <p className="ml-4">Thinking... (思考中...)</p>
           </div>
         )}
         {suggestion && (
@@ -60,12 +60,12 @@ export function AiTutor() {
             <div>
               <h4 className="font-bold flex items-center gap-2 text-accent">
                 <Lightbulb />
-                Suggested Move
+                Suggested Move (建议的出牌)
               </h4>
               <p className="text-foreground">{suggestion.suggestedMove}</p>
             </div>
             <div>
-              <h4 className="font-bold text-accent">Reasoning</h4>
+              <h4 className="font-bold text-accent">Reasoning (原因分析)</h4>
               <p className="text-sm text-muted-foreground">{suggestion.reasoning}</p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function AiTutor() {
       <CardFooter>
         <Button onClick={handleGetSuggestion} disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
-          Get AI Advice
+          Get AI Advice (获取 AI 建议)
         </Button>
       </CardFooter>
     </Card>

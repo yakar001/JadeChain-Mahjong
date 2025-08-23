@@ -19,8 +19,8 @@ const SuggestMoveInputSchema = z.object({
 export type SuggestMoveInput = z.infer<typeof SuggestMoveInputSchema>;
 
 const SuggestMoveOutputSchema = z.object({
-  suggestedMove: z.string().describe('The suggested move to the player.'),
-  reasoning: z.string().describe('The reasoning behind the suggested move.'),
+  suggestedMove: z.string().describe('The suggested move to the player, in both English and Chinese.'),
+  reasoning: z.string().describe('The reasoning behind the suggested move, in both English and Chinese.'),
 });
 export type SuggestMoveOutput = z.infer<typeof SuggestMoveOutputSchema>;
 
@@ -36,6 +36,8 @@ const prompt = ai.definePrompt({
 
 Given the current game state, the player's hand, and the opponent's last move, suggest a move that the player can make to improve their position.
 Explain the reasoning behind your suggestion.
+
+Provide your response in both English and Chinese. For example: "Discard Red Dragon (打出红中)".
 
 Game State: {{{gameState}}}
 Player Hand: {{{playerHand}}}
