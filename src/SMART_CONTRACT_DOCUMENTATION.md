@@ -6,29 +6,51 @@ This document outlines the conceptual design of the smart contracts that will un
 **Note:** This is a design document. The contracts are not yet implemented.
 **注意：** 这是一份设计文档，合约尚未实现。
 
-## 1. Dual-Token Economic Model (双代币经济模型)
+## 1. Tokenomics & Issuance (代币经济学与发行)
 
-The ecosystem is powered by two distinct tokens, creating a balanced economic system that separates in-game utility from governance and value accrual.
-该生态系统由两种不同的代币驱动，创建了一个平衡的经济体系，将游戏内效用与治理和价值积累分离开来。
+The ecosystem is powered by a dual-token model to create a balanced economic system that separates in-game utility from governance and long-term value accrual.
+该生态系统由双代币模型驱动，旨在创建一个平衡的经济体系，将游戏内效用与治理和长期价值积累分离开来。
 
--   **`QuanJinToken ($JIN)` - Utility Token (功能代币)**
-    -   **Type**: ERC-20
-    -   **Purpose**: `$JIN` is the primary currency for all in-game activities. It is the engine of the game's economy.
-        (`$JIN` 是所有游戏内活动的主要货币，是游戏经济的引擎。)
-    -   **Use Cases (使用场景)**:
-        -   Paying entry fees for game rooms (支付游戏房间的入场费).
-        -   Purchasing NFT Keys and Shards from the marketplace (在市场上购买NFT密钥和碎片).
-        -   Paying for NFT synthesis and energy refills in the Workshop (在工坊中支付NFT合成和能量补充的费用).
-        -   Receiving as dividends from the `StakingPool` (从 `StakingPool` 中接收分红).
+### QuanJinToken ($JIN) - The Utility Token (功能代币)
 
--   **`QuanJinMacroToken ($GMD)` - Governance & Reward Token (治理与奖励代币)**
-    -   **Type**: ERC-20
-    -   **Purpose**: `$GMD` represents a stake in the platform's success and governance rights. It is earned, not bought within the primary game loop.
-        (`$GMD` 代表在平台成功中的股份和治理权。它是在主要游戏循环中赚取的，而非购买的。)
-    -   **Use Cases (使用场景)**:
-        -   Earned as the primary reward for staking NFT Keys in the `StakingPool` (作为在 `StakingPool` 中质押NFT密钥的主要奖励而获得).
-        -   Used for voting on DAO proposals (用于对DAO提案进行投票).
-        -   Represents a claim on the platform's long-term value accrual (代表对平台长期价值积累的权益).
+$JIN is the lifeblood of the game's economy, used for all primary transactions.
+$JIN 是游戏经济的命脉，用于所有主要交易。
+
+-   **Type (类型)**: ERC-20
+-   **Total Supply (总供应量)**: **1,000,000,000 $JIN** (10亿枚)
+-   **Issuance (发行方式)**: All tokens are minted at the Token Generation Event (TGE) and distributed according to the allocation schedule. There is no further issuance.
+    (所有代币在代币生成事件时一次性铸造完成，并根据分配计划进行分发，永不增发。)
+-   **Allocation (代币分配)**:
+    | Category (类别)           | Percentage (百分比) | Vesting Details (解锁详情)                               |
+    | ------------------------- | ------------------- | -------------------------------------------------------- |
+    | Ecosystem Fund (生态基金) | 40%                 | 用于游戏奖励、市场推广、社区活动等。                     |
+    | Staking Rewards (质押奖励)  | 20%                 | 作为从 Vault 注入 StakingPool 的初始流动性。             |
+    | Team (团队)               | 15%                 | 12个月锁定期，之后36个月线性解锁。                       |
+    | Investors (投资者)        | 15%                 | 根据轮次有不同的锁定期和解锁计划。                       |
+    | Liquidity (流动性)        | 5%                  | 用于在去中心化交易所（DEX）提供初始流动性。              |
+    | Treasury (金库)           | 5%                  | 作为储备金，用于应对未来发展和紧急情况。                 |
+-   **Primary Acquisition (主要获取方式)**:
+    1.  Purchasing on the open market (e.g., DEX). (在公开市场，如DEX上购买。)
+    2.  Receiving as **$JIN dividends** from the `StakingPool` after staking an NFT Key. These dividends are funded by the `Vault`'s buyback mechanism. (质押NFT密钥后，从 `StakingPool` 获得 $JIN 分红。这些分红由 `Vault` 的回购机制提供资金。)
+
+### QuanJinMacroToken ($GMD) - The Governance & Reward Token (治理与奖励代币)
+
+$GMD represents a stake in the platform's success and governance rights. It is designed to be earned, not bought.
+$GMD 代表了在平台成功中的股份和治理权。它的设计初衷是“赚取”，而非“购买”。
+
+-   **Type (类型)**: ERC-20
+-   **Total Supply (总供应量)**: **100,000,000 $GMD** (1亿枚)
+-   **Issuance (发行方式)**: **No pre-mine, no pre-sale.** $GMD is generated exclusively through the NFT staking mechanism in the `StakingPool`.
+    (**无预挖，无预售。** $GMD 只能通过在 `StakingPool` 中质押NFT来产出。)
+-   **Output Mechanism (产出机制)**:
+    -   **Epoch-Based Emission (基于周期的释放)**: A fixed amount of $GMD is released in each epoch (e.g., every 24 hours).
+        (每个周期（例如24小时）会释放固定数量的 $GMD。)
+    -   **Weight-Based Distribution (基于权重的分配)**: The $GMD rewards for each epoch are distributed to stakers based on their proportional "Weight" relative to the total weight of all staked NFTs in the pool.
+        (每个周期的 $GMD 奖励，根据质押者所持NFT的“权重”占池中所有质押NFT总权重的比例进行分配。)
+        -   `Your Epoch Reward = (Your Total Weight / Global Total Weight) * Epoch GMD Emission`
+        -   `您的周期奖励 = (您的总权重 / 全局总权重) * 周期GMD释放量`
+    -   **Halving Mechanism (减半机制)**: To preserve long-term value, the epoch emission rate of $GMD will be halved periodically (e.g., every 2 years), creating a deflationary pressure over time.
+        (为保持长期价值， $GMD 的周期释放率将定期减半（例如，每2年一次），从而随着时间的推移产生通缩压力。)
 
 ## 2. Core Contracts Overview (核心合约概述)
 
@@ -62,8 +84,8 @@ The heart of the "Play-to-Earn" mechanism, rewarding long-term participants.
 “边玩边赚”机制的核心，奖励长期参与者。
 
 -   **Reward Logic (奖励逻辑)**: Stakers earn rewards in two forms:
-    1.  **`$GMD` Mining**: Continuously minted based on the staker's proportional "Weight" of the total pool.
-        (根据质押者在总池中的“权重”比例，持续挖出 `$GMD`。)
+    1.  **`$GMD` Mining**: Continuously minted based on the staker's proportional "Weight" of the total pool, following the emission and halving schedule.
+        (根据质押者在总池中的“权重”比例，并遵循释放和减半计划，持续挖出 `$GMD`。)
     2.  **`$JIN` Dividends**: Receives `$JIN` tokens from the `Vault` contract and distributes them to stakers as a dividend.
         (从 `Vault` 合约接收 `$JIN` 代币，并将其作为分红分配给质押者。)
 -   **`updateEnergy(playerAddress, energyChange)`**:
@@ -108,4 +130,4 @@ This hybrid approach ensures fast-paced gameplay is not hindered by blockchain t
     -   NFT ownership and staking status. (NFT所有权和质押状态。)
     -   Final, verified settlement of game funds. (经过验证的游戏资金最终结算。)
     -   Automated buyback, burn, and dividend distribution via the `Vault` contract. (通过 `Vault` 合约自动执行回购、销毁和分红分配。)
-```
+    -   Emission and distribution of `$GMD` rewards. ($GMD奖励的释放和分配。)
