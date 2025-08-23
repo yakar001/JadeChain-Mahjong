@@ -5,7 +5,7 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -61,7 +61,7 @@ const getTileName = (tile: Tile): string => {
 }
 
 export default function GamePage() {
-  const [gameState, setGameState] = useState<'pre-roll' | 'rolling' | 'deal' | 'playing'>('pre-roll');
+  const [gameState, setGameState] = useState<'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing'>('pre-roll');
   const [wall, setWall] = useState<Tile[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [goldenTile, setGoldenTile] = useState<Tile | null>(null);
@@ -72,6 +72,7 @@ export default function GamePage() {
   const [shuffleHash, setShuffleHash] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
+  const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
 
 
   const initializeGame = () => {
@@ -97,6 +98,7 @@ export default function GamePage() {
     setPlayers(initialPlayers);
     setActivePlayer(0);
     setDrawnTile(null);
+    setSelectedTileIndex(null);
   };
 
   useEffect(() => {
@@ -112,15 +114,8 @@ export default function GamePage() {
         const total = newDice[0] + newDice[1];
         const newBankerId = (total - 1) % 4;
         setBankerId(newBankerId);
-        setActivePlayer(newBankerId);
-
-        // Deal cards
+        
         const wallCopy = [...wall];
-
-        // Determine golden tile
-        const goldenIndex = total * 2;
-        const golden = wallCopy.splice(goldenIndex, 1)[0];
-        setGoldenTile(golden);
         
         const initialPlayers: Player[] = [...players];
         // Deal 13 tiles to each player
@@ -129,11 +124,32 @@ export default function GamePage() {
                 player.hand.push(wallCopy.pop()!);
             }
         }
+        
+        // Banker draws one extra tile
+        initialPlayers[newBankerId].hand.push(wallCopy.pop()!);
+
         setPlayers(initialPlayers);
         setWall(wallCopy);
-        setGameState('playing');
+        setGameState('banker-roll-for-golden');
+        setActivePlayer(newBankerId);
 
     }, 1500); // Animation delay for dice roll
+  }
+
+  const handleRollForGolden = () => {
+    setGameState('rolling');
+    const newDice: DiceRoll = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+    setDice(newDice);
+
+    setTimeout(() => {
+        const total = newDice[0] + newDice[1];
+        const wallCopy = [...wall];
+        const goldenIndex = total * 2;
+        const golden = wallCopy.splice(goldenIndex, 1)[0];
+        setGoldenTile(golden);
+        setWall(wallCopy);
+        setGameState('playing');
+    }, 1500);
   }
 
   const handleDrawTile = () => {
@@ -149,32 +165,39 @@ export default function GamePage() {
     }
   };
 
-  const handleDiscardTile = async (tileIndex: number) => {
-    if (!drawnTile && activePlayer !== 0) return; // Not your turn or haven't drawn
+  const handleSelectOrDiscardTile = async (tileIndex: number) => {
+    if (activePlayer !== 0 || !drawnTile) return;
 
-    const updatedPlayers = [...players];
-    const player = updatedPlayers[0];
-    const tileToDiscard = player.hand[tileIndex];
-    
-    player.hand.splice(tileIndex, 1);
-    player.discards.push(tileToDiscard);
-    
-    setPlayers(updatedPlayers);
-    setDrawnTile(null);
-    
-    // Play audio for discarded tile
-    if (!isMuted) {
-        try {
-            const tileName = getTileName(tileToDiscard);
-            const response = await getSpeech(tileName);
-            if(response.media) {
-                setAudioSrc(response.media);
-            }
-        } catch (error) {
-            console.error("Error playing discard audio:", error);
-        }
+    if (selectedTileIndex === tileIndex) {
+      // This is the second click, so discard the tile
+      const updatedPlayers = [...players];
+      const player = updatedPlayers[0];
+      const tileToDiscard = player.hand[tileIndex];
+      
+      player.hand.splice(tileIndex, 1);
+      player.discards.push(tileToDiscard);
+      
+      setPlayers(updatedPlayers);
+      setDrawnTile(null);
+      setSelectedTileIndex(null); // Reset selection
+      
+      // Play audio for discarded tile
+      if (!isMuted) {
+          try {
+              const tileName = getTileName(tileToDiscard);
+              const response = await getSpeech(tileName);
+              if(response.media) {
+                  setAudioSrc(response.media);
+              }
+          } catch (error) {
+              console.error("Error playing discard audio:", error);
+          }
+      }
+      // TODO: Add logic for next player's turn
+    } else {
+      // This is the first click, just select the tile
+      setSelectedTileIndex(tileIndex);
     }
-    // TODO: Add logic for next player's turn
   };
 
   useEffect(() => {
@@ -185,6 +208,7 @@ export default function GamePage() {
   }, [audioSrc]);
 
   const humanPlayer = players.find(p => p.id === 0);
+  const isBankerAndHuman = bankerId === 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -202,7 +226,7 @@ export default function GamePage() {
                     <AlertDialogDescription className="text-left">
                         <p><strong>核心特点：</strong>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
                         <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li><strong>开金：</strong>掷骰子决定从牌墙的何处翻开一张牌作为“金”。</li>
+                            <li><strong>开金：</strong>庄家再次掷骰子，根据点数从牌墙的何处翻开一张牌作为“金”。</li>
                             <li><strong>作用：</strong>金牌可以用来替代任何你需要的牌来组成顺子、刻子或将牌。</li>
                             <li><strong>胜负：</strong>拥有金牌可以极大地提高胡牌的概率和牌型的大小。</li>
                         </ul>
@@ -260,7 +284,8 @@ export default function GamePage() {
                         <Label htmlFor="sound-mute">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
                     {gameState === 'pre-roll' && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局</Button>}
-                    {gameState === 'playing' &&  <Button onClick={handleDrawTile} disabled={!!drawnTile || activePlayer !== 0}>
+                    {gameState === 'banker-roll-for-golden' && isBankerAndHuman && <Button onClick={handleRollForGolden}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
+                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && <Button onClick={handleDrawTile}>
                         <Hand className="mr-2 h-4 w-4" />
                         摸牌 (Draw Tile)
                     </Button>}
@@ -269,9 +294,10 @@ export default function GamePage() {
             
             <PlayerHand 
                 hand={humanPlayer?.hand || []} 
-                onDiscard={handleDiscardTile}
-                canDiscard={!!drawnTile && activePlayer === 0}
+                onTileClick={handleSelectOrDiscardTile}
+                canInteract={!!drawnTile && activePlayer === 0}
                 goldenTile={goldenTile}
+                selectedTileIndex={selectedTileIndex}
             />
         </div>
         <div className="text-xs text-muted-foreground break-all">

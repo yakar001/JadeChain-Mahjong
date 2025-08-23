@@ -1,16 +1,18 @@
 
+import { cn } from '@/lib/utils';
 import { MahjongTile } from './mahjong-tile';
 
 type Tile = { suit: string; value: string };
 
 interface PlayerHandProps {
     hand: Tile[];
-    onDiscard: (tileIndex: number) => void;
-    canDiscard: boolean;
+    onTileClick: (tileIndex: number) => void;
+    canInteract: boolean;
     goldenTile: Tile | null;
+    selectedTileIndex: number | null;
 }
 
-export function PlayerHand({ hand, onDiscard, canDiscard, goldenTile }: PlayerHandProps) {
+export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selectedTileIndex }: PlayerHandProps) {
 
   // Sort hand for better readability
   const sortOrder = ['dots', 'bamboo', 'characters', 'wind', 'dragon'];
@@ -32,15 +34,18 @@ export function PlayerHand({ hand, onDiscard, canDiscard, goldenTile }: PlayerHa
       {sortedHand.map((tile, index) => (
         <button
           key={index}
-          onClick={() => onDiscard(index)}
-          disabled={!canDiscard}
-          className="disabled:cursor-not-allowed"
-          aria-label={`Discard ${tile.value} of ${tile.suit}`}
+          onClick={() => onTileClick(index)}
+          disabled={!canInteract}
+          className={cn(
+              "disabled:cursor-not-allowed transform transition-transform duration-150",
+              selectedTileIndex === index ? "-translate-y-4" : "hover:-translate-y-2"
+            )}
+          aria-label={`Select ${tile.value} of ${tile.suit}`}
         >
           <MahjongTile 
             suit={tile.suit} 
             value={tile.value as any} 
-            isClickable={canDiscard}
+            isClickable={canInteract}
             isGolden={isGolden(tile)}
           />
         </button>
