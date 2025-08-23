@@ -10,22 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
-const ownedKeys = [
-  { id: 1, name: '金砂 #9101', level: 1, energy: 45, energyMax: 50, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold sand particle' },
-  { id: 2, name: '金砂 #8233', level: 1, energy: 50, energyMax: 50, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold sand particle' },
-  { id: 3, name: '金砂 #7451', level: 1, energy: 23, energyMax: 50, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold sand particle' },
-  { id: 4, name: '金砂 #6129', level: 1, energy: 50, energyMax: 50, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold sand particle' },
-  { id: 5, name: '金砂 #5345', level: 1, energy: 10, energyMax: 50, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold sand particle' },
-  { id: 6, name: '金潮 #5678', level: 2, energy: 30, energyMax: 80, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold flowing wave' },
-];
+// In production, this data will be fetched from the user's wallet and smart contracts.
+const ownedKeys: { id: number, name: string, level: number, energy: number, energyMax: number, image: string, 'data-ai-hint': string }[] = [];
+const ownedShards: { name: string, count: number }[] = [];
 
-const ownedShards = [
-    { name: "Bamboo Shard", count: 12 },
-    { name: "Dots Shard", count: 8 },
-    { name: "Character Shard", count: 25 },
-    { name: "Dragon Shard", count: 5 },
-];
-
+// This should be fetched from a backend or configuration file.
 const upgradeRecipes: Record<string, { fromLevel: number; fromName: string; fromCount: number; jin: number; shards: { name: string; count: number }[], toName: string; toImage: string, toDataAiHint: string }> = {
     "2": { fromLevel: 1, fromName: "金砂 (Golden Sand)", fromCount: 5, jin: 100, shards: [{ name: "Character Shard", count: 20 }], toName: '金潮 (Golden Tide)', toImage: 'https://placehold.co/400x500.png', toDataAiHint: 'gold flowing wave' },
     "3": { fromLevel: 2, fromName: "金潮 (Golden Tide)", fromCount: 3, jin: 500, shards: [{ name: "Dragon Shard", count: 10 }], toName: '金脉 (Golden Vein)', toImage: 'https://placehold.co/400x500.png', toDataAiHint: 'gold glowing lines' },
@@ -61,32 +50,32 @@ export default function WorkshopPage() {
 
     const handleUpgrade = () => {
         if (canUpgrade) {
+            // Placeholder for smart contract interaction
             toast({
                 title: "升级成功 (Upgrade Successful)",
                 description: `您已成功将 ${recipe.fromCount}x ${recipe.fromName} 升级为 1x ${recipe.toName}!`
             });
-            // Here you would typically update the state of owned keys and shards
         }
     };
 
     const handleSynthesize = () => {
         if (canSynthesize) {
+            // Placeholder for smart contract interaction
             toast({
                 title: "合成成功 (Synthesis Successful)",
                 description: `您已成功合成了 1x ${synthesizeRecipe.toName}!`
             });
-            // Here you would typically update the state of owned keys and shards
         }
     };
     
     const handleRefill = () => {
         if (selectedKey && selectedKey.energy < selectedKey.energyMax) {
             const cost = (selectedKey.energyMax - selectedKey.energy) * 0.5;
+            // Placeholder for smart contract interaction
             toast({
                 title: "能量补充成功 (Energy Refilled)",
                 description: `您已花费 ${cost.toFixed(2)} $JIN 为 ${selectedKey.name} 补充了能量。`
             });
-             // Here you would typically update the state of the selected key
         }
     };
 
@@ -243,7 +232,7 @@ export default function WorkshopPage() {
                         </Select>
                     </div>
 
-                    {selectedKey && (
+                    {selectedKey ? (
                         <div className='space-y-4'>
                             <div className="flex items-center gap-4">
                                 <Image src={selectedKey.image} alt={selectedKey.name} width={80} height={100} className="rounded-md border" data-ai-hint={selectedKey['data-ai-hint']} />
@@ -259,6 +248,8 @@ export default function WorkshopPage() {
                                 充满所需费用: <span className="text-primary font-bold">{(selectedKey.energyMax - selectedKey.energy) * 0.5} $JIN</span> (0.5 $JIN / 能量点)
                             </p>
                         </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground pt-4">请先选择一个您拥有的 NFT 密钥。</p>
                     )}
                 </CardContent>
                  <CardFooter>

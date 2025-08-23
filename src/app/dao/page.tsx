@@ -7,37 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Vote, FileText } from "lucide-react";
 
+// In production, this data will be fetched from the DAO smart contract.
 const proposals = [
-  { 
-    id: "QJP-003",
-    title: "Adjust Level 4 NFT (金鼎) Upgrade Fee",
-    status: "Active",
-    proposer: "0x123...abc",
-    description: "Proposal to increase the $JIN fee for upgrading to a Level 4 Key from 500 to 600 to increase the burn rate.",
-    for: 75,
-    against: 25,
-    endDate: "in 2 days"
-  },
-  { 
-    id: "QJP-002",
-    title: "Increase Rebound Factor (R) Maximum to 1.8x",
-    status: "Passed",
-    proposer: "0x456...def",
-    description: "To better compensate stakers after negative PnL epochs, this proposes increasing the R_max parameter from 1.5x to 1.8x.",
-    for: 88,
-    against: 12,
-    endDate: "3 days ago"
-  },
-   { 
-    id: "QJP-001",
-    title: "Allocate Treasury for Marketing Campaign",
-    status: "Executed",
-    proposer: "0x789...ghi",
-    description: "Allocate 50,000 $JIN from the treasury for a Q2 marketing campaign with partner guilds.",
-    for: 95,
-    against: 5,
-    endDate: "2 weeks ago"
-  },
 ];
 
 const statusColors = {
@@ -77,44 +48,53 @@ export default function DaoPage() {
       </div>
 
        <div className="space-y-6">
-        {proposals.map(p => (
-            <Card key={p.id}>
-                <CardHeader>
-                    <div className="flex justify-between items-start">
+        {proposals.length > 0 ? (
+            proposals.map(p => (
+                <Card key={p.id}>
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle>{p.id}: {p.title}</CardTitle>
+                                <CardDescription className="mt-1">Proposed by {p.proposer} &bull; Ends {p.endDate}</CardDescription>
+                            </div>
+                            <Badge className={`${statusColors[p.status as keyof typeof statusColors]}`}>{p.status}</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">{p.description}</p>
                         <div>
-                            <CardTitle>{p.id}: {p.title}</CardTitle>
-                            <CardDescription className="mt-1">Proposed by {p.proposer} &bull; Ends {p.endDate}</CardDescription>
-                        </div>
-                        <Badge className={`${statusColors[p.status as keyof typeof statusColors]}`}>{p.status}</Badge>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">{p.description}</p>
-                    <div>
-                        <div className="mb-2">
-                            <div className="flex justify-between items-center text-sm mb-1">
-                                <span className="font-semibold text-green-400">For (赞成)</span>
-                                <span>{p.for}%</span>
+                            <div className="mb-2">
+                                <div className="flex justify-between items-center text-sm mb-1">
+                                    <span className="font-semibold text-green-400">For (赞成)</span>
+                                    <span>{p.for}%</span>
+                                </div>
+                                <Progress value={p.for} className="h-2 [&>div]:bg-green-400" />
                             </div>
-                            <Progress value={p.for} className="h-2 [&>div]:bg-green-400" />
-                        </div>
-                         <div>
-                             <div className="flex justify-between items-center text-sm mb-1">
-                                <span className="font-semibold text-red-400">Against (反对)</span>
-                                <span>{p.against}%</span>
+                            <div>
+                                <div className="flex justify-between items-center text-sm mb-1">
+                                    <span className="font-semibold text-red-400">Against (反对)</span>
+                                    <span>{p.against}%</span>
+                                </div>
+                                <Progress value={p.against} className="h-2 [&>div]:bg-red-400"/>
                             </div>
-                            <Progress value={p.against} className="h-2 [&>div]:bg-red-400"/>
                         </div>
-                    </div>
+                    </CardContent>
+                    {p.status === 'Active' && (
+                        <CardFooter className="flex justify-end gap-4">
+                            <Button variant="outline" onClick={() => handleVote(p.id, 'Against')}>Vote Against (反对)</Button>
+                            <Button onClick={() => handleVote(p.id, 'For')}>Vote For (赞成)</Button>
+                        </CardFooter>
+                    )}
+                </Card>
+            ))
+        ) : (
+            <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                    <p>当前没有活跃的治理提案。</p>
+                    <p>(No active governance proposals at the moment.)</p>
                 </CardContent>
-                {p.status === 'Active' && (
-                    <CardFooter className="flex justify-end gap-4">
-                        <Button variant="outline" onClick={() => handleVote(p.id, 'Against')}>Vote Against (反对)</Button>
-                        <Button onClick={() => handleVote(p.id, 'For')}>Vote For (赞成)</Button>
-                    </CardFooter>
-                )}
             </Card>
-        ))}
+        )}
        </div>
     </div>
   );

@@ -17,11 +17,6 @@ import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 
-// --- SIMULATION CONTROL ---
-// Set to `true` to enable AI players to automatically take their turns.
-// Set to `false` before deployment to disable simulation.
-const SIMULATION_ENABLED = false;
-
 // 定义牌的类型
 type Tile = { suit: string; value: string };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[][]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
@@ -311,44 +306,6 @@ function GameRoom() {
     }
   }, [turnTimer, isAiControlled, activePlayer, drawnTile, players, handleDiscardTile, toast]);
 
-  // AI Player Turn Simulation
-  useEffect(() => {
-      if (activePlayer === null) return;
-      const currentPlayer = players[activePlayer];
-      if (SIMULATION_ENABLED && gameState === 'playing' && currentPlayer?.isAI) {
-          
-          const handleAiTurn = async () => {
-              // 1. Draw a tile
-              const newWall = [...wall];
-              const tileDrawn = newWall.pop();
-              if (!tileDrawn) {
-                  // Handle end of wall - for now, just pass turn
-                  const finalPlayers = players.map(p => ({...p})); // copy players
-                  handleEndGame(finalPlayers); // End game if wall is empty
-                  return;
-              }
-
-              const updatedPlayers = [...players];
-              updatedPlayers[activePlayer].hand.push(tileDrawn);
-              
-              setWall(newWall);
-              setPlayers(updatedPlayers);
-              
-              // 2. Simulate thinking
-              const thinkTime = Math.random() * 1000 + 500; // 0.5s to 1.5s
-              await new Promise(resolve => setTimeout(resolve, thinkTime));
-
-              // 3. Discard a tile (for simulation, discard the one just drawn)
-              const discardIndex = updatedPlayers[activePlayer].hand.length - 1;
-              handleDiscardTile(activePlayer, discardIndex);
-          };
-
-          const timeoutId = setTimeout(handleAiTurn, 500); // Small delay before AI starts its turn
-          return () => clearTimeout(timeoutId);
-      }
-  }, [activePlayer, players, gameState, wall, handleDiscardTile, handleEndGame]);
-
-
   const initializeGame = useCallback(() => {
     clearTimer();
     setGameState('pre-roll-seating');
@@ -379,16 +336,6 @@ function GameRoom() {
     setDrawnTile(null);
     setSelectedTileIndex(null);
     setIsAiControlled(false);
-    
-    if (SIMULATION_ENABLED) {
-        // Reset mock data for simulation
-        initialPlayers.forEach(p => {
-            p.balance = INITIAL_BALANCE;
-            p.hand = [];
-            p.discards = [];
-            p.melds = [];
-        });
-    }
 
     const requestLocation = () => {
         if (navigator.geolocation) {
@@ -859,5 +806,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-      

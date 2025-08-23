@@ -9,14 +9,9 @@ import { Shield, Coins, Zap, Clock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
 
-const initialStakedKeys = [
-    { id: 1, name: '金脉 #1234', level: 3, energy: 110, energyMax: 120, weight: 8.7, pendingGMD: 125.3, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold glowing lines' },
-    { id: 2, name: '金潮 #5678', level: 2, energy: 25, energyMax: 80, weight: 4.3, pendingGMD: 62.1, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold flowing wave' },
-];
-
-const initialUnstakedKeys = [
-    { id: 3, name: '金砂 #9101', level: 1, energy: 45, energyMax: 50, weight: 2.0, image: 'https://placehold.co/400x500.png', 'data-ai-hint': 'gold sand particle' },
-]
+// In production, this data will be fetched from the user's wallet and smart contracts.
+const initialStakedKeys: any[] = [];
+const initialUnstakedKeys: any[] = [];
 
 export default function StakingPage() {
     const [stakedKeys, setStakedKeys] = useState(initialStakedKeys);
@@ -24,12 +19,14 @@ export default function StakingPage() {
     const { toast } = useToast();
 
     const handleStake = (keyToStake: typeof unstakedKeys[0]) => {
+        // This is a placeholder. Real logic would involve a smart contract transaction.
         setUnstakedKeys(unstakedKeys.filter(k => k.id !== keyToStake.id));
         setStakedKeys([...stakedKeys, { ...keyToStake, pendingGMD: 0 }]);
         toast({ title: "质押成功 (NFT Staked)", description: `${keyToStake.name} 已成功质押。` });
     };
 
     const handleUnstake = (keyToUnstake: typeof stakedKeys[0]) => {
+         // This is a placeholder. Real logic would involve a smart contract transaction.
         setStakedKeys(stakedKeys.filter(k => k.id !== keyToUnstake.id));
         const { pendingGMD, ...unstakedVersion } = keyToUnstake;
         setUnstakedKeys([...unstakedKeys, unstakedVersion]);
@@ -37,6 +34,7 @@ export default function StakingPage() {
     };
 
     const handleClaim = (keyToClaim: typeof stakedKeys[0]) => {
+         // This is a placeholder. Real logic would involve a smart contract transaction.
         setStakedKeys(stakedKeys.map(k => k.id === keyToClaim.id ? { ...k, pendingGMD: 0 } : k));
         toast({ title: "奖励已领取 (Rewards Claimed)", description: `您已从 ${keyToClaim.name} 领取了 ${keyToClaim.pendingGMD.toFixed(2)} $GMD。` });
     };
@@ -53,15 +51,15 @@ export default function StakingPage() {
             </CardHeader>
             <CardContent className="grid sm:grid-cols-3 gap-4 text-center">
                 <div>
-                    <p className="text-2xl font-bold">#1337</p>
+                    <p className="text-2xl font-bold">#0</p>
                     <p className="text-sm text-muted-foreground">当前周期 (Current Epoch)</p>
                 </div>
                  <div>
-                    <p className="text-2xl font-bold flex items-center justify-center gap-1"><Clock /> 1h 25m</p>
+                    <p className="text-2xl font-bold flex items-center justify-center gap-1"><Clock /> 0h 0m</p>
                     <p className="text-sm text-muted-foreground">剩余时间 (Time Remaining)</p>
                 </div>
                  <div>
-                    <p className="text-2xl font-bold text-yellow-300 flex items-center justify-center gap-1"><Coins size={24}/> 1,234.56</p>
+                    <p className="text-2xl font-bold text-yellow-300 flex items-center justify-center gap-1"><Coins size={24}/> 0.00</p>
                     <p className="text-sm text-muted-foreground">本周期 $GMD 总奖励 (Total $GMD Rewards This Epoch)</p>
                 </div>
             </CardContent>
