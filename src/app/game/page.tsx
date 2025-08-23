@@ -24,9 +24,9 @@ const SIMULATION_ENABLED = false;
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; };
+type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
-type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
+type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 
 type RoundResult = {
     winners: Array<{ player: Player; netWin: number }>;
@@ -93,6 +93,7 @@ function GameRoom() {
   const [dice, setDice] = useState<DiceRoll>([1, 1]);
   const [seatingRolls, setSeatingRolls] = useState<(DiceRoll | null)[]>([]);
   const [bankerId, setBankerId] = useState<number | null>(null);
+  const [eastPlayerId, setEastPlayerId] = useState<number | null>(null);
   const [shuffleHash, setShuffleHash] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [isAiControlled, setIsAiControlled] = useState(false);
@@ -325,6 +326,7 @@ function GameRoom() {
     setPot(0);
     setActivePlayer(null);
     setBankerId(null);
+    setEastPlayerId(null);
     setDrawnTile(null);
     setSelectedTileIndex(null);
     setIsAiControlled(false);
@@ -378,26 +380,39 @@ function GameRoom() {
 
         const windNames = ['(东)', '(南)', '(西)', '(北)'];
         
-        // Let's say the highest roller is East (Banker).
-        // The human player is always positioned at the bottom of the screen (South).
-        // We need to re-order the `players` array so that the human is at index 0,
-        // and then assign the correct wind names.
-
-        const newBanker = playerRolls[0].player;
-        setBankerId(newBanker.id);
+        const newEastPlayer = playerRolls[0].player;
+        setEastPlayerId(newEastPlayer.id);
 
         const finalPlayers = players.map(p => {
             const rollInfo = playerRolls.find(pr => pr.player.id === p.id);
             const windIndex = playerRolls.indexOf(rollInfo!);
             const windName = windNames[windIndex];
             const newName = p.isAI ? `Player ${p.id + 1} ${windName}` : `You ${windName}`;
-            return { ...p, name: newName };
+            return { ...p, name: newName, isEast: p.id === newEastPlayer.id };
         });
 
         setPlayers(finalPlayers);
-        setGameState('pre-roll');
-    }, 2000);
+        setGameState('pre-roll-banker'); // New state to decide the banker
+    }, 5500); // Wait for dice animation + a bit more
   }
+
+  const handleRollForBanker = () => {
+     if (eastPlayerId === null) return;
+     setGameState('rolling-banker');
+     const newDice: DiceRoll = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+     setDice(newDice);
+     
+     setTimeout(() => {
+        // In this implementation, East always becomes the banker.
+        // This roll is ceremonial and determines the wall break.
+        const newBanker = players.find(p => p.isEast);
+        if (newBanker) {
+            setBankerId(newBanker.id);
+            setGameState('pre-roll');
+        }
+    }, 5500); // Wait for dice animation
+  }
+
 
   const handleRollDice = () => {
     if (bankerId === null) return;
@@ -435,16 +450,10 @@ function GameRoom() {
         // Transition to the next state: rolling for the golden tile
         setGameState('banker-roll-for-golden');
 
-        const isBankerAI = players.find(p => p.id === bankerId)?.isAI;
-        if (isBankerAI) {
-            // If banker is AI, auto-roll for golden tile after a short delay
-            setTimeout(() => handleRollForGolden(true), 1000);
-        }
-
-    }, 1500); // Animation delay for dice roll
+    }, 5500); // Wait for dice roll animation
   }
 
-  const handleRollForGolden = (isAi = false) => {
+  const handleRollForGolden = () => {
     setGameState('rolling');
     const newDice: DiceRoll = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     setDice(newDice);
@@ -469,7 +478,7 @@ function GameRoom() {
             setDrawnTile(players.find(p => p.id === 0)!.hand.slice(-1)[0]);
         }
         
-    }, 1500);
+    }, 5500); // Wait for animation
   }
 
   const handleDrawTile = () => {
@@ -540,6 +549,14 @@ function GameRoom() {
     Expert: "高手场",
     Master: "大师场",
   };
+  
+  const playerIsEast = players.find(p => p.id === 0)?.isEast;
+  const isBankerTurn = activePlayer === bankerId;
+
+  const showRollForBankerButton = gameState === 'pre-roll-banker' && players.find(p => p.id === 0)?.isEast;
+  const showRollForStartButton = gameState === 'pre-roll' && isHumanBanker;
+  const showRollForGoldenButton = gameState === 'banker-roll-for-golden' && isHumanBanker;
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -563,8 +580,8 @@ function GameRoom() {
                              <div>
                                 <h3 className="font-semibold text-foreground">开局流程 (Starting the Game)</h3>
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>掷骰定座 (Roll for Seating)：</strong>游戏开始前，所有玩家掷一对骰子比大小。</li>
-                                    <li><strong>决定庄家 (Determine Banker)：</strong>点数最大者为第一局的庄家（东风位）。其他玩家按点数从大到小依次为南、西、北。您的视角将始终是南风位。</li>
+                                    <li><strong>掷骰定座 (Roll for Seating)：</strong>游戏开始前，所有玩家掷一对骰子比大小。点数最大者为东风位。您的视角将始终是南风位。</li>
+                                    <li><strong>掷骰定庄 (Roll for Banker)：</strong>由东风位玩家掷骰子，点数最高者成为第一局的庄家。</li>
                                      <li><strong>开局掷骰 (Banker's Roll)：</strong>庄家掷骰子，决定从牌墙的何处开始抓牌。</li>
                                      <li><strong>掷骰开金 (Roll for Golden Tile)：</strong>发牌结束后，庄家再次掷骰子，根据点数从牌墙末尾翻开一张牌作为“金”。</li>
                                 </ul>
@@ -631,6 +648,11 @@ function GameRoom() {
                 turnDuration={TURN_DURATION}
                 goldenTile={goldenTile}
                 seatingRolls={seatingRolls}
+                onRollForSeating={handleRollForSeating}
+                onRollForBanker={handleRollForBanker}
+                onRollForStart={handleRollDice}
+                onRollForGolden={handleRollForGolden}
+                eastPlayerId={eastPlayerId}
              />
           </CardContent>
         </Card>
@@ -654,9 +676,6 @@ function GameRoom() {
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
                         <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
-                    {gameState === 'pre-roll-seating' && <Button onClick={handleRollForSeating}><Dices className="mr-2"/> 掷骰子定座位 (Roll for Seating)</Button>}
-                    {gameState === 'pre-roll' && activePlayer === 0 && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局 (Roll Dice)</Button>}
-                    {gameState === 'banker-roll-for-golden' && isHumanBanker && <Button onClick={() => handleRollForGolden(false)}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
                     {gameState === 'playing' && activePlayer === 0 && !drawnTile && (
                       <Button onClick={handleDrawTile}>
                           <Hand className="mr-2 h-4 w-4" />

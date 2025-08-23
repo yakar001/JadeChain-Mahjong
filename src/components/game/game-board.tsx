@@ -2,13 +2,14 @@
 import { MahjongTile } from './mahjong-tile';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle } from 'lucide-react';
-import React from 'react';
+import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle, Layers, Dices } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Label } from '../ui/label';
+import { Button } from '../ui/button';
 
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean };
 type DiceRoll = [number, number];
 
 interface GameBoardProps {
@@ -16,12 +17,17 @@ interface GameBoardProps {
   activePlayerId: number | null;
   wallCount: number;
   dice: DiceRoll;
-  gameState: 'pre-roll-seating' | 'rolling-seating' | 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden' | 'game-over';
+  gameState: 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden' | 'game-over';
   bankerId: number | null;
   turnTimer: number;
   turnDuration: number;
   goldenTile: Tile | null;
   seatingRolls: (DiceRoll | null)[];
+  onRollForSeating: () => void;
+  onRollForBanker: () => void;
+  onRollForStart: () => void;
+  onRollForGolden: () => void;
+  eastPlayerId: number | null;
 }
 
 const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number }) => {
@@ -68,8 +74,8 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
 
   return (
     <div className={cn('flex items-center gap-2 z-10', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
-         <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
-            {player.melds.map((meld, i) => (
+       <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
+            {player.melds.length > 0 && player.melds.map((meld, i) => (
                 <div key={i} className="flex gap-px">
                     {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
                 </div>
@@ -119,12 +125,10 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
 
 const DiscardArea = ({ discards }: { discards: Tile[] }) => {
     return (
-        <div className="absolute inset-0 flex items-center justify-center p-[20%]">
-             <div className="w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
-                {discards.map((tile, index) => (
-                    <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
-                ))}
-             </div>
+        <div className="w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
+            {discards.map((tile, index) => (
+                <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
+            ))}
         </div>
     );
 }
@@ -133,6 +137,20 @@ const Dice = ({ value }: { value: number }) => {
     const Icon = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6][value - 1];
     return <Icon className="w-8 h-8 text-white" />;
 }
+
+const DiceRoller = ({ dice, rolling }: { dice: DiceRoll, rolling: boolean }) => {
+    return (
+        <div className="flex items-center justify-center gap-4">
+            <div className={cn("transition-transform duration-500", rolling && "animate-[spin_5s_ease-out_forwards]")}>
+                <Dice value={dice[0]} />
+            </div>
+            <div className={cn("transition-transform duration-500", rolling && "animate-[spin_5s_ease-out_forwards]")}>
+                 <Dice value={dice[1]} />
+            </div>
+        </div>
+    );
+}
+
 
 const WallSegment = ({ count, orientation }: { count: number; orientation: 'horizontal' | 'vertical' }) => (
     <div className={cn('flex gap-px', orientation === 'horizontal' ? 'flex-row' : 'flex-col')}>
@@ -145,7 +163,7 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     </div>
 );
 
-export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls }: GameBoardProps) {
+export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId }: GameBoardProps) {
     const playerSouth = players.find(p => p.id === 0); // Human
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
@@ -186,21 +204,47 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     }
 
     const { east, south, west, north } = getWallCounts();
+    
+    const isHumanPlayerTurnToRoll = (
+        (gameState === 'pre-roll-seating' && playerSouth?.id === 0) ||
+        (gameState === 'pre-roll-banker' && playerSouth?.isEast) ||
+        (gameState === 'pre-roll' && playerSouth?.id === bankerId) ||
+        (gameState === 'banker-roll-for-golden' && playerSouth?.id === bankerId)
+    );
+    
+    const getRollButtonAction = () => {
+        switch (gameState) {
+            case 'pre-roll-seating': return onRollForSeating;
+            case 'pre-roll-banker': return onRollForBanker;
+            case 'pre-roll': return onRollForStart;
+            case 'banker-roll-for-golden': return onRollForGolden;
+            default: return () => {};
+        }
+    }
+     const getRollButtonText = () => {
+        switch (gameState) {
+            case 'pre-roll-seating': return '掷骰子定座位';
+            case 'pre-roll-banker': return '掷骰子定庄';
+            case 'pre-roll': return '掷骰子开局';
+            case 'banker-roll-for-golden': return '掷骰子开金';
+            default: return '';
+        }
+    }
 
   return (
     <div className="relative w-full aspect-square max-w-[80vh] mx-auto">
         {/* Player Info Areas */}
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 transform-gpu">
           {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
         </div>
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-[45%]">
-          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 transform-gpu origin-center -rotate-90">
+            {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
         </div>
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 transform-gpu">
             {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
         </div>
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-[45%]">
-            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 transform-gpu origin-center rotate-90">
+            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
         </div>
 
 
@@ -209,13 +253,13 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 <div className="absolute inset-4 sm:inset-8 md:inset-12 border-2 border-yellow-800/30 rounded" />
                 
                 {/* Walls */}
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-full flex justify-center">
+                 <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-full flex justify-center">
                     <WallSegment count={north} orientation="horizontal" />
                 </div>
                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-full flex justify-center">
                     <WallSegment count={south} orientation="horizontal" />
                 </div>
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-full h-full flex items-center">
+                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-full h-full flex items-center justify-start">
                     <WallSegment count={west} orientation="vertical" />
                 </div>
                 <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-full h-full flex justify-end items-center">
@@ -223,38 +267,51 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 </div>
                 
                 {/* Center Area */}
-                <div className="w-full h-full flex items-center justify-center relative">
-                    {(gameState === 'pre-roll' || gameState === 'pre-roll-seating' || gameState === 'banker-roll-for-golden') && (
-                        <div className="text-center text-white">
-                            {gameState === 'pre-roll-seating' && <p className="font-bold text-lg">等待掷骰子定座位...</p>}
-                            {gameState === 'pre-roll' && <p className="font-bold text-lg">等待庄家掷骰子开局...</p>}
-                            {gameState === 'banker-roll-for-golden' && <p className="font-bold text-lg">等待庄家掷骰开金...</p>}
-                        </div>
-                    )}
-                     {(gameState === 'rolling' || gameState === 'rolling-seating') && (
-                        <div className="flex flex-col items-center justify-center gap-4 animate-bounce">
-                             {gameState === 'rolling-seating' && seatingRolls.length > 0 && (
-                                <div className='grid grid-cols-2 gap-4'>
-                                    {players.map((p, i) => (
-                                        <div key={p.id} className='flex items-center gap-2 bg-black/50 p-2 rounded'>
-                                            <Avatar className='w-6 h-6'><AvatarImage src={p.avatar} /><AvatarFallback>{p.name.charAt(0)}</AvatarFallback></Avatar>
-                                            {seatingRolls[i] ? <><Dice value={seatingRolls[i]![0]} /><Dice value={seatingRolls[i]![1]} /></> : '...'}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {gameState === 'rolling' && (
-                                <div className="flex items-center justify-center gap-4">
-                                    <Dice value={dice[0]} />
-                                    <Dice value={dice[1]} />
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    {(gameState === 'playing' || gameState === 'game-over') && <DiscardArea discards={allDiscards} />}
+                <div className="absolute inset-[20%] flex items-center justify-center">
+                    <DiscardArea discards={allDiscards} />
                 </div>
+
+                {/* Dice Rolling Overlay */}
+                {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll')) && (
+                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-20">
+                         {gameState.startsWith('rolling') && <DiceRoller dice={dice} rolling={true} />}
+                         {gameState.startsWith('pre-roll') && <DiceRoller dice={[1,1]} rolling={false} />}
+                         
+                         {gameState === 'pre-roll-seating' && (
+                             <div className="absolute bottom-[10%]">
+                                <Button onClick={onRollForSeating}><Dices className="mr-2"/>{getRollButtonText()}</Button>
+                            </div>
+                         )}
+                         {gameState === 'pre-roll-banker' && playerSouth?.isEast && (
+                             <div className="absolute bottom-[10%]">
+                                <Button onClick={onRollForBanker}><Dices className="mr-2"/>{getRollButtonText()}</Button>
+                            </div>
+                         )}
+                          {gameState === 'pre-roll-banker' && !playerSouth?.isEast && (
+                             <p className='text-white mt-4 font-bold'>等待东风位玩家掷骰子...</p>
+                         )}
+                         {gameState === 'pre-roll' && playerSouth?.id === bankerId && (
+                             <div className="absolute bottom-[10%]">
+                                <Button onClick={onRollForStart}><Dices className="mr-2"/>{getRollButtonText()}</Button>
+                            </div>
+                         )}
+                         {gameState === 'pre-roll' && playerSouth?.id !== bankerId && (
+                              <p className='text-white mt-4 font-bold'>等待庄家掷骰子...</p>
+                         )}
+                         {gameState === 'banker-roll-for-golden' && playerSouth?.id === bankerId && (
+                              <div className="absolute bottom-[10%]">
+                                <Button onClick={onRollForGolden}><Crown className="mr-2 text-yellow-400"/>{getRollButtonText()}</Button>
+                            </div>
+                         )}
+                          {gameState === 'banker-roll-for-golden' && playerSouth?.id !== bankerId && (
+                              <p className='text-white mt-4 font-bold'>等待庄家掷骰子开金...</p>
+                         )}
+                     </div>
+                 )}
             </div>
         </div>
     </div>
   );
 }
+
+    
