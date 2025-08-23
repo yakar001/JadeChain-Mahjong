@@ -3,13 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star } from "lucide-react";
+import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star, ShieldCheck } from "lucide-react";
 import type { ReactElement } from "react";
 import Image from "next/image";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+
+// Simulate a user's KYC level
+const userKycLevel = 1; 
 
 const rooms = [
   { 
@@ -19,7 +22,8 @@ const rooms = [
     prize: 38, 
     players: 1234, 
     icon: <Feather className="text-green-400" />,
-    description: "轻松入门，熟悉规则"
+    description: "轻松入门，熟悉规则",
+    kycRequired: 0,
   },
   { 
     tier: "Adept", 
@@ -28,7 +32,8 @@ const rooms = [
     prize: 190, 
     players: 876,
     icon: <Sword className="text-blue-400" />,
-    description: "磨炼技巧，初显锋芒"
+    description: "磨炼技巧，初显锋芒",
+    kycRequired: 0,
    },
   { 
     tier: "Expert", 
@@ -37,7 +42,8 @@ const rooms = [
     prize: 760, 
     players: 451,
     icon: <Crown className="text-purple-400" />,
-    description: "高手过招，一较高下"
+    description: "高手过招，一较高下",
+    kycRequired: 1,
   },
   { 
     tier: "Master", 
@@ -46,7 +52,8 @@ const rooms = [
     prize: 3800, 
     players: 102,
     icon: <Diamond className="text-yellow-400" />,
-    description: "巅峰对决，问鼎雀神"
+    description: "巅峰对决，问鼎雀神",
+    kycRequired: 2,
   },
 ];
 
@@ -95,6 +102,18 @@ const tournaments = [
 export default function Home() {
   const { toast } = useToast();
 
+  const handleJoinRoom = (room: typeof rooms[0]) => {
+    if (room.kycRequired > userKycLevel) {
+      toast({
+        variant: "destructive",
+        title: "KYC 等级不足 (KYC Level Too Low)",
+        description: `进入 ${room.tierDisplay} 需要 KYC 等级 ${room.kycRequired}。请先提升您的 KYC 等级。`,
+      });
+      return null; // Prevents Link from navigating
+    }
+    return `/game?tier=${room.tier}&fee=${room.fee}`;
+  }
+
   return (
     <div>
       <h1 className="text-3xl font-bold font-headline text-primary mb-6">游戏大厅 (Game Lobby)</h1>
@@ -126,13 +145,19 @@ export default function Home() {
                       <p className="font-bold text-lg flex items-center gap-1">{room.players.toLocaleString()} <Users size={16} /></p>
                     </div>
                   </div>
+                   {room.kycRequired > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
+                        <ShieldCheck size={16} />
+                        <span>需要 KYC 等级 {room.kycRequired}</span>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter className="flex-col items-stretch">
                    <p className="text-sm text-center text-muted-foreground mb-2">
                     入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
                   </p>
                   <Button className="w-full" asChild>
-                    <Link href={`/game?tier=${room.tier}&fee=${room.fee}`}>
+                    <Link href={handleJoinRoom(room) || '#'}>
                       加入对局 (Join Game)
                     </Link>
                   </Button>
@@ -268,5 +293,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
