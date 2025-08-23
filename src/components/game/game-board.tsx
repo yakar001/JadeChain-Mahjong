@@ -9,7 +9,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[][]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 
 interface GameBoardProps {
@@ -123,10 +123,10 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
   );
 };
 
-const DiscardArea = ({ discards }: { discards: Tile[] }) => {
+const DiscardArea = ({ discards }: { discards: Tile[][] }) => {
     return (
         <div className="w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
-            {discards.map((tile, index) => (
+            {discards.flat().map((tile, index) => (
                 <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
             ))}
         </div>
