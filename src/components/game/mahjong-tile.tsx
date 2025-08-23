@@ -20,7 +20,7 @@ const Dot = ({ color = "bg-blue-600", sizeClass = "w-2.5 h-2.5" }) => <div class
 const BambooStick = ({ color = "bg-green-600", sizeClass = "w-1 h-4" }) => <div className={cn("rounded-sm", color, sizeClass)} />;
 
 const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, size: 'md' | 'sm' }) => {
-    const sizeClass = size === 'md' ? { dot: "w-[1.4vh]", bamboo: "w-[0.5vh] h-[2.5vh]" } : { dot: "w-[1.2vw] h-[1.2vw] max-w-[0.5rem] max-h-[0.5rem]", bamboo: "w-1 h-3" };
+    const sizeClass = size === 'md' ? { dot: "w-[1.4vh]", bamboo: "w-[0.5vh] h-[2.5vh]" } : { dot: "w-[1vw] h-[1vw] max-w-[0.5rem] max-h-[0.5rem]", bamboo: "w-[0.4vw] h-[1.8vw] max-w-[0.2rem] max-h-[0.8rem]" };
     const dotColor = "bg-blue-600";
     const bambooColor = "bg-green-600";
     const redColor = "bg-red-600";
@@ -37,7 +37,7 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
             case '3': return <div className="w-full h-full grid grid-cols-3 grid-rows-3 p-1"><div className="col-start-1 row-start-1 self-start justify-self-start">{dots(1, redColor)}</div><div className="col-start-2 row-start-2 self-center justify-self-center">{dots(1, blueColor)}</div><div className="col-start-3 row-start-3 self-end justify-self-end">{dots(1, greenColor)}</div></div>;
             case '4': return <div className="w-full h-full flex justify-center items-center gap-4 p-1"><div className="flex flex-col gap-3">{dots(1, blueColor)}{dots(1, blueColor)}</div><div className="flex flex-col gap-3">{dots(1, greenColor)}{dots(1, greenColor)}</div></div>;
             case '5': return <div className="w-full h-full grid grid-cols-3 grid-rows-3 p-1"><div className="col-start-1 row-start-1">{dots(1, redColor)}</div><div className="col-start-3 row-start-1">{dots(1, greenColor)}</div><div className="col-start-2 row-start-2">{dots(1, blueColor)}</div><div className="col-start-1 row-start-3">{dots(1, greenColor)}</div><div className="col-start-3 row-start-3">{dots(1, redColor)}</div></div>;
-            case '6': return <div className="w-full h-full flex flex-col justify-center items-center gap-1"><div className="flex justify-center gap-x-3">{dots(1, redColor)}{dots(1, redColor)}</div><div className="flex justify-center gap-x-3">{dots(1, greenColor)}{dots(1, greenColor)}</div><div className="flex justify-center gap-x-3">{dots(1, greenColor)}{dots(1, greenColor)}</div></div>;
+            case '6': return <div className="w-full h-full flex flex-col justify-center items-center gap-1 p-1"><div className="flex justify-center gap-x-3">{dots(2, redColor)}</div><div className="flex justify-center gap-x-3">{dots(4, greenColor)}</div></div>;
             case '7': return <div className="w-full h-full flex flex-col justify-center items-center gap-1 p-1"><div className="flex justify-between w-full -mb-1" style={{ transform: 'rotate(20deg) translateY(-2px)' }}><div className="translate-x-1">{dots(1, greenColor)}</div><div>{dots(1, greenColor)}</div><div className="-translate-x-1">{dots(1, greenColor)}</div></div><div className="flex justify-around w-full">{dots(2, redColor)}</div><div className="flex justify-around w-full">{dots(2, redColor)}</div></div>;
             case '8': return <div className="w-full h-full flex flex-col justify-around p-1">{dots(8, blueColor).map((d, i) => <div key={i} className='h-full flex items-center'>{d}</div>).reduce((acc, el, i) => { if (i % 2 === 0) { acc.push([el]); } else { acc[acc.length - 1].push(el); } return acc; }, [] as JSX.Element[][]).map((pair, i) => <div key={i} className="flex justify-around">{pair}</div>)}</div>;
             case '9': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-around">{dots(3, redColor)}</div><div className="flex justify-around">{dots(3, greenColor)}</div><div className="flex justify-around">{dots(3, blueColor)}</div></div>;
@@ -57,7 +57,7 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
             case '5': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-around">{sticks(2, greenColor)}</div><div className="flex justify-center">{sticks(1, redColor)}</div><div className="flex justify-around">{sticks(2, blueColor)}</div></div>;
             case '6': return <div className="w-full h-full flex flex-col justify-center gap-1"><div className="flex justify-around">{sticks(3, greenColor)}</div><div className="flex justify-around">{sticks(3, blueColor)}</div></div>;
             case '7': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-center">{sticks(1, redColor)}</div><div className="flex justify-around">{sticks(3, greenColor)}</div><div className="flex justify-around">{sticks(3, blueColor)}</div></div>;
-            case '8': return <div className="w-full h-full flex flex-col justify-around items-center scale-90 gap-1"><div className="flex justify-between w-full"><div className="rotate-45">{sticks(1, greenColor)}</div><div className="-rotate-45">{sticks(1, greenColor)}</div></div><div className="flex justify-between w-full"><div className="-rotate-45">{sticks(1, greenColor)}</div><div className="rotate-45">{sticks(1, greenColor)}</div></div><div className="flex justify-between w-full"><div className="rotate-45">{sticks(1, blueColor)}</div><div className="-rotate-45">{sticks(1, blueColor)}</div></div><div className="flex justify-between w-full"><div className="-rotate-45">{sticks(1, blueColor)}</div><div className="rotate-45">{sticks(1, blueColor)}</div></div></div>;
+            case '8': return <div className="w-full h-full flex flex-col justify-around items-center scale-90 p-1"><div className="flex justify-between w-full -rotate-45">{sticks(2, greenColor)}<div className="w-1"/>{sticks(2, greenColor)}</div><div className="flex justify-between w-full rotate-45">{sticks(2, blueColor)}<div className="w-1"/>{sticks(2, blueColor)}</div></div>;
             case '9': return <div className="w-full h-full flex flex-col justify-around"><div className="flex justify-around">{sticks(3, redColor)}</div><div className="flex justify-around">{sticks(3, greenColor)}</div><div className="flex justify-around">{sticks(3, blueColor)}</div></div>;
             default: return null;
         }
@@ -68,8 +68,8 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
     
     let baseFontSize, topFontSize;
     if (size === 'sm') {
-        baseFontSize = "text-[1.8vw] leading-[1.8vw] max-sm:text-lg";
-        topFontSize = "text-[1.5vw] leading-[1.5vw] max-sm:text-base";
+        baseFontSize = "text-[1.8vw] leading-[1.8vw] md:text-base";
+        topFontSize = "text-[1.5vw] leading-[1.5vw] md:text-sm";
     } else {
         baseFontSize = "text-[3vh] leading-[3vh]";
         topFontSize = "text-[1.8vh] leading-[1.8vh]";
@@ -98,7 +98,7 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
       className={cn(
         'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80',
         'dark:bg-gradient-to-b from-stone-50 to-stone-200',
-        size === 'md' ? 'w-[6.5vh] h-[9vh]' : 'w-[2.5vw] h-[3.5vw] max-w-10 max-h-14 min-w-[24px] min-h-[34px]',
+        size === 'md' ? 'w-[6.5vh] h-[9vh]' : 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
         isClickable && 'transform transition-transform hover:-translate-y-2 cursor-pointer active:scale-95',
         isGolden && 'shadow-yellow-400/50 shadow-lg border-yellow-500 ring-2 ring-yellow-400',
         className
