@@ -6,13 +6,13 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2 } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
 import { MahjongTile } from '@/components/game/mahjong-tile';
@@ -24,14 +24,19 @@ type Tile = { suit: string; value: string };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; balance: number; hasLocation: boolean | null; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
-type RoundResult = { winner: Player; losers: Player[]; amount: number } | null;
 
+type RoundResult = {
+    winners: Array<{ player: Player; netWin: number }>;
+    losers: Array<{ player: Player; netLoss: number }>;
+    biggestWinner: Player | null;
+    tableFee: number;
+} | null;
 
 // 初始牌的数据
 const suits = ['dots', 'bamboo', 'characters'];
 const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B'];
-
+const INITIAL_BALANCE = 100;
 const TURN_DURATION = 15; // 15 seconds per turn
 
 const createDeck = (): Tile[] => {
@@ -101,6 +106,75 @@ function GameRoom() {
         timerRef.current = null;
     }
   }
+    
+  // Function to end the game and calculate results
+  const handleEndGame = useCallback((winningPlayer: Player, winAmount: number) => {
+    clearTimer();
+    
+    // All other players are losers
+    const losingPlayers = players.filter(p => p.id !== winningPlayer.id);
+    const lossAmount = winAmount / losingPlayers.length;
+
+    // Calculate final balances
+    const finalPlayers = players.map(p => {
+        if (p.id === winningPlayer.id) {
+            return { ...p, balance: p.balance + winAmount };
+        }
+        return { ...p, balance: p.balance - lossAmount };
+    });
+
+    const hasPlayerLost = finalPlayers.some(p => p.balance <= 0);
+
+    // If a player has run out of chips, the game truly ends
+    if (hasPlayerLost) {
+        let totalWinnings = 0;
+        const winners = finalPlayers.filter(p => p.balance > INITIAL_BALANCE).map(p => {
+            const netWin = p.balance - INITIAL_BALANCE;
+            totalWinnings += netWin;
+            return { player: p, netWin };
+        });
+
+        const losers = finalPlayers.filter(p => p.balance < INITIAL_BALANCE).map(p => {
+            const netLoss = INITIAL_BALANCE - p.balance;
+            return { player: p, netLoss };
+        });
+
+        // Distribute pot proportionally
+        let biggestWinner: Player | null = null;
+        let maxWin = 0;
+
+        const winnersWithDistribution = winners.map(w => {
+            const share = totalWinnings > 0 ? (w.netWin / totalWinnings) * pot : 0;
+            if(w.netWin > maxWin) {
+                maxWin = w.netWin;
+                biggestWinner = w.player;
+            }
+            return { ...w, potShare: share };
+        });
+        
+        const tableFee = STAKE_AMOUNT; // The fee is the initial stake amount
+        
+        setRoundResult({
+            winners: winnersWithDistribution.map(w => ({ player: w.player, netWin: w.potShare })),
+            losers,
+            biggestWinner,
+            tableFee,
+        });
+        
+        setGameState('game-over');
+    } else {
+        // Continue to the next round (not fully implemented, for now just update balances)
+        setPlayers(finalPlayers);
+        // Reset for next hand, e.g. re-deal etc. For now, we'll just show a toast.
+         toast({
+            title: "回合结束 (Hand Over)",
+            description: `${winningPlayer.name} wins ${winAmount} chips!`,
+        });
+        // Here you would reset the hand, keep the balances, and start a new hand.
+        // For simplicity of this implementation, we'll stop here.
+    }
+  }, [players, pot, STAKE_AMOUNT, toast]);
+
 
   const handleDiscardTile = useCallback(async (playerIndex: number, tileIndex: number) => {
     const updatedPlayers = [...players];
@@ -194,10 +268,10 @@ function GameRoom() {
     setWall(shuffled);
     setGoldenTile(null);
     const initialPlayers: Player[] = [
-      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], balance: 1000, hasLocation: null },
-      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000, hasLocation: true },
-      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000, hasLocation: false },
-      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000, hasLocation: true },
+      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: null },
+      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: true },
+      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: false },
+      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: INITIAL_BALANCE, hasLocation: true },
     ];
     setPlayers(initialPlayers);
     setPot(0);
@@ -251,18 +325,22 @@ function GameRoom() {
         
         const wallCopy = [...wall];
         
-        const initialPlayers: Player[] = [...playersWithStake];
+        // Use a temporary copy for dealing to avoid state update issues in the loop
+        const tempPlayers = JSON.parse(JSON.stringify(playersWithStake));
+
         // Deal 13 tiles to each player
         for (let i = 0; i < 13; i++) {
-            for (const player of initialPlayers) {
-                player.hand.push(wallCopy.pop()!);
+            for (const player of tempPlayers) {
+                const tile = wallCopy.pop();
+                if (tile) player.hand.push(tile);
             }
         }
         
         // Banker draws one extra tile
-        initialPlayers[newBankerId].hand.push(wallCopy.pop()!);
+        const bankerTile = wallCopy.pop();
+        if (bankerTile) tempPlayers[newBankerId].hand.push(bankerTile);
 
-        setPlayers(initialPlayers);
+        setPlayers(tempPlayers);
         setWall(wallCopy);
         setActivePlayer(newBankerId);
 
@@ -270,11 +348,9 @@ function GameRoom() {
         if (newBankerId === 0) { // If human is the banker
             setGameState('banker-roll-for-golden');
         } else {
-            // TODO: Simulate AI rolling for golden tile
+            // TODO: Simulate AI rolling for golden tile, for now just go to playing
             setGameState('playing');
         }
-
-
     }, 1500); // Animation delay for dice roll
   }
 
@@ -288,7 +364,7 @@ function GameRoom() {
         const wallCopy = [...wall];
         // In a real game, this would be counted from the end of the wall.
         // For simplicity, we'll take it from a calculated index.
-        const goldenIndex = total * 2;
+        const goldenIndex = Math.min(total * 2, wallCopy.length - 1);
         const golden = wallCopy.splice(goldenIndex, 1)[0];
         setGoldenTile(golden);
         setWall(wallCopy);
@@ -320,25 +396,17 @@ function GameRoom() {
       setSelectedTileIndex(tileIndex);
     }
   };
-
+  
   const handleWin = () => {
-      const winner = players[activePlayer];
+      const winner = players.find(p => p.id === activePlayer);
       if (!winner) return;
 
-      const losers = players.filter(p => p.id !== winner.id);
-      const winAmount = pot;
-      const lossAmount = winAmount / losers.length;
+      // In a real game, the win amount would be calculated based on the hand's value.
+      // For simplicity, we'll assume the win amount makes one opponent lose all chips.
+      const opponent = players.find(p => p.id !== activePlayer);
+      if(!opponent) return;
 
-      const updatedPlayers = players.map(p => {
-          if (p.id === winner.id) {
-              return { ...p, balance: p.balance + winAmount };
-          }
-          return { ...p, balance: p.balance - lossAmount };
-      });
-      
-      setPlayers(updatedPlayers);
-      setRoundResult({ winner, losers, amount: winAmount });
-      setGameState('game-over');
+      handleEndGame(winner, opponent.balance);
   }
 
   useEffect(() => {
@@ -464,7 +532,7 @@ function GameRoom() {
                     {goldenTile && (
                         <div className="flex items-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
                             <span>金牌 (Wild):</span>
-                             <MahjongTile suit={goldenTile.suit} value={goldenTile.value} size="sm" />
+                             <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" />
                         </div>
                     )}
                 </div>
@@ -521,21 +589,47 @@ function GameRoom() {
                 对局结束 (Game Over)
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {roundResult?.winner.name} 获得了胜利!
+              对局结算详情如下：
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="my-4">
-            <p className="font-bold text-center text-lg">{roundResult?.winner.name} +{roundResult?.amount} $JIN</p>
-             <div className="space-y-2 mt-2 text-center">
-                {roundResult?.losers.map(l => (
-                    <p key={l.id} className="text-sm text-muted-foreground">{l.name} -{roundResult.amount / roundResult.losers.length} $JIN</p>
-                ))}
-             </div>
+          <div className="my-4 space-y-3 text-sm">
+            {roundResult?.winners.map(({ player, netWin }) => (
+                <div key={player.id} className="flex justify-between items-center">
+                    <span className="font-semibold">{player.name}</span>
+                    <div className="flex items-center gap-2 text-green-400">
+                        <Plus size={16}/>
+                        <span>{netWin.toFixed(2)} $JIN</span>
+                    </div>
+                </div>
+            ))}
+             {roundResult?.losers.map(({ player, netLoss }) => (
+                <div key={player.id} className="flex justify-between items-center">
+                    <span className="font-semibold">{player.name}</span>
+                    <div className="flex items-center gap-2 text-red-400">
+                        <Minus size={16}/>
+                         <span>{netLoss.toFixed(2)} $JIN from Pot</span>
+                    </div>
+                </div>
+            ))}
+            <Separator />
+            {roundResult?.biggestWinner && (
+                 <div className="flex justify-between items-center text-xs text-muted-foreground">
+                    <span>大赢家台费 (Biggest Winner Fee)</span>
+                    <div className="flex items-center gap-2">
+                        <Minus size={12}/>
+                        <span>{roundResult.tableFee.toFixed(2)} $JIN (to Burn Pool)</span>
+                    </div>
+                </div>
+            )}
+             <div className="flex justify-between items-center font-bold text-base pt-2 border-t">
+                    <span>总奖池 (Total Pot)</span>
+                    <span>{pot} $JIN</span>
+                </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogAction onClick={initializeGame}>
                 <Shuffle className="mr-2"/>
-                再来一局 (Play Again)
+                继续匹配 (Continue Matching)
             </AlertDialogAction>
              <AlertDialogCancel asChild>
                 <Link href="/">返回大厅 (Back to Lobby)</Link>
