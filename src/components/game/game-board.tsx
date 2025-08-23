@@ -2,7 +2,7 @@
 import { MahjongTile } from './mahjong-tile';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle, Layers } from 'lucide-react';
+import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle } from 'lucide-react';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Label } from '../ui/label';
@@ -192,14 +192,14 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
           {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
         </div>
-        <div className="absolute -right-2 top-1/2 -translate-y-1/2">
-          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-[45%] -rotate-90 origin-center">
+          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
         </div>
         <div className="absolute -top-2 left-1/2 -translate-x-1/2">
             {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
         </div>
-        <div className="absolute -left-2 top-1/2 -translate-y-1/2">
-            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-[45%] rotate-90 origin-center">
+            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
         </div>
 
 
@@ -211,13 +211,13 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-full flex justify-center">
                     <WallSegment count={north} orientation="horizontal" />
                 </div>
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-full flex flex-col justify-end items-center">
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-full flex justify-center">
                     <WallSegment count={south} orientation="horizontal" />
                 </div>
                 <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-full h-full flex items-center">
                     <WallSegment count={west} orientation="vertical" />
                 </div>
-                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-full h-full flex flex-row justify-end items-center">
+                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-full h-full flex justify-end items-center">
                     <WallSegment count={east} orientation="vertical" />
                 </div>
                 
