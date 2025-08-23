@@ -20,6 +20,8 @@ import { MahjongTile } from '@/components/game/mahjong-tile';
 type Tile = { suit: string; value: string };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[] };
 type DiceRoll = [number, number];
+type GameState = 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing';
+
 
 // 初始牌的数据
 const suits = ['dots', 'bamboo', 'characters'];
@@ -62,7 +64,7 @@ const getTileName = (tile: Tile): string => {
 }
 
 export default function GamePage() {
-  const [gameState, setGameState] = useState<'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing'>('pre-roll');
+  const [gameState, setGameState] = useState<GameState>('pre-roll');
   const [wall, setWall] = useState<Tile[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [goldenTile, setGoldenTile] = useState<Tile | null>(null);
@@ -243,13 +245,34 @@ export default function GamePage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                     <AlertDialogTitle>闽南游金麻将 (Minnan Golden Mahjong Rules)</AlertDialogTitle>
-                    <AlertDialogDescription className="text-left">
-                        <p><strong>核心特点：</strong>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li><strong>开金：</strong>庄家再次掷骰子，根据点数从牌墙的何处翻开一张牌作为“金”。</li>
-                            <li><strong>作用：</strong>金牌可以用来替代任何你需要的牌来组成顺子、刻子或将牌。</li>
-                            <li><strong>胜负：</strong>拥有金牌可以极大地提高胡牌的概率和牌型的大小。</li>
-                        </ul>
+                    <AlertDialogDescription className="text-left max-h-[60vh] overflow-y-auto pr-4">
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
+                                <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li><strong>开金 (Reveal Golden Tile)：</strong>庄家再次掷骰子，根据点数从牌墙的何处翻开一张牌作为“金”。</li>
+                                    <li><strong>作用 (Function)：</strong>金牌可以用来替代任何你需要的牌来组成顺子、刻子或将牌。</li>
+                                    <li><strong>胜负 (Winning)：</strong>拥有金牌可以极大地提高胡牌的概率和牌型的大小。</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-foreground">公平性保证 (Fairness Guarantee)</h3>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li><strong>洗牌哈希 (Shuffle Hash)：</strong>游戏开始前，系统会对一副完整的、排序好的麻将牌进行加密哈希计算，并立即显示该哈希值。这意味着牌墙在发牌前就已完全确定，无法被篡改，确保了洗牌的绝对公平。</li>
+                                    <li><strong>掷骰子 (Dice Roll)：</strong>所有的掷骰子操作均在服务器端完成，以防止任何客户端的作弊行为，保证结果的随机性。</li>
+                                </ul>
+                            </div>
+                             <div>
+                                <h3 className="font-semibold text-foreground">游金规则详解 (Golden Tile Rules)</h3>
+                                <p>当玩家以“金牌”作为胡牌的关键张时，称为“游金”，并根据打出金牌的时机获得额外翻倍奖励。</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li><strong>一游 (Single Tour)：</strong>在胡牌时，将一张金牌作为普通牌打出，让其他玩家看到。如果成功胡牌，则总分翻2倍。</li>
+                                    <li><strong>双游 (Double Tour)：</strong>在“一游”的基础上，再次轮到自己摸牌时，摸到的牌恰好是可以胡的牌，此时再次打出一张金牌并声明胡牌。如果成功，则总分翻4倍。</li>
+                                    <li><strong>三游 (Triple Tour)：</strong>极为罕见。在“双游”成功后，若摸牌后仍未胡牌，则再次打出一张金牌。若最终成功胡牌，则总分翻8倍。</li>
+                                </ul>
+                            </div>
+                        </div>
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -330,3 +353,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
