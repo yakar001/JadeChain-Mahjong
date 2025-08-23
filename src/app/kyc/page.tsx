@@ -16,6 +16,11 @@ export default function KycPage() {
             title: "认证流程启动 (Verification Process Started)",
             description: "即将跳转至认证服务页面。(You will be redirected to the verification service.)"
         });
+
+        // Simulate redirection to an external KYC service after a short delay
+        setTimeout(() => {
+            window.location.href = 'https://example.com/kyc-verification-service';
+        }, 1500);
     }
 
     return (
