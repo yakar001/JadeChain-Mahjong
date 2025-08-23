@@ -62,61 +62,40 @@ const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number 
 };
 
 
-const PlayerInfo = ({ player, position, isActive, isBanker, turnTimer, turnDuration, goldenTile }: { player: Player; position: 'bottom' | 'right' | 'top' | 'left', isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number, goldenTile: Tile | null }) => {
-  const positionClasses = {
-    bottom: 'bottom-0 left-0 right-0 justify-center',
-    right: 'top-0 right-0 bottom-0 flex-col justify-center',
-    top: 'top-0 left-0 right-0 justify-center',
-    left: 'top-0 left-0 bottom-0 flex-col justify-center'
-  };
-  
+const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, goldenTile }: { player: Player; isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number, goldenTile: Tile | null }) => {
   const showTimer = isActive && player.id === 0;
 
   return (
-    <div className={cn('absolute flex items-center gap-4 p-2', positionClasses[position])}>
-      <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg z-10 border-2', isActive ? 'border-primary' : 'border-transparent')}>
-        <Avatar className={cn('h-10 w-10')}>
-          <AvatarImage src={player.avatar} />
-          <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70')}>
-          <div className='text-center'>
-              <div className='flex items-center gap-2 justify-center'>
-                   <div className='flex items-center gap-1'>
-                      <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
-                      {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
-                  </div>
-                  <TooltipProvider>
-                      <Tooltip>
-                          <TooltipTrigger>
-                              {player.hasLocation === true && <MapPin className="w-4 h-4 text-green-500" />}
-                              {player.hasLocation === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                              {player.hasLocation === null && <Loader2 className="w-4 h-4 animate-spin" />}
-                          </TooltipTrigger>
-                          <TooltipContent>
-                              <p>{player.hasLocation === true ? '已开启定位 (Location Enabled)' : player.hasLocation === false ? '未开启定位 (Location Disabled)' : '正在获取定位... (Getting location...)'}</p>
-                          </TooltipContent>
-                      </Tooltip>
-                  </TooltipProvider>
-              </div>
-              <p className='text-xs text-primary font-mono flex items-center justify-center gap-1'><Coins size={12}/> {player.balance}</p>
-          </div>
-          {showTimer && <TurnTimerCircle timer={turnTimer} duration={turnDuration} />}
+    <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg z-10 border-2', isActive ? 'border-primary' : 'border-transparent')}>
+      <Avatar className={cn('h-10 w-10')}>
+        <AvatarImage src={player.avatar} />
+        <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+      </Avatar>
+      <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70')}>
+        <div className='text-center'>
+            <div className='flex items-center gap-2 justify-center'>
+                 <div className='flex items-center gap-1'>
+                    <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
+                    {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
+                </div>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger>
+                            {player.hasLocation === true && <MapPin className="w-4 h-4 text-green-500" />}
+                            {player.hasLocation === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                            {player.hasLocation === null && <Loader2 className="w-4 h-4 animate-spin" />}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{player.hasLocation === true ? '已开启定位 (Location Enabled)' : player.hasLocation === false ? '未开启定位 (Location Disabled)' : '正在获取定位... (Getting location...)'}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
+            <p className='text-xs text-primary font-mono flex items-center justify-center gap-1'><Coins size={12}/> {player.balance}</p>
         </div>
+        {showTimer && <TurnTimerCircle timer={turnTimer} duration={turnDuration} />}
       </div>
        <div className="flex items-center gap-4">
-        {player.melds.length > 0 && (
-             <div className="flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Layers /> 鸣牌区</Label>
-                <div className="flex gap-1">
-                    {player.melds.map((meld, i) => (
-                        <div key={i} className="flex gap-px">
-                            {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )}
         {goldenTile && player.id === 0 && (
              <div className="flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
                  <Label className="text-xs text-muted-foreground">金牌 (Wild)</Label>
@@ -128,10 +107,37 @@ const PlayerInfo = ({ player, position, isActive, isBanker, turnTimer, turnDurat
   );
 };
 
+const MeldArea = ({ player, position }: { player: Player; position: 'bottom' | 'right' | 'top' | 'left' }) => {
+    if (player.melds.length === 0) return null;
+    
+    const positionClasses = {
+        bottom: 'bottom-[16%] left-1/2 -translate-x-1/2 flex-row',
+        top: 'top-[16%] left-1/2 -translate-x-1/2 flex-row-reverse',
+        left: 'left-[16%] top-1/2 -translate-y-1/2 flex-col-reverse',
+        right: 'right-[16%] top-1/2 -translate-y-1/2 flex-col',
+    }
+
+    return (
+        <div className={cn('absolute flex items-center justify-center gap-2 z-10', positionClasses[position])}>
+             <div className="flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Layers /> 鸣牌区</Label>
+                <div className="flex gap-1">
+                    {player.melds.map((meld, i) => (
+                        <div key={i} className="flex gap-px">
+                            {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const DiscardArea = ({ discards }: { discards: Tile[] }) => {
     return (
-        <div className="absolute inset-0 flex items-center justify-center p-[15%]">
-             <div className="w-full h-full flex flex-wrap items-start justify-start gap-1 p-2 bg-black/10 rounded">
+        <div className="absolute inset-0 flex items-center justify-center p-[20%]">
+             <div className="w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
                 {discards.map((tile, index) => (
                     <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
                 ))}
@@ -202,12 +208,21 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
   return (
     <div className="relative w-full aspect-square max-w-[80vh] mx-auto">
         {/* Player Info Areas */}
-        {playerSouth && <PlayerInfo player={playerSouth} position="bottom" isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
-        {playerEast && <PlayerInfo player={playerEast} position="right" isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
-        {playerNorth && <PlayerInfo player={playerNorth} position="top" isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
-        {playerWest && <PlayerInfo player={playerWest} position="left" isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+          {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
+        </div>
+        <div className="absolute -right-2 top-1/2 -translate-y-1/2">
+          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+        </div>
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+            {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+        </div>
+        <div className="absolute -left-2 top-1/2 -translate-y-1/2">
+            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+        </div>
 
-        <div className="absolute inset-0 top-[15%] bottom-[15%] left-[15%] right-[15%]">
+
+        <div className="absolute inset-[8%]">
             <div className="aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative flex items-center justify-center">
                 <div className="absolute inset-4 sm:inset-8 md:inset-12 border-2 border-yellow-800/30 rounded" />
                 
@@ -216,6 +231,12 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2"><WallSegment count={south} orientation="horizontal" /></div>
                 <div className="absolute -left-1 top-1/2 -translate-y-1/2"><WallSegment count={west} orientation="vertical" /></div>
                 <div className="absolute -right-1 top-1/2 -translate-y-1/2"><WallSegment count={east} orientation="vertical" /></div>
+                
+                {/* Meld Areas */}
+                {playerSouth && <MeldArea player={playerSouth} position="bottom" />}
+                {playerNorth && <MeldArea player={playerNorth} position="top" />}
+                {playerWest && <MeldArea player={playerWest} position="left" />}
+                {playerEast && <MeldArea player={playerEast} position="right" />}
                 
                 {/* Center Area */}
                 <div className="w-full h-full flex items-center justify-center relative">
@@ -238,3 +259,4 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
+
