@@ -265,10 +265,11 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 </div>
 
                 {/* Dice Rolling Overlay */}
-                {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll')) && (
+                {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll') || gameState === 'banker-roll-for-golden') && (
                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-20">
                          {gameState.startsWith('rolling') && <DiceRoller dice={dice} rolling={true} />}
                          {gameState.startsWith('pre-roll') && <DiceRoller dice={[1,1]} rolling={false} />}
+                         {gameState === 'banker-roll-for-golden' && <DiceRoller dice={[1,1]} rolling={false} />}
                          
                          {gameState === 'pre-roll-seating' && (
                              <div className="absolute bottom-[10%]">
@@ -306,3 +307,4 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
+
