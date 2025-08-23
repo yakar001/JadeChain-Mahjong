@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Gem, Home, Store, User, Bot, Vote, Shield, Hammer, Banknote } from 'lucide-react';
+import { Gem, Home, Store, User, Bot, Vote, Shield, Hammer, Banknote, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -77,6 +77,14 @@ export function AppSidebar() {
               <Link href="/profile">
                 <User />
                 Profile (个人中心)
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/profile#kyc')}>
+              <Link href="/profile#kyc">
+                <ShieldCheck />
+                KYC (身份认证)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

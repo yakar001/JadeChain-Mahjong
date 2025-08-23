@@ -3,11 +3,12 @@ import { MahjongTile } from './mahjong-tile';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins } from 'lucide-react';
+import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle } from 'lucide-react';
 import React from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; balance: number; };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; balance: number; hasLocation: boolean | null; };
 type DiceRoll = [number, number];
 
 interface GameBoardProps {
@@ -35,11 +36,25 @@ const PlayerInfo = ({ player, position, isActive, isBanker }: { player: Player; 
       </Avatar>
       <div className={cn('transition-opacity duration-300 flex items-center gap-1', isActive ? 'opacity-100' : 'opacity-70')}>
         <div className='text-center'>
-            <div className='flex items-center gap-1'>
-                <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
-                {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
+            <div className='flex items-center gap-2 justify-center'>
+                 <div className='flex items-center gap-1'>
+                    <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
+                    {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
+                </div>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger>
+                            {player.hasLocation === true && <MapPin className="w-4 h-4 text-green-500" />}
+                            {player.hasLocation === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                            {player.hasLocation === null && <Loader2 className="w-4 h-4 animate-spin" />}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{player.hasLocation === true ? '已开启定位 (Location Enabled)' : player.hasLocation === false ? '未开启定位 (Location Disabled)' : '正在获取定位... (Getting location...)'}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
-            <p className='text-xs text-primary font-mono flex items-center gap-1'><Coins size={12}/> {player.balance}</p>
+            <p className='text-xs text-primary font-mono flex items-center justify-center gap-1'><Coins size={12}/> {player.balance}</p>
         </div>
       </div>
     </div>
@@ -50,14 +65,14 @@ const DiscardArea = ({ discards, position }: { discards: Tile[]; position: 'bott
     const gridStyles = {
         bottom: 'grid-rows-3 grid-flow-col-dense',
         top: 'grid-rows-3 grid-flow-col-dense',
-        left: 'grid-cols-3 grid-flow-row-dense',
-        right: 'grid-cols-3 grid-flow-row-dense',
+        left: 'grid-cols-3 grid-flow-row-dense h-3/5',
+        right: 'grid-cols-3 grid-flow-row-dense h-3/5',
     };
     const positionClasses = {
-        bottom: 'bottom-[calc(50%+1rem)] left-1/2 -translate-x-1/2 w-3/5',
-        right: 'top-1/2 right-[calc(50%+1rem)] -translate-y-1/2 h-3/5',
-        top: 'top-[calc(50%+1rem)] left-1/2 -translate-x-1/2 w-3/5',
-        left: 'top-1/2 left-[calc(50%+1rem)] -translate-y-1/2 h-3/5'
+        bottom: 'bottom-[52%] left-1/2 -translate-x-1/2 w-2/5',
+        right: 'top-1/2 right-[52%] -translate-y-1/2 w-1/5',
+        top: 'top-[52%] left-1/2 -translate-x-1/2 w-2/5',
+        left: 'top-1/2 left-[52%] -translate-y-1/2 w-1/5'
     }
 
     return (
@@ -78,8 +93,8 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     <div className={cn('flex gap-px', orientation === 'horizontal' ? 'flex-row' : 'flex-col')}>
         {Array.from({ length: Math.ceil(count / 2) }).map((_, i) => (
             <div key={i} className="relative">
-                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-4 h-6 border-b-2' : 'w-6 h-4 border-r-2')}></div>
-                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-4 h-6 border-b-2 ml-px -mt-px' : 'w-6 h-4 border-r-2 mt-px -ml-px')}></div>
+                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-5 h-7 border-b-2' : 'w-7 h-5 border-r-2')}></div>
+                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-5 h-7 border-b-2 ml-px -mt-px' : 'w-7 h-5 border-r-2 mt-px -ml-px')}></div>
             </div>
         ))}
     </div>
@@ -95,23 +110,21 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     // Total tiles = 136. Each side has 17 pairs (34 tiles).
     const tilesPerSide = 34;
     const initialWallCount = 136;
-    const tilesDealt = 52; // 13 tiles for 4 players
-    const dealtWallCount = initialWallCount - tilesDealt - 1; // 1 for banker
-    const tilesDrawn = dealtWallCount - wallCount;
 
     const getWallCounts = () => {
         let counts = { east: tilesPerSide, south: tilesPerSide, west: tilesPerSide, north: tilesPerSide };
-        if (gameState === 'pre-roll') return counts;
+        if (gameState === 'pre-roll' || wallCount === 0) return counts;
 
         let tilesToRemove = (initialWallCount - wallCount);
-        const startSide = bankerId === 0 ? 'south' : bankerId === 1 ? 'east' : bankerId === 2 ? 'north' : 'west';
         
-        const sides: Array<keyof typeof counts> = ['east', 'south', 'west', 'north'];
-        let currentSideIndex = sides.indexOf(startSide);
-
+        // Banker determines start. 0:S, 1:E, 2:N, 3:W
+        const sideOrder: Array<keyof typeof counts> = ['east', 'south', 'west', 'north'];
+        let startIndex = (bankerId || 0); 
+        
         while (tilesToRemove > 0) {
-            const side = sides[currentSideIndex];
+            const side = sideOrder[startIndex % 4];
             const removable = counts[side];
+            
             if (tilesToRemove >= removable) {
                 tilesToRemove -= removable;
                 counts[side] = 0;
@@ -119,7 +132,8 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 counts[side] -= tilesToRemove;
                 tilesToRemove = 0;
             }
-            currentSideIndex = (currentSideIndex + 1) % 4; // Move to next player (counter-clockwise)
+            // Move to next player (counter-clockwise)
+             startIndex = (startIndex + 1);
         }
         
         return counts;

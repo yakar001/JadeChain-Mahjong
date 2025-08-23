@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
@@ -16,10 +16,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
 import { MahjongTile } from '@/components/game/mahjong-tile';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; balance: number; };
+type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; balance: number; hasLocation: boolean | null; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 type RoundResult = { winner: Player; losers: Player[]; amount: number } | null;
@@ -69,6 +71,7 @@ function GameRoom() {
   const searchParams = useSearchParams();
   const roomTier = searchParams.get('tier') || 'Novice';
   const roomFee = parseInt(searchParams.get('fee') || '10', 10);
+  const { toast } = useToast();
   
   const [STAKE_AMOUNT] = useState(roomFee);
   const [gameState, setGameState] = useState<GameState>('pre-roll');
@@ -103,17 +106,40 @@ function GameRoom() {
     setWall(shuffled);
     setGoldenTile(null);
     const initialPlayers: Player[] = [
-      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], balance: 1000 },
-      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000 },
-      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000 },
-      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000 },
+      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], balance: 1000, hasLocation: null },
+      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000, hasLocation: true },
+      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000, hasLocation: false },
+      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], balance: 1000, hasLocation: true },
     ];
     setPlayers(initialPlayers);
     setPot(0);
     setActivePlayer(0);
     setDrawnTile(null);
     setSelectedTileIndex(null);
+    requestLocation();
   };
+  
+    const requestLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: true } : p));
+                },
+                (error) => {
+                    console.error("Error getting location:", error);
+                    setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
+                    toast({
+                        variant: 'destructive',
+                        title: '定位失败 (Location Failed)',
+                        description: '无法获取您的地理位置，请检查浏览器权限设置。(Could not get location. Please check browser permissions.)',
+                    });
+                }
+            );
+        } else {
+            setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
+        }
+    };
+
 
   useEffect(() => {
     initializeGame();
@@ -346,6 +372,16 @@ function GameRoom() {
             </Button>
           </div>
         </div>
+        
+        {humanPlayer?.hasLocation === false && (
+            <Alert variant="destructive">
+                <AlertTitle>需要定位权限 (Location Permission Required)</AlertTitle>
+                <AlertDescription>
+                    为了保证游戏公平性，我们需要获取您的地理位置。请在浏览器设置中允许定位权限。
+                </AlertDescription>
+            </Alert>
+        )}
+
 
         <Card>
           <CardContent className="p-2 md:p-4">
@@ -452,5 +488,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
