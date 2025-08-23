@@ -3,13 +3,13 @@ import { MahjongTile } from './mahjong-tile';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle, Layers, Dices } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 
 interface GameBoardProps {
@@ -74,43 +74,43 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
 
   return (
     <div className={cn('flex items-center gap-2 z-10', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
-       <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
-            {player.melds.length > 0 && player.melds.map((meld, i) => (
-                <div key={i} className="flex gap-px">
-                    {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
-                </div>
-            ))}
-        </div>
-        <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg border-2', isActive ? 'border-primary' : 'border-transparent', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
-            <Avatar className={cn('h-10 w-10')}>
-                <AvatarImage src={player.avatar} />
-                <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70')}>
-                <div className='text-center'>
-                    <div className='flex items-center gap-2 justify-center'>
-                        <div className='flex items-center gap-1'>
-                            <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
-                            {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
-                        </div>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    {player.hasLocation === true && <MapPin className="w-4 h-4 text-green-500" />}
-                                    {player.hasLocation === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                                    {player.hasLocation === null && <Loader2 className="w-4 h-4 animate-spin" />}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{player.hasLocation === true ? '已开启定位 (Location Enabled)' : player.hasLocation === false ? '未开启定位 (Location Disabled)' : '正在获取定位... (Getting location...)'}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
-                    <p className='text-xs text-primary font-mono flex items-center justify-center gap-1'><Coins size={12}/> {player.balance}</p>
-                </div>
-                {showTimer && <TurnTimerCircle timer={turnTimer} duration={turnDuration} />}
+      <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
+        {player.melds.length > 0 && player.melds.map((meld, i) => (
+          <div key={i} className="flex gap-px">
+            {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
+          </div>
+        ))}
+      </div>
+      <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg border-2', isActive ? 'border-primary' : 'border-transparent', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
+        <Avatar className={cn('h-10 w-10')}>
+          <AvatarImage src={player.avatar} />
+          <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70')}>
+          <div className='text-center'>
+            <div className='flex items-center gap-2 justify-center'>
+              <div className='flex items-center gap-1'>
+                <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
+                {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    {player.hasLocation === true && <MapPin className="w-4 h-4 text-green-500" />}
+                    {player.hasLocation === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                    {player.hasLocation === null && <Loader2 className="w-4 h-4 animate-spin" />}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{player.hasLocation === true ? '已开启定位 (Location Enabled)' : player.hasLocation === false ? '未开启定位 (Location Disabled)' : '正在获取定位... (Getting location...)'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
+            <p className='text-xs text-primary font-mono flex items-center justify-center gap-1'><Coins size={12}/> {player.balance}</p>
+          </div>
+          {showTimer && <TurnTimerCircle timer={turnTimer} duration={turnDuration} />}
         </div>
+      </div>
       <div className="flex items-center gap-4">
         {goldenTile && (
              <div className="flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
@@ -141,10 +141,10 @@ const Dice = ({ value }: { value: number }) => {
 const DiceRoller = ({ dice, rolling }: { dice: DiceRoll, rolling: boolean }) => {
     return (
         <div className="flex items-center justify-center gap-4">
-            <div className={cn("transition-transform duration-500", rolling && "animate-[spin_5s_ease-out_forwards]")}>
+            <div className={cn("transition-transform duration-500", rolling && "animate-dice-tumble")}>
                 <Dice value={dice[0]} />
             </div>
-            <div className={cn("transition-transform duration-500", rolling && "animate-[spin_5s_ease-out_forwards]")}>
+            <div className={cn("transition-transform duration-500", rolling && "animate-dice-tumble [animation-delay:-0.2s]")}>
                  <Dice value={dice[1]} />
             </div>
         </div>
@@ -204,14 +204,7 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     }
 
     const { east, south, west, north } = getWallCounts();
-    
-    const isHumanPlayerTurnToRoll = (
-        (gameState === 'pre-roll-seating' && playerSouth?.id === 0) ||
-        (gameState === 'pre-roll-banker' && playerSouth?.isEast) ||
-        (gameState === 'pre-roll' && playerSouth?.id === bankerId) ||
-        (gameState === 'banker-roll-for-golden' && playerSouth?.id === bankerId)
-    );
-    
+
     const getRollButtonAction = () => {
         switch (gameState) {
             case 'pre-roll-seating': return onRollForSeating;
@@ -238,13 +231,13 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
           {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
         </div>
         <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 transform-gpu origin-center -rotate-90">
-            {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
+            {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
         </div>
         <div className="absolute -top-2 left-1/2 -translate-x-1/2 transform-gpu">
             {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
         </div>
         <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 transform-gpu origin-center rotate-90">
-            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
+            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
         </div>
 
 
@@ -262,7 +255,7 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-full h-full flex items-center justify-start">
                     <WallSegment count={west} orientation="vertical" />
                 </div>
-                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-full h-full flex justify-end items-center">
+                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-full h-full flex items-center justify-end">
                     <WallSegment count={east} orientation="vertical" />
                 </div>
                 
@@ -313,5 +306,3 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
-
-    

@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -88,10 +89,19 @@ export default {
             height: '0',
           },
         },
+        'dice-tumble': {
+          '0%': { transform: 'rotate(0deg) translate(0, 0)' },
+          '20%': { transform: 'rotateX(45deg) rotateY(-45deg) rotateZ(10deg) translate(-20px, -30px)' },
+          '40%': { transform: 'rotateX(90deg) rotateY(45deg) rotateZ(20deg) translate(20px, -15px)' },
+          '60%': { transform: 'rotateX(-90deg) rotateY(-45deg) rotateZ(-20deg) translate(-10px, 10px)' },
+          '80%': { transform: 'rotateX(180deg) rotateY(180deg) rotateZ(0deg) translate(5px, 5px)' },
+          '100%': { transform: 'rotate(360deg) translate(0, 0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'dice-tumble': 'dice-tumble 5s ease-out forwards',
       },
     },
   },
