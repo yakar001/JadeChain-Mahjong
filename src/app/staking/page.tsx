@@ -26,19 +26,19 @@ export default function StakingPage() {
     const handleStake = (keyToStake: typeof unstakedKeys[0]) => {
         setUnstakedKeys(unstakedKeys.filter(k => k.id !== keyToStake.id));
         setStakedKeys([...stakedKeys, { ...keyToStake, pendingGMD: 0 }]);
-        toast({ title: "NFT Staked", description: `${keyToStake.name} has been successfully staked.` });
+        toast({ title: "质押成功 (NFT Staked)", description: `${keyToStake.name} 已成功质押。` });
     };
 
     const handleUnstake = (keyToUnstake: typeof stakedKeys[0]) => {
         setStakedKeys(stakedKeys.filter(k => k.id !== keyToUnstake.id));
         const { pendingGMD, ...unstakedVersion } = keyToUnstake;
         setUnstakedKeys([...unstakedKeys, unstakedVersion]);
-        toast({ title: "NFT Unstaked", description: `${keyToUnstake.name} has been successfully unstaked.` });
+        toast({ title: "取消质押成功 (NFT Unstaked)", description: `${keyToUnstake.name} 已成功取消质押。` });
     };
 
     const handleClaim = (keyToClaim: typeof stakedKeys[0]) => {
         setStakedKeys(stakedKeys.map(k => k.id === keyToClaim.id ? { ...k, pendingGMD: 0 } : k));
-        toast({ title: "Rewards Claimed", description: `You have claimed ${keyToClaim.pendingGMD.toFixed(2)} $GMD from ${keyToClaim.name}.` });
+        toast({ title: "奖励已领取 (Rewards Claimed)", description: `您已从 ${keyToClaim.name} 领取了 ${keyToClaim.pendingGMD.toFixed(2)} $GMD。` });
     };
 
 
@@ -69,54 +69,62 @@ export default function StakingPage() {
 
         <div className="mb-8">
             <h2 className="text-2xl font-bold font-headline mb-4">已质押密钥 (Staked Keys) ({stakedKeys.length})</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {stakedKeys.map(key => (
-                    <Card key={key.id}>
-                        <CardContent className="p-4 flex gap-4">
-                             <Image src={key.image} alt={key.name} width={100} height={125} className="rounded-md border" data-ai-hint={key['data-ai-hint']} />
-                             <div className="flex-grow space-y-2">
-                                <h3 className="font-bold">{key.name}</h3>
-                                <div className="text-xs text-muted-foreground space-y-1">
-                                    <p>Level: {key.level}</p>
-                                    <p className="flex items-center gap-1"><Zap size={12}/> Energy: {key.energy}/{key.energyMax} ({((key.energy/key.energyMax)*100).toFixed(0)}%)</p>
-                                    <p>Weight: {key.weight.toFixed(1)}</p>
+            {stakedKeys.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {stakedKeys.map(key => (
+                        <Card key={key.id}>
+                            <CardContent className="p-4 flex gap-4">
+                                <Image src={key.image} alt={key.name} width={100} height={125} className="rounded-md border" data-ai-hint={key['data-ai-hint']} />
+                                <div className="flex-grow space-y-2">
+                                    <h3 className="font-bold">{key.name}</h3>
+                                    <div className="text-xs text-muted-foreground space-y-1">
+                                        <p>Level: {key.level}</p>
+                                        <p className="flex items-center gap-1"><Zap size={12}/> Energy: {key.energy}/{key.energyMax} ({((key.energy/key.energyMax)*100).toFixed(0)}%)</p>
+                                        <p>Weight: {key.weight.toFixed(1)}</p>
+                                    </div>
+                                    <Separator />
+                                    <div>
+                                        <p className="text-sm font-semibold text-yellow-300 flex items-center gap-1"><Coins size={14}/> {key.pendingGMD.toFixed(2)} $GMD</p>
+                                        <p className="text-xs text-muted-foreground">待领取奖励 (Pending Rewards)</p>
+                                    </div>
                                 </div>
-                                <Separator />
-                                <div>
-                                    <p className="text-sm font-semibold text-yellow-300 flex items-center gap-1"><Coins size={14}/> {key.pendingGMD.toFixed(2)} $GMD</p>
-                                    <p className="text-xs text-muted-foreground">待领取奖励 (Pending Rewards)</p>
+                                <div className="flex flex-col justify-between">
+                                    <Button size="sm" onClick={() => handleClaim(key)} disabled={key.pendingGMD <= 0}>领取 (Claim)</Button>
+                                    <Button size="sm" variant="outline" onClick={() => handleUnstake(key)}>取消质押 (Unstake)</Button>
                                 </div>
-                             </div>
-                              <div className="flex flex-col justify-between">
-                                <Button size="sm" onClick={() => handleClaim(key)} disabled={key.pendingGMD <= 0}>领取 (Claim)</Button>
-                                <Button size="sm" variant="outline" onClick={() => handleUnstake(key)}>取消质押 (Unstake)</Button>
-                              </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-muted-foreground text-center py-4">您还没有质押任何密钥。(You have no staked keys.)</p>
+            )}
         </div>
 
          <div>
             <h2 className="text-2xl font-bold font-headline mb-4">未质押密钥 (Unstaked Keys) ({unstakedKeys.length})</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {unstakedKeys.map(key => (
-                    <Card key={key.id}>
-                        <CardContent className="p-4 flex gap-4 items-center">
-                             <Image src={key.image} alt={key.name} width={80} height={100} className="rounded-md border" data-ai-hint={key['data-ai-hint']} />
-                             <div className="flex-grow space-y-2">
-                                <h3 className="font-bold">{key.name}</h3>
-                                 <div className="text-xs text-muted-foreground space-y-1">
-                                    <p>Level: {key.level}</p>
-                                    <p className="flex items-center gap-1"><Zap size={12}/> Energy: {key.energy}/{key.energyMax}</p>
-                                    <p>Base Weight: {key.weight.toFixed(1)}</p>
+            {unstakedKeys.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {unstakedKeys.map(key => (
+                        <Card key={key.id}>
+                            <CardContent className="p-4 flex gap-4 items-center">
+                                <Image src={key.image} alt={key.name} width={80} height={100} className="rounded-md border" data-ai-hint={key['data-ai-hint']} />
+                                <div className="flex-grow space-y-2">
+                                    <h3 className="font-bold">{key.name}</h3>
+                                    <div className="text-xs text-muted-foreground space-y-1">
+                                        <p>Level: {key.level}</p>
+                                        <p className="flex items-center gap-1"><Zap size={12}/> Energy: {key.energy}/{key.energyMax}</p>
+                                        <p>Base Weight: {key.weight.toFixed(1)}</p>
+                                    </div>
                                 </div>
-                             </div>
-                            <Button onClick={() => handleStake(key)}>质押 (Stake)</Button>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                                <Button onClick={() => handleStake(key)}>质押 (Stake)</Button>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+             ) : (
+                <p className="text-muted-foreground text-center py-4">您所有的密钥都已质押。(All your keys are staked.)</p>
+            )}
         </div>
 
     </div>
