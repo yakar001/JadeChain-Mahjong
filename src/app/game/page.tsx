@@ -6,7 +6,7 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -84,6 +84,7 @@ function GameRoom() {
   const [bankerId, setBankerId] = useState(0);
   const [shuffleHash, setShuffleHash] = useState('');
   const [isMuted, setIsMuted] = useState(false);
+  const [isAiControlled, setIsAiControlled] = useState(false);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [pot, setPot] = useState(0);
@@ -409,10 +410,14 @@ function GameRoom() {
                         </div>
                     )}
                 </div>
-                 <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-4 flex-wrap justify-center">
                     <div className="flex items-center space-x-2">
+                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={() => setIsAiControlled(!isAiControlled)} />
+                        <Label htmlFor="ai-control" className="flex items-center gap-1"><Bot/> AI托管</Label>
+                    </div>
+                     <div className="flex items-center space-x-2">
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
-                        <Label htmlFor="sound-mute">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
+                        <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
                     {gameState === 'pre-roll' && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局 (Roll Dice)</Button>}
                     {gameState === 'banker-roll-for-golden' && isBankerAndHuman && <Button onClick={handleRollForGolden}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
