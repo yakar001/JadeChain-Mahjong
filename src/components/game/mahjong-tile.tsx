@@ -16,13 +16,8 @@ interface MahjongTileProps {
 
 // SVG Components for Tiles
 
-const Dot = ({ color = "bg-blue-600", sizeClass = "w-2.5 h-2.5" }) => <div className={cn("rounded-full", color, sizeClass)} />;
-const BambooStick = ({ color = "bg-green-600", sizeClass = "w-1 h-4" }) => <div className={cn("rounded-sm", color, sizeClass)} />;
-
 const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, size: 'md' | 'sm' }) => {
     const sizeClass = size === 'md' ? { dot: "w-[1.4vh]", bamboo: "w-[0.5vh] h-[2.5vh]" } : { dot: "w-[1vw] h-[1vw] max-w-[0.5rem] max-h-[0.5rem]", bamboo: "w-[0.4vw] h-[1.8vw] max-w-[0.2rem] max-h-[0.8rem]" };
-    const dotColor = "bg-blue-600";
-    const bambooColor = "bg-green-600";
     const redColor = "bg-red-600";
     const greenColor = "bg-green-600";
     const blueColor = "bg-blue-600";
@@ -83,7 +78,7 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
     }
     if (suit === 'dragon') {
         if (value === 'B') {
-            return <div className={cn("w-4/5 h-4/5 border-2 border-blue-600 rounded", size === 'sm' ? "border-2" : "border-[0.6vh]")} />;
+            return <div className={cn("w-4/5 h-4/5 border-blue-600 rounded", size === 'sm' ? "border-2" : "border-[0.6vh]")} />;
         }
         const color = value === 'R' ? 'text-red-600' : 'text-green-600';
         return <span className={cn('font-bold font-headline', color, baseFontSize)}>{symbolMap[value]}</span>;
@@ -110,4 +105,3 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
     </div>
   );
 }
-
