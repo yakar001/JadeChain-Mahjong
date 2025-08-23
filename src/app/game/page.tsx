@@ -16,7 +16,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // --- SIMULATION CONTROL ---
 // Set to `true` to enable AI players to automatically take their turns.
@@ -314,7 +313,7 @@ function GameRoom() {
     setGoldenTile(null);
     const initialPlayers: Player[] = [
       { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null },
-      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [[{ suit: 'bamboo', value: '2' }, { suit: 'bamboo', value: '2' }, { suit: 'bamboo', value: '2' }]], balance: INITIAL_BALANCE, hasLocation: true },
+      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
       { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: false },
       { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
     ];
@@ -351,7 +350,7 @@ function GameRoom() {
         }
     };
     requestLocation();
-  }, [toast]);
+  }, []);
   
 
   useEffect(() => {
