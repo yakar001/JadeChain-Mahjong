@@ -599,6 +599,14 @@ function GameRoom() {
                                 <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
                                 <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
                             </div>
+                             <div>
+                                <h3 className="font-semibold text-foreground">游戏玩法 (Gameplay)</h3>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li><strong>动作提示 (Action Prompts)：</strong>当上家打出一张牌后，如果您的手牌可以进行“吃”、“碰”或“杠”，系统会自动弹出相应按钮供您选择。</li>
+                                    <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌后，如果手牌已满足胡牌条件，系统会自动出现“自摸胡牌”按钮。</li>
+                                    <li><strong>高级策略 (Advanced Strategy)：</strong>您可以选择忽略当前的胡牌提示，继续游戏以追求“游金”等更高番数的牌型。</li>
+                                </ul>
+                            </div>
                             <div>
                                 <h3 className="font-semibold text-foreground">计分规则 (Scoring)</h3>
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
@@ -799,5 +807,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
