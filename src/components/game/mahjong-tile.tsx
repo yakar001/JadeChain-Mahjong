@@ -27,36 +27,34 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
     const greenColor = "bg-green-600";
 
     if (suit === 'dots') {
-        const dots = Array.from({ length: parseInt(value, 10) }).map((_, i) => (
-            <div key={i} className={cn("rounded-full", dotColor, sizeClass.dot)} />
+        const dots = (count: number, color: string) => Array.from({ length: count }).map((_, i) => (
+            <div key={i} className={cn("rounded-full", color, sizeClass.dot)} />
         ));
         switch (value) {
             case '1': return <div className="w-full h-full flex justify-center items-center"><div className={cn("w-8 h-8 rounded-full border-4 border-green-600 flex justify-center items-center", size === 'sm' && "w-6 h-6 border-2")}><div className={cn("rounded-full bg-red-600", sizeClass.dot)} /></div></div>;
-            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-1">{dots}</div>;
-            case '3': return <div className="w-full h-full flex flex-col justify-between items-center p-1"><div className="self-start">{dots[0]}</div>{dots[1]}<div className="self-end">{dots[2]}</div></div>;
-            case '4': return <div className="w-full h-full grid grid-cols-2 grid-rows-2 p-1 gap-1">{dots}</div>;
-            case '5': return <div className="w-full h-full grid grid-cols-3 grid-rows-3 p-1"><div className="col-start-1 row-start-1">{dots[0]}</div><div className="col-start-3 row-start-1">{dots[1]}</div><div className="col-start-2 row-start-2">{dots[2]}</div><div className="col-start-1 row-start-3">{dots[3]}</div><div className="col-start-3 row-start-3">{dots[4]}</div></div>;
-            case '6': return <div className="w-full h-full flex justify-around"><div className="flex flex-col justify-around">{dots.slice(0,3)}</div><div className="flex flex-col justify-around">{dots.slice(3,6)}</div></div>;
-            case '7': return <div className="w-full h-full grid grid-cols-3 grid-rows-3 p-1"><div className="col-start-1 row-start-1" style={{color: greenColor}}>{dots[0]}</div><div className="col-start-2 row-start-1" style={{color: greenColor}}>{dots[1]}</div><div className="col-start-3 row-start-1" style={{color: greenColor}}>{dots[2]}</div><div className="col-start-1 row-start-2">{dots[3]}</div><div className="col-start-3 row-start-2">{dots[4]}</div><div className="col-start-1 row-start-3">{dots[5]}</div><div className="col-start-3 row-start-3">{dots[6]}</div></div>;
-            case '8': return <div className="w-full h-full flex justify-around"><div className="flex flex-col justify-around">{dots.slice(0,4)}</div><div className="flex flex-col justify-around">{dots.slice(4,8)}</div></div>;
-            case '9': return <div className="w-full h-full flex justify-around"><div className="flex flex-col justify-around">{dots.slice(0,3)}</div><div className="flex flex-col justify-around">{dots.slice(3,6)}</div><div className="flex flex-col justify-around">{dots.slice(6,9)}</div></div>;
+            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-1">{dots(1, redColor)}{dots(1, greenColor)}</div>;
+            case '3': return <div className="w-full h-full flex flex-col justify-between items-center p-1"><div className="self-start">{dots(1, redColor)}</div>{dots(1, dotColor)}<div className="self-end">{dots(1, greenColor)}</div></div>;
+            case '4': return <div className="w-full h-full grid grid-cols-2 grid-rows-2 p-1 gap-1">{dots(2, dotColor)}{dots(2, greenColor)}</div>;
+            case '5': return <div className="w-full h-full grid grid-cols-3 grid-rows-3 p-1"><div className="col-start-1 row-start-1">{dots(1, redColor)}</div><div className="col-start-3 row-start-1">{dots(1, greenColor)}</div><div className="col-start-2 row-start-2">{dots(1, dotColor)}</div><div className="col-start-1 row-start-3">{dots(1, greenColor)}</div><div className="col-start-3 row-start-3">{dots(1, redColor)}</div></div>;
+            case '6': return <div className="w-full h-full flex flex-col justify-around"><div className="flex justify-around">{dots(2, redColor)}</div><div className="flex justify-around">{dots(4, greenColor)}</div></div>;
+            case '7': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-between -mb-1"><div className="translate-x-1">{dots(1, greenColor)}</div><div className="-translate-y-1">{dots(1, greenColor)}</div><div className="-translate-x-1">{dots(1, greenColor)}</div></div><div className="flex justify-around">{dots(2, redColor)}</div><div className="flex justify-around">{dots(2, redColor)}</div></div>;
+            case '8': return <div className="w-full h-full flex flex-col justify-around p-1">{dots(8, dotColor).map((d, i) => <div key={i} className='h-full flex items-center'>{d}</div>).reduce((acc, el, i) => { if (i % 2 === 0) { acc.push([el]); } else { acc[acc.length - 1].push(el); } return acc; }, [] as JSX.Element[][]).map((pair, i) => <div key={i} className="flex justify-around">{pair}</div>)}</div>;
+            case '9': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-around">{dots(3, redColor)}</div><div className="flex justify-around">{dots(3, greenColor)}</div><div className="flex justify-around">{dots(3, dotColor)}</div></div>;
             default: return null;
         }
     }
 
     if (suit === 'bamboo') {
-        const sticks = Array.from({ length: parseInt(value, 10) }).map((_, i) => {
-            const isRed = (value === '5' && i === 2) || (value === '7' && i === 3) || (value === '9' && i === 4);
-            const isBlue = (value === '5' && (i === 0 || i === 4));
-            return <div key={i} className={cn("rounded-sm", bambooColor, sizeClass.bamboo, isRed && redColor, isBlue && dotColor )} />;
-        });
+        const sticks = Array.from({ length: parseInt(value, 10) }).map((_, i) => (
+             <div key={i} className={cn("rounded-sm", bambooColor, sizeClass.bamboo )} />
+        ));
         switch (value) {
-            case '1': return <svg className={cn("w-10 h-10", size === 'sm' && "w-8 h-8")} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50,10 a15,15 0 1,0 0,20 a15,15 0 1,0 0,-20 M40,40 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M20,50 a5,5 0 1,0 60,0 a5,5 0 1,0 -60,0" fill="#006400" /><path d="M30,70 l40,0 l-20,20 z" fill="#006400" /></svg>;
+            case '1': return <svg className={cn("w-10 h-10", size === 'sm' && "w-8 h-8")} viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="#508a38" d="M512 512m-384 0a384 384 0 1 0 768 0 384 384 0 1 0-768 0Z"></path><path fill="#fff" d="M512 512m-292.266667 0a292.266667 292.266667 0 1 0 584.533334 0 292.266667 292.266667 0 1 0-584.533334 0Z"></path><path fill="#508a38" d="M512 512m-256 0a256 256 0 1 0 512 0 256 256 0 1 0-512 0Z"></path><path fill="#fff" d="M682.666667 554.666667c0 94.293333-76.373333 170.666667-170.666667 170.666666s-170.666667-76.373333-170.666667-170.666666c0-62.293333 33.28-116.906667 83.2-145.92l42.666667-29.013334h89.6l42.666667 29.013334c49.92 29.013333 83.2 83.626667 83.2 145.92z"></path><path fill="#508a38" d="M512 546.133333c-20.48 0-39.253333-4.266667-56.32-12.8l-42.666667-20.48V480h2.133334c34.133333 0 65.28 11.093333 90.453333 30.293333l20.48 15.36 20.48-15.36c25.173333-19.2 56.32-30.293333 90.453333-30.293334h2.133334v32.853334l-42.666667 20.48c-17.066667 8.533333-35.84 12.8-56.32 12.8z m-85.333333-134.826666v53.333333a179.2 179.2 0 0 0 57.173333 124.586667l28.16 21.333333 28.16-21.333333a179.2 179.2 0 0 0 57.173333-124.586667V411.306667h-23.893333c-30.293333 0-58.88 9.386667-81.493333 26.026666l-5.12 4.266667-5.12-4.266667c-22.613333-16.64-51.2-26.026667-81.493334-26.026666H426.666667z"></path></svg>;
             case '2': case '3': case '4': return <div className="w-full h-full flex flex-col justify-around items-center p-1">{sticks}</div>;
-            case '5': return <div className="w-full h-full flex justify-around items-center"><div className="flex flex-col justify-around h-3/5">{sticks.slice(0,2)}</div> {sticks[2]} <div className="flex flex-col justify-around h-3/5">{sticks.slice(3,5)}</div></div>;
+            case '5': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-around">{sticks.slice(0,2)}</div><div className="flex justify-center"><div className={cn(sizeClass.bamboo, redColor)} /></div><div className="flex justify-around">{sticks.slice(3,5)}</div></div>;
             case '6': return <div className="w-full h-full flex flex-col justify-around"><div className="flex justify-around">{sticks.slice(0,3)}</div><div className="flex justify-around">{sticks.slice(3,6)}</div></div>;
-            case '7': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-center">{sticks[0]}</div><div className="flex justify-around">{sticks.slice(1,4)}</div><div className="flex justify-around">{sticks.slice(4,7)}</div></div>
-            case '8': return <div className="w-full h-full flex justify-around"><div className="flex flex-col justify-around">{sticks.slice(0,4)}</div><div className="flex flex-col justify-around">{sticks.slice(4,8)}</div></div>;
+            case '7': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-center"><div className={cn(sizeClass.bamboo, redColor)} /></div><div className="flex justify-around">{sticks.slice(1,4)}</div><div className="flex justify-around">{sticks.slice(4,7)}</div></div>
+            case '8': return <div className="w-full h-full flex flex-col justify-center items-center gap-1.5"><div className="flex gap-4"><div className={cn(sizeClass.bamboo, "rotate-45")}/><div className={cn(sizeClass.bamboo, "-rotate-45")}/></div><div className="flex gap-2"><div className={cn(sizeClass.bamboo, "-rotate-45")}/><div className={cn(sizeClass.bamboo, "rotate-45")}/></div><div className="flex gap-4"><div className={cn(sizeClass.bamboo, "rotate-45")}/><div className={cn(sizeClass.bamboo, "-rotate-45")}/></div></div>;
             case '9': return <div className="w-full h-full flex flex-col justify-around"><div className="flex justify-around">{sticks.slice(0,3)}</div><div className="flex justify-around">{sticks.slice(3,6)}</div><div className="flex justify-around">{sticks.slice(6,9)}</div></div>;
             default: return null;
         }
@@ -67,10 +65,10 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
     const baseFontSize = size === 'md' ? 'text-4xl' : 'text-2xl';
     
     if (suit === 'characters') {
-        return <div className="flex flex-col items-center justify-between h-full p-1 font-bold font-headline"><span className={cn('text-red-600 self-end', size === 'md' ? 'text-xs' : 'text-[10px]')}>{symbolMap[value]}</span><span className={cn('text-black', baseFontSize)}>{characterMap[value]}</span></div>;
+        return <div className="flex flex-col items-center justify-center h-full p-1 font-bold font-headline"><span className={cn('text-black', size === 'md' ? 'text-xl' : 'text-lg')}>{symbolMap[value]}</span><span className={cn('text-red-600', baseFontSize)}>{characterMap[value]}</span></div>;
     }
     if (suit === 'wind') {
-        return <span className={cn('font-bold font-headline', baseFontSize)}>{symbolMap[value]}</span>;
+        return <span className={cn('font-bold font-headline text-black', baseFontSize)}>{symbolMap[value]}</span>;
     }
     if (suit === 'dragon') {
         if (value === 'B') {
