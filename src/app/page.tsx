@@ -9,6 +9,7 @@ import Image from "next/image";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 const rooms = [
   { 
@@ -95,9 +96,9 @@ export default function Home() {
       <h1 className="text-3xl font-bold font-headline text-primary mb-6">游戏大厅 (Game Lobby)</h1>
       <Tabs defaultValue="standard">
         <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
-          <TabsTrigger value="standard">标准场</TabsTrigger>
-          <TabsTrigger value="ranked">排位赛</TabsTrigger>
-          <TabsTrigger value="tournament">锦标赛</TabsTrigger>
+          <TabsTrigger value="standard">标准场 (Standard)</TabsTrigger>
+          <TabsTrigger value="ranked">排位赛 (Ranked)</TabsTrigger>
+          <TabsTrigger value="tournament">锦标赛 (Tournament)</TabsTrigger>
         </TabsList>
         <TabsContent value="standard" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -126,8 +127,10 @@ export default function Home() {
                    <p className="text-sm text-center text-muted-foreground mb-2">
                     入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
                   </p>
-                  <Button className="w-full" onClick={() => toast({ title: "正在加入对局...", description: `已加入 ${room.tier} 场` })}>
-                    加入对局
+                  <Button className="w-full" asChild>
+                    <Link href="/game">
+                      加入对局 (Join Game)
+                    </Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -166,13 +169,13 @@ export default function Home() {
                     <CardFooter>
                         <Button size="lg" className="w-full sm:w-auto ml-auto" onClick={() => toast({ title: "开始匹配排位赛", description: "正在为您寻找旗鼓相当的对手..." })}>
                             <Sword className="mr-2" />
-                            开始排位赛
+                            开始排位赛 (Start Ranked Match)
                         </Button>
                     </CardFooter>
                 </Card>
                  <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Trophy /> 赛季奖励</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><Trophy /> 赛季奖励 (Season Rewards)</CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <div className="flex flex-col items-center gap-2 p-2 border rounded-md bg-accent/50">
@@ -201,7 +204,7 @@ export default function Home() {
             <div className="space-y-6">
                 <Card>
                     <CardHeader>
-                       <CardTitle className="flex items-center gap-2"><BarChart /> 段位列表</CardTitle>
+                       <CardTitle className="flex items-center gap-2"><BarChart /> 段位列表 (Rank Tiers)</CardTitle>
                     </CardHeader>
                     <CardContent>
                        <ul className="space-y-4">
@@ -250,7 +253,7 @@ export default function Home() {
                     disabled={t.status !== '报名中'}
                     onClick={() => toast({ title: "报名成功!", description: `您已成功报名 ${t.name}。`})}
                   >
-                    {t.status === '报名中' ? '报名参赛' : t.status === '进行中' ? '查看对局' : '查看结果'}
+                    {t.status === '报名中' ? '报名参赛 (Register)' : t.status === '进行中' ? '查看对局 (View Match)' : '查看结果 (View Results)'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -261,5 +264,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
