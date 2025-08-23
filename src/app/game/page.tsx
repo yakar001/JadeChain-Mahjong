@@ -344,11 +344,6 @@ function GameRoom() {
                 (error) => {
                     console.error("Error getting location:", error.message);
                     setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
-                    toast({
-                        variant: 'destructive',
-                        title: '定位失败 (Location Failed)',
-                        description: '无法获取您的地理位置，请检查浏览器权限设置。(Could not get location. Please check browser permissions.)',
-                    });
                 }
             );
         } else {
@@ -565,16 +560,6 @@ function GameRoom() {
             </Button>
           </div>
         </div>
-        
-        {humanPlayer?.hasLocation === false && (
-            <Alert variant="destructive">
-                <AlertTitle>需要定位权限 (Location Permission Required)</AlertTitle>
-                <AlertDescription>
-                    为了保证游戏公平性，我们需要获取您的地理位置。请在浏览器设置中允许定位权限。
-                </AlertDescription>
-            </Alert>
-        )}
-
 
         <Card>
           <CardContent className="p-2 md:p-4">

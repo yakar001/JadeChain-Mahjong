@@ -71,8 +71,8 @@ const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, 
         baseFontSize = "text-[1.8vw] leading-[1.8vw] md:text-base";
         topFontSize = "text-[1.5vw] leading-[1.5vw] md:text-sm";
     } else {
-        baseFontSize = "text-[3vh] leading-[3vh]";
-        topFontSize = "text-[1.8vh] leading-[1.8vh]";
+        baseFontSize = "text-[3vw] leading-[3vw]";
+        topFontSize = "text-[1.8vw] leading-[1.8vw]";
     }
     
     if (suit === 'characters') {
@@ -98,7 +98,7 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
       className={cn(
         'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80',
         'dark:bg-gradient-to-b from-stone-50 to-stone-200',
-        size === 'md' ? 'w-[6.5vh] h-[9vh]' : 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
+        size === 'md' ? 'w-[6.5vw] h-[9vw]' : 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
         isClickable && 'transform transition-transform hover:-translate-y-2 cursor-pointer active:scale-95',
         isGolden && 'shadow-yellow-400/50 shadow-lg border-yellow-500 ring-2 ring-yellow-400',
         className
