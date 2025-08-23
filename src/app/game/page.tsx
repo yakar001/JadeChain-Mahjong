@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // --- SIMULATION CONTROL ---
 // Set to `true` to enable AI players to automatically take their turns.
 // Set to `false` before deployment to disable simulation.
-const SIMULATION_ENABLED = true;
+const SIMULATION_ENABLED = false;
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
