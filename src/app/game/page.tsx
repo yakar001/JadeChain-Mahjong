@@ -144,6 +144,8 @@ export default function GamePage() {
     setTimeout(() => {
         const total = newDice[0] + newDice[1];
         const wallCopy = [...wall];
+        // In a real game, this would be counted from the end of the wall.
+        // For simplicity, we'll take it from a calculated index.
         const goldenIndex = total * 2;
         const golden = wallCopy.splice(goldenIndex, 1)[0];
         setGoldenTile(golden);
@@ -193,7 +195,16 @@ export default function GamePage() {
               console.error("Error playing discard audio:", error);
           }
       }
+      
       // TODO: Add logic for next player's turn
+      // For now, we'll simulate the next AI player's turn quickly
+      // In a real game, this would have more logic and delay
+      if(players.length > 1) {
+          const nextPlayerIndex = (activePlayer + 1) % players.length;
+          setActivePlayer(nextPlayerIndex);
+          // Here you would implement AI logic for other players
+      }
+
     } else {
       // This is the first click, just select the tile
       setSelectedTileIndex(tileIndex);
@@ -218,7 +229,7 @@ export default function GamePage() {
           <div className="flex items-center gap-2 flex-wrap">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="outline"><BookOpen/> 玩法说明</Button>
+                    <Button variant="outline"><BookOpen/> 玩法说明 (Rules)</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -272,8 +283,8 @@ export default function GamePage() {
                     {goldenTile && (
                         <div className="flex items-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
                             <span>金牌 (Wild):</span>
-                            <div className="w-6 h-8 flex items-center justify-center text-xs">
-                                {goldenTile.suit === 'characters' ? '万' : goldenTile.suit === 'dots' ? '筒' : goldenTile.suit === 'bamboo' ? '索' : ''}{goldenTile.value}
+                            <div className="w-6 h-8 flex items-center justify-center text-xs font-bold bg-stone-50 rounded text-black">
+                                {getTileName(goldenTile)}
                             </div>
                         </div>
                     )}
@@ -283,7 +294,7 @@ export default function GamePage() {
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
                         <Label htmlFor="sound-mute">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
-                    {gameState === 'pre-roll' && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局</Button>}
+                    {gameState === 'pre-roll' && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局 (Roll Dice)</Button>}
                     {gameState === 'banker-roll-for-golden' && isBankerAndHuman && <Button onClick={handleRollForGolden}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
                     {gameState === 'playing' && activePlayer === 0 && !drawnTile && <Button onClick={handleDrawTile}>
                         <Hand className="mr-2 h-4 w-4" />
@@ -310,3 +321,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    

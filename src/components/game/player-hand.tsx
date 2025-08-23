@@ -16,7 +16,11 @@ export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selecte
 
   // Sort hand for better readability
   const sortOrder = ['dots', 'bamboo', 'characters', 'wind', 'dragon'];
-  const sortedHand = [...hand].sort((a, b) => {
+  
+  // Create an index map to handle clicks on the unsorted hand but render the sorted one
+  const indexedHand = hand.map((tile, index) => ({ ...tile, originalIndex: index }));
+
+  const sortedHand = [...indexedHand].sort((a, b) => {
     const suitA = sortOrder.indexOf(a.suit);
     const suitB = sortOrder.indexOf(b.suit);
     if (suitA !== suitB) {
@@ -33,12 +37,12 @@ export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selecte
     <div className="flex flex-wrap gap-2 justify-center p-4 bg-background/50 rounded-lg min-h-[8rem]">
       {sortedHand.map((tile, index) => (
         <button
-          key={index}
-          onClick={() => onTileClick(index)}
+          key={`${tile.suit}-${tile.value}-${index}`}
+          onClick={() => onTileClick(tile.originalIndex)}
           disabled={!canInteract}
           className={cn(
               "disabled:cursor-not-allowed transform transition-transform duration-150",
-              selectedTileIndex === index ? "-translate-y-4" : "hover:-translate-y-2"
+              selectedTileIndex === tile.originalIndex ? "-translate-y-4" : "hover:-translate-y-2"
             )}
           aria-label={`Select ${tile.value} of ${tile.suit}`}
         >
@@ -53,3 +57,5 @@ export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selecte
     </div>
   );
 }
+
+    

@@ -15,7 +15,7 @@ interface GameBoardProps {
   activePlayerId: number;
   wallCount: number;
   dice: DiceRoll;
-  gameState: 'pre-roll' | 'rolling' | 'deal' | 'playing';
+  gameState: 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden';
   bankerId: number | null;
 }
 
@@ -91,10 +91,11 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
 
         {/* Center Area */}
         <div className="w-4/5 h-4/5 flex items-center justify-center">
-            {gameState === 'pre-roll' && (
+            {(gameState === 'pre-roll' || gameState === 'banker-roll-for-golden') && (
                 <div className="text-center text-background/80">
-                    <p className="font-bold text-lg">等待掷骰子...</p>
-                    <p className="text-sm">Click the button below to start the game.</p>
+                    {gameState === 'pre-roll' && <p className="font-bold text-lg">等待掷骰子开局...</p>}
+                    {gameState === 'banker-roll-for-golden' && <p className="font-bold text-lg">等待庄家掷骰开金...</p>}
+                    <p className="text-sm">Please click the button below to continue.</p>
                 </div>
             )}
              {gameState === 'rolling' && (
@@ -114,3 +115,5 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
+
+    
