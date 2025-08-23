@@ -1,12 +1,12 @@
 
 'use client';
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -31,6 +31,8 @@ type RoundResult = { winner: Player; losers: Player[]; amount: number } | null;
 const suits = ['dots', 'bamboo', 'characters'];
 const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B'];
+
+const TURN_DURATION = 15; // 15 seconds per turn
 
 const createDeck = (): Tile[] => {
   let deck: Tile[] = [];
@@ -89,14 +91,99 @@ function GameRoom() {
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [pot, setPot] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult>(null);
+  const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
 
-  const initializeGame = () => {
+  const clearTimer = () => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+    }
+  }
+
+  const handleDiscardTile = useCallback(async (playerIndex: number, tileIndex: number) => {
+    const updatedPlayers = [...players];
+    const player = updatedPlayers[playerIndex];
+    if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
+      console.error("Invalid discard attempt");
+      return;
+    }
+
+    const tileToDiscard = player.hand[tileIndex];
+    
+    player.hand.splice(tileIndex, 1);
+    player.discards.push(tileToDiscard);
+    
+    setPlayers(updatedPlayers);
+    setDrawnTile(null);
+    setSelectedTileIndex(null); // Reset selection for human player
+    
+    if (playerIndex === 0) {
+        clearTimer(); // Human player made a move, clear timer
+    }
+
+    // Play audio for discarded tile
+    if (!isMuted) {
+        try {
+            const tileName = getTileName(tileToDiscard);
+            const response = await getSpeech(tileName);
+            if(response.media) {
+                setAudioSrc(response.media);
+            }
+        } catch (error) {
+            console.error("Error playing discard audio:", error);
+        }
+    }
+    
+    // Switch to next player
+    if(players.length > 1) {
+        const nextPlayerIndex = (activePlayer + 1) % players.length;
+        setActivePlayer(nextPlayerIndex);
+        // TODO: Implement AI drawing logic for other players
+    }
+  }, [players, activePlayer, isMuted]);
+
+  // Timer useEffect
+  useEffect(() => {
+    if (gameState === 'playing' && activePlayer === 0 && drawnTile) {
+      setTurnTimer(TURN_DURATION); // Reset timer
+      timerRef.current = setInterval(() => {
+        setTurnTimer(prev => prev - 1);
+      }, 1000);
+
+      return () => clearTimer();
+    } else {
+        clearTimer();
+    }
+  }, [gameState, activePlayer, drawnTile]);
+
+  // Timer expiration or AI control useEffect
+  useEffect(() => {
+    // Handle timer expiration
+    if (turnTimer <= 0 && activePlayer === 0 && drawnTile) {
+      toast({ title: "时间到 (Time's Up!)", description: "自动为您打出最右边的牌。(Automatically discarding rightmost tile.)" });
+      handleDiscardTile(0, players[0].hand.length - 1);
+      return;
+    }
+
+    // Handle AI control
+    if (isAiControlled && activePlayer === 0 && drawnTile) {
+      const aiThinkTime = Math.random() * 1000 + 500; // Simulate 0.5-1.5s thinking
+      const timeout = setTimeout(() => {
+        handleDiscardTile(0, players[0].hand.length - 1);
+      }, aiThinkTime);
+      return () => clearTimeout(timeout);
+    }
+  }, [turnTimer, isAiControlled, activePlayer, drawnTile, players, handleDiscardTile, toast]);
+
+
+  const initializeGame = useCallback(() => {
+    clearTimer();
     setGameState('pre-roll');
     setRoundResult(null);
     const newDeck = createDeck();
     
-    // Create a hash for shuffle fairness
     const deckString = JSON.stringify(newDeck.sort((a,b) => (a.suit+a.value).localeCompare(b.suit+b.value)));
     const seed = crypto.randomBytes(16).toString('hex');
     const hash = crypto.createHash('sha256').update(deckString + seed).digest('hex');
@@ -117,9 +204,8 @@ function GameRoom() {
     setActivePlayer(0);
     setDrawnTile(null);
     setSelectedTileIndex(null);
-    requestLocation();
-  };
-  
+    setIsAiControlled(false);
+
     const requestLocation = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -140,11 +226,13 @@ function GameRoom() {
             setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
         }
     };
-
+    requestLocation();
+  }, [toast]);
+  
 
   useEffect(() => {
     initializeGame();
-  }, [STAKE_AMOUNT]);
+  }, [initializeGame]);
 
   const handleRollDice = () => {
     setGameState('rolling');
@@ -221,44 +309,12 @@ function GameRoom() {
     }
   };
 
-  const handleSelectOrDiscardTile = async (tileIndex: number) => {
-    if (activePlayer !== 0 || !drawnTile) return;
+  const handleSelectOrDiscardTile = (tileIndex: number) => {
+    if (activePlayer !== 0 || !drawnTile || isAiControlled) return;
 
     if (selectedTileIndex === tileIndex) {
       // This is the second click, so discard the tile
-      const updatedPlayers = [...players];
-      const player = updatedPlayers[0];
-      const tileToDiscard = player.hand[tileIndex];
-      
-      player.hand.splice(tileIndex, 1);
-      player.discards.push(tileToDiscard);
-      
-      setPlayers(updatedPlayers);
-      setDrawnTile(null);
-      setSelectedTileIndex(null); // Reset selection
-      
-      // Play audio for discarded tile
-      if (!isMuted) {
-          try {
-              const tileName = getTileName(tileToDiscard);
-              const response = await getSpeech(tileName);
-              if(response.media) {
-                  setAudioSrc(response.media);
-              }
-          } catch (error) {
-              console.error("Error playing discard audio:", error);
-          }
-      }
-      
-      // TODO: Add logic for next player's turn
-      // For now, we'll simulate the next AI player's turn quickly
-      // In a real game, this would have more logic and delay
-      if(players.length > 1) {
-          const nextPlayerIndex = (activePlayer + 1) % players.length;
-          setActivePlayer(nextPlayerIndex);
-          // Here you would implement AI logic for other players
-      }
-
+      handleDiscardTile(0, tileIndex);
     } else {
       // This is the first click, just select the tile
       setSelectedTileIndex(tileIndex);
@@ -393,6 +449,8 @@ function GameRoom() {
                 dice={dice}
                 gameState={gameState}
                 bankerId={bankerId}
+                turnTimer={turnTimer}
+                turnDuration={TURN_DURATION}
              />
           </CardContent>
         </Card>
@@ -412,8 +470,11 @@ function GameRoom() {
                 </div>
                  <div className="flex items-center gap-4 flex-wrap justify-center">
                     <div className="flex items-center space-x-2">
-                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={() => setIsAiControlled(!isAiControlled)} />
-                        <Label htmlFor="ai-control" className="flex items-center gap-1"><Bot/> AI托管</Label>
+                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
+                        <Label htmlFor="ai-control" className="flex items-center gap-1">
+                            {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
+                            AI托管
+                        </Label>
                     </div>
                      <div className="flex items-center space-x-2">
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
@@ -439,7 +500,7 @@ function GameRoom() {
             <PlayerHand 
                 hand={humanPlayer?.hand || []} 
                 onTileClick={handleSelectOrDiscardTile}
-                canInteract={!!drawnTile && activePlayer === 0}
+                canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
                 goldenTile={goldenTile}
                 selectedTileIndex={selectedTileIndex}
             />

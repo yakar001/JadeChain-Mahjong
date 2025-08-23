@@ -35,9 +35,9 @@ export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selecte
 
   return (
     <div className="flex flex-wrap gap-2 justify-center p-4 bg-background/50 rounded-lg min-h-[8rem]">
-      {sortedHand.map((tile, index) => (
+      {sortedHand.map((tile) => (
         <button
-          key={`${tile.suit}-${tile.value}-${index}`}
+          key={`${tile.suit}-${tile.value}-${tile.originalIndex}`}
           onClick={() => onTileClick(tile.originalIndex)}
           disabled={!canInteract}
           className={cn(
@@ -57,5 +57,3 @@ export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selecte
     </div>
   );
 }
-
-    

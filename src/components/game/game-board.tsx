@@ -18,15 +18,58 @@ interface GameBoardProps {
   dice: DiceRoll;
   gameState: 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden' | 'game-over';
   bankerId: number | null;
+  turnTimer: number;
+  turnDuration: number;
 }
 
-const PlayerInfo = ({ player, position, isActive, isBanker }: { player: Player; position: 'bottom' | 'right' | 'top' | 'left', isActive: boolean, isBanker: boolean }) => {
+const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number }) => {
+    const progress = (timer / duration) * 100;
+    const circumference = 2 * Math.PI * 18; // 2 * pi * r (radius is 18)
+    const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+    return (
+        <div className="relative w-10 h-10">
+            <svg className="w-full h-full" viewBox="0 0 40 40">
+                <circle
+                    className="text-primary/10"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="18"
+                    cx="20"
+                    cy="20"
+                />
+                <circle
+                    className="text-primary transition-all duration-1000 linear"
+                    strokeWidth="4"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="18"
+                    cx="20"
+                    cy="20"
+                    transform="rotate(-90 20 20)"
+                />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">
+                {timer}
+            </span>
+        </div>
+    );
+};
+
+
+const PlayerInfo = ({ player, position, isActive, isBanker, turnTimer, turnDuration }: { player: Player; position: 'bottom' | 'right' | 'top' | 'left', isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number }) => {
   const positionClasses = {
     bottom: 'bottom-2 left-1/2 -translate-x-1/2 flex-col',
     right: 'top-1/2 right-2 -translate-y-1/2 flex-row-reverse',
     top: 'top-2 left-1/2 -translate-x-1/2 flex-col-reverse',
     left: 'top-1/2 left-2 -translate-y-1/2 flex-row'
   };
+  
+  const showTimer = isActive && player.id === 0;
 
   return (
     <div className={cn('absolute flex items-center gap-2 p-1 bg-background/80 rounded-lg z-10', positionClasses[position])}>
@@ -34,7 +77,7 @@ const PlayerInfo = ({ player, position, isActive, isBanker }: { player: Player; 
         <AvatarImage src={player.avatar} />
         <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
       </Avatar>
-      <div className={cn('transition-opacity duration-300 flex items-center gap-1', isActive ? 'opacity-100' : 'opacity-70')}>
+      <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70')}>
         <div className='text-center'>
             <div className='flex items-center gap-2 justify-center'>
                  <div className='flex items-center gap-1'>
@@ -56,6 +99,7 @@ const PlayerInfo = ({ player, position, isActive, isBanker }: { player: Player; 
             </div>
             <p className='text-xs text-primary font-mono flex items-center justify-center gap-1'><Coins size={12}/> {player.balance}</p>
         </div>
+        {showTimer && <TurnTimerCircle timer={turnTimer} duration={turnDuration} />}
       </div>
     </div>
   );
@@ -101,7 +145,7 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
 );
 
 
-export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId }: GameBoardProps) {
+export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration }: GameBoardProps) {
     const playerSouth = players.find(p => p.id === 0);
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
@@ -152,10 +196,10 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
         <div className="absolute right-8 top-1/2 -translate-y-1/2"><WallSegment count={east} orientation="vertical" /></div>
         
         {/* Player Areas */}
-        {playerSouth && <PlayerInfo player={playerSouth} position="bottom" isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} />}
-        {playerEast && <PlayerInfo player={playerEast} position="right" isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id}/>}
-        {playerNorth && <PlayerInfo player={playerNorth} position="top" isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id}/>}
-        {playerWest && <PlayerInfo player={playerWest} position="left" isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id}/>}
+        {playerSouth && <PlayerInfo player={playerSouth} position="bottom" isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration}/>}
+        {playerEast && <PlayerInfo player={playerEast} position="right" isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration}/>}
+        {playerNorth && <PlayerInfo player={playerNorth} position="top" isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration}/>}
+        {playerWest && <PlayerInfo player={playerWest} position="left" isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration}/>}
 
         {/* Center Area */}
         <div className="w-3/5 h-3/5 flex items-center justify-center relative">
