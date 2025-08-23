@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import crypto from 'crypto';
-import { textToSpeech } from '@/app/actions';
+import { getSpeech } from '@/app/actions';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
@@ -166,7 +166,7 @@ export default function GamePage() {
     if (!isMuted) {
         try {
             const tileName = getTileName(tileToDiscard);
-            const response = await textToSpeech(tileName);
+            const response = await getSpeech(tileName);
             if(response.media) {
                 setAudioSrc(response.media);
             }
@@ -284,4 +284,3 @@ export default function GamePage() {
     </div>
   );
 }
-
