@@ -137,8 +137,8 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     <div className={cn('flex gap-px', orientation === 'horizontal' ? 'flex-row' : 'flex-col')}>
         {Array.from({ length: Math.ceil(count / 2) }).map((_, i) => (
             <div key={i} className="relative">
-                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-5 h-7 border-b-2' : 'w-7 h-5 border-r-2')}></div>
-                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-5 h-7 border-b-2 ml-px -mt-px' : 'w-7 h-5 border-r-2 mt-px -ml-px')}></div>
+                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-[1.25vw] h-[1.75vw] max-w-5 max-h-7 border-b-2' : 'w-[1.75vw] h-[1.25vw] max-w-7 max-h-5 border-r-2')}></div>
+                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-[1.25vw] h-[1.75vw] max-w-5 max-h-7 border-b-2 ml-px -mt-px' : 'w-[1.75vw] h-[1.25vw] max-w-7 max-h-5 border-r-2 mt-px -ml-px')}></div>
             </div>
         ))}
     </div>
@@ -187,13 +187,13 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
 
   return (
     <div className="aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative flex items-center justify-center">
-        <div className="absolute inset-16 border-2 border-yellow-800/30 rounded" />
+        <div className="absolute inset-4 sm:inset-8 md:inset-16 border-2 border-yellow-800/30 rounded" />
         
         {/* Walls */}
-        <div className="absolute top-8 left-1/2 -translate-x-1/2"><WallSegment count={north} orientation="horizontal" /></div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2"><WallSegment count={south} orientation="horizontal" /></div>
-        <div className="absolute left-8 top-1/2 -translate-y-1/2"><WallSegment count={west} orientation="vertical" /></div>
-        <div className="absolute right-8 top-1/2 -translate-y-1/2"><WallSegment count={east} orientation="vertical" /></div>
+        <div className="absolute top-2 sm:top-4 md:top-8 left-1/2 -translate-x-1/2"><WallSegment count={north} orientation="horizontal" /></div>
+        <div className="absolute bottom-2 sm:bottom-4 md:bottom-8 left-1/2 -translate-x-1/2"><WallSegment count={south} orientation="horizontal" /></div>
+        <div className="absolute left-2 sm:left-4 md:left-8 top-1/2 -translate-y-1/2"><WallSegment count={west} orientation="vertical" /></div>
+        <div className="absolute right-2 sm:right-4 md:right-8 top-1/2 -translate-y-1/2"><WallSegment count={east} orientation="vertical" /></div>
         
         {/* Player Areas */}
         {playerSouth && <PlayerInfo player={playerSouth} position="bottom" isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration}/>}

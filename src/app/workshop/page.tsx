@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowRight, Hammer, Zap, Coins, Package } from 'lucide-react';
+import { ArrowDown, ArrowRight, Hammer, Zap, Coins, Package } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
@@ -148,7 +148,8 @@ export default function WorkshopPage() {
                             
                             {/* Arrow */}
                             <div className="flex justify-center items-center">
-                                <ArrowRight size={48} className="text-primary animate-pulse" />
+                                <ArrowRight size={48} className="text-primary animate-pulse hidden md:block" />
+                                <ArrowDown size={48} className="text-primary animate-pulse md:hidden" />
                             </div>
                             
                             {/* Result */}
@@ -195,7 +196,8 @@ export default function WorkshopPage() {
                         
                         {/* Arrow */}
                         <div className="flex justify-center items-center">
-                            <ArrowRight size={48} className="text-primary animate-pulse" />
+                             <ArrowRight size={48} className="text-primary animate-pulse hidden md:block" />
+                             <ArrowDown size={48} className="text-primary animate-pulse md:hidden" />
                         </div>
                         
                         {/* Result */}
@@ -268,5 +270,3 @@ export default function WorkshopPage() {
     </div>
   );
 }
-
-    
