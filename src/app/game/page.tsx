@@ -19,6 +19,11 @@ import { MahjongTile } from '@/components/game/mahjong-tile';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+// --- SIMULATION CONTROL ---
+// Set to `true` to enable AI players to automatically take their turns.
+// Set to `false` before deployment to disable simulation.
+const SIMULATION_ENABLED = true;
+
 // 定义牌的类型
 type Tile = { suit: string; value: string };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; balance: number; hasLocation: boolean | null; };
@@ -214,7 +219,6 @@ function GameRoom() {
     if(players.length > 1) {
         const nextPlayerIndex = (activePlayer + 1) % players.length;
         setActivePlayer(nextPlayerIndex);
-        // TODO: Implement AI drawing logic for other players
     }
   }, [players, activePlayer, isMuted]);
 
@@ -251,6 +255,41 @@ function GameRoom() {
     }
   }, [turnTimer, isAiControlled, activePlayer, drawnTile, players, handleDiscardTile, toast]);
 
+  // AI Player Turn Simulation
+  useEffect(() => {
+      const currentPlayer = players[activePlayer];
+      if (SIMULATION_ENABLED && gameState === 'playing' && currentPlayer?.isAI) {
+          
+          const handleAiTurn = async () => {
+              // 1. Draw a tile
+              const newWall = [...wall];
+              const tileDrawn = newWall.pop();
+              if (!tileDrawn) {
+                  // Handle end of wall - for now, just pass turn
+                  setActivePlayer((activePlayer + 1) % players.length);
+                  return;
+              }
+
+              const updatedPlayers = [...players];
+              updatedPlayers[activePlayer].hand.push(tileDrawn);
+              
+              setWall(newWall);
+              setPlayers(updatedPlayers);
+              
+              // 2. Simulate thinking
+              const thinkTime = Math.random() * 1000 + 500; // 0.5s to 1.5s
+              await new Promise(resolve => setTimeout(resolve, thinkTime));
+
+              // 3. Discard a tile (for simulation, discard the one just drawn)
+              const discardIndex = updatedPlayers[activePlayer].hand.length - 1;
+              handleDiscardTile(activePlayer, discardIndex);
+          };
+
+          const timeoutId = setTimeout(handleAiTurn, 500); // Small delay before AI starts its turn
+          return () => clearTimeout(timeoutId);
+      }
+  }, [activePlayer, players, gameState, wall, handleDiscardTile]);
+
 
   const initializeGame = useCallback(() => {
     clearTimer();
@@ -279,6 +318,15 @@ function GameRoom() {
     setDrawnTile(null);
     setSelectedTileIndex(null);
     setIsAiControlled(false);
+    
+    if (SIMULATION_ENABLED) {
+        // Reset mock data for simulation
+        initialPlayers.forEach(p => {
+            p.balance = INITIAL_BALANCE;
+            p.hand = [];
+            p.discards = [];
+        });
+    }
 
     const requestLocation = () => {
         if (navigator.geolocation) {
@@ -348,7 +396,7 @@ function GameRoom() {
         if (newBankerId === 0) { // If human is the banker
             setGameState('banker-roll-for-golden');
         } else {
-            // TODO: Simulate AI rolling for golden tile, for now just go to playing
+            // Simulate AI rolling for golden tile
             setGameState('playing');
         }
     }, 1500); // Animation delay for dice roll
