@@ -378,23 +378,11 @@ function GameRoom() {
 
         const windNames = ['(东)', '(南)', '(西)', '(北)'];
         
-        const humanPlayerOriginalIndex = players.findIndex(p => !p.isAI);
-        const humanPlayerRollInfo = playerRolls.find(pr => pr.player.id === humanPlayerOriginalIndex);
-        const humanPlayerNewWindIndex = playerRolls.indexOf(humanPlayerRollInfo!);
-        
-        // Let's say East is position 1, South is 0, West is 3, North is 2.
-        // The human is ALWAYS South (position 0).
-        // So we need to rotate the final player array so the human is at index 0.
-        const reorderedPlayers = playerRolls.map((pr, index) => {
-            const windName = windNames[index];
-            return {
-                ...pr.player,
-                name: `${pr.player.name.split(' ')[0]} ${windName}`
-            }
-        });
-        
-        // This is complex. Let's simplify. Human is always South. Highest roller is East.
-        // We just need to assign the names correctly.
+        // Let's say the highest roller is East (Banker).
+        // The human player is always positioned at the bottom of the screen (South).
+        // We need to re-order the `players` array so that the human is at index 0,
+        // and then assign the correct wind names.
+
         const newBanker = playerRolls[0].player;
         setBankerId(newBanker.id);
 
@@ -443,16 +431,16 @@ function GameRoom() {
 
         setPlayers(tempPlayers);
         setWall(wallCopy);
-        setActivePlayer(bankerId);
+        
+        // Transition to the next state: rolling for the golden tile
+        setGameState('banker-roll-for-golden');
 
-        // Transition to next state
-        if (bankerId === 0) { // If human is the banker
-            setGameState('banker-roll-for-golden');
-        } else {
-            // Simulate AI rolling for golden tile
-            // For now, let's just go straight to playing
-            handleRollForGolden(true); // AI rolls automatically
+        const isBankerAI = players.find(p => p.id === bankerId)?.isAI;
+        if (isBankerAI) {
+            // If banker is AI, auto-roll for golden tile after a short delay
+            setTimeout(() => handleRollForGolden(true), 1000);
         }
+
     }, 1500); // Animation delay for dice roll
   }
 
@@ -472,16 +460,15 @@ function GameRoom() {
         setWall(wallCopy);
         setGameState('playing');
         
-        // if it was the human player's turn to roll, but an AI is banker and drew for them,
-        // we might need to start the AI turn if simulation is on.
-        if (isAi && activePlayer !== 0 && SIMULATION_ENABLED) {
-            // This will trigger the AI turn useEffect
-        } else if (activePlayer === 0 && !drawnTile) {
-            // It's human banker's turn to discard
+        // After revealing the golden tile, it's the banker's turn to discard.
+        setActivePlayer(bankerId);
+
+        if (bankerId === 0) { // If human is the banker
+            // The human banker already has 14 tiles, so they need to discard.
+            // We set a "drawn" tile to enable the hand for discarding.
             setDrawnTile(players.find(p => p.id === 0)!.hand.slice(-1)[0]);
         }
-
-
+        
     }, 1500);
   }
 
@@ -545,7 +532,7 @@ function GameRoom() {
   }, [audioSrc]);
 
   const humanPlayer = players.find(p => p.id === 0);
-  const isBankerAndHuman = bankerId === 0;
+  const isHumanBanker = bankerId === 0;
   
   const roomTierMap: Record<string, string> = {
     Novice: "新手场",
@@ -579,15 +566,12 @@ function GameRoom() {
                                     <li><strong>掷骰定座 (Roll for Seating)：</strong>游戏开始前，所有玩家掷一对骰子比大小。</li>
                                     <li><strong>决定庄家 (Determine Banker)：</strong>点数最大者为第一局的庄家（东风位）。其他玩家按点数从大到小依次为南、西、北。您的视角将始终是南风位。</li>
                                      <li><strong>开局掷骰 (Banker's Roll)：</strong>庄家掷骰子，决定从牌墙的何处开始抓牌。</li>
+                                     <li><strong>掷骰开金 (Roll for Golden Tile)：</strong>发牌结束后，庄家再次掷骰子，根据点数从牌墙末尾翻开一张牌作为“金”。</li>
                                 </ul>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
                                 <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>开金 (Reveal Golden Tile)：</strong>庄家再次掷骰子，根据点数从牌墙的何处翻开一张牌作为“金”。</li>
-                                    <li><strong>作用 (Function)：</strong>金牌可以用来替代任何你需要的牌来组成顺子、刻子或将牌。</li>
-                                </ul>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-foreground">计分规则 (Scoring)</h3>
@@ -672,7 +656,7 @@ function GameRoom() {
                     </div>
                     {gameState === 'pre-roll-seating' && <Button onClick={handleRollForSeating}><Dices className="mr-2"/> 掷骰子定座位 (Roll for Seating)</Button>}
                     {gameState === 'pre-roll' && activePlayer === 0 && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局 (Roll Dice)</Button>}
-                    {gameState === 'banker-roll-for-golden' && isBankerAndHuman && <Button onClick={() => handleRollForGolden(false)}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
+                    {gameState === 'banker-roll-for-golden' && isHumanBanker && <Button onClick={() => handleRollForGolden(false)}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
                     {gameState === 'playing' && activePlayer === 0 && !drawnTile && (
                       <Button onClick={handleDrawTile}>
                           <Hand className="mr-2 h-4 w-4" />
@@ -691,13 +675,15 @@ function GameRoom() {
             <div className="relative p-4 bg-background/50 rounded-lg min-h-[12rem] flex items-center justify-center">
                 
                 {/* Hand Area (Center) */}
-                <PlayerHand 
-                    hand={humanPlayer?.hand || []} 
-                    onTileClick={handleSelectOrDiscardTile}
-                    canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
-                    goldenTile={goldenTile}
-                    selectedTileIndex={selectedTileIndex}
-                />
+                <div className="flex items-end gap-4">
+                    <PlayerHand 
+                        hand={humanPlayer?.hand || []} 
+                        onTileClick={handleSelectOrDiscardTile}
+                        canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
+                        goldenTile={goldenTile}
+                        selectedTileIndex={selectedTileIndex}
+                    />
+                </div>
 
                 {canPerformAction && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 rounded-lg z-20">
@@ -785,3 +771,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
