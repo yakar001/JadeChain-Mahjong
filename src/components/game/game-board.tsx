@@ -21,14 +21,14 @@ interface GameBoardProps {
 
 const PlayerInfo = ({ player, position, isActive, isBanker }: { player: Player; position: 'bottom' | 'right' | 'top' | 'left', isActive: boolean, isBanker: boolean }) => {
   const positionClasses = {
-    bottom: 'bottom-0 left-1/2 -translate-x-1/2 flex-col',
-    right: 'top-1/2 right-0 -translate-y-1/2 flex-row-reverse -mr-8',
-    top: 'top-0 left-1/2 -translate-x-1/2 flex-col-reverse -mt-8',
-    left: 'top-1/2 left-0 -translate-y-1/2 flex-row -ml-8'
+    bottom: 'bottom-2 left-1/2 -translate-x-1/2 flex-col',
+    right: 'top-1/2 right-2 -translate-y-1/2 flex-row-reverse',
+    top: 'top-2 left-1/2 -translate-x-1/2 flex-col-reverse',
+    left: 'top-1/2 left-2 -translate-y-1/2 flex-row'
   };
 
   return (
-    <div className={cn('absolute flex items-center gap-2 p-2 bg-background/80 rounded-lg', positionClasses[position])}>
+    <div className={cn('absolute flex items-center gap-2 p-1 bg-background/80 rounded-lg z-10', positionClasses[position])}>
       <Avatar className={cn('h-8 w-8 border-2', isActive ? 'border-primary' : 'border-transparent')}>
         <AvatarImage src={player.avatar} />
         <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
@@ -41,6 +41,22 @@ const PlayerInfo = ({ player, position, isActive, isBanker }: { player: Player; 
   );
 };
 
+const DiscardArea = ({ discards, position }: { discards: Tile[]; position: 'bottom' | 'right' | 'top' | 'left' }) => {
+    const positionClasses = {
+        bottom: 'bottom-[20%] left-1/2 -translate-x-1/2 w-3/5 h-1/4',
+        right: 'top-1/2 right-[20%] -translate-y-1/2 h-3/5 w-1/4',
+        top: 'top-[20%] left-1/2 -translate-x-1/2 w-3/5 h-1/4',
+        left: 'top-1/2 left-[20%] -translate-y-1/2 h-3/5 w-1/4'
+    }
+    return (
+        <div className={cn('absolute flex flex-wrap-reverse gap-1 p-1 justify-center items-center', positionClasses[position])}>
+            {discards.map((tile, index) => (
+                <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
+            ))}
+        </div>
+    )
+}
+
 const Dice = ({ value }: { value: number }) => {
     const Icon = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6][value - 1];
     return <Icon className="w-8 h-8 text-white" />;
@@ -48,10 +64,10 @@ const Dice = ({ value }: { value: number }) => {
 
 const WallSegment = ({ count, orientation }: { count: number; orientation: 'horizontal' | 'vertical' }) => (
     <div className={cn('flex gap-px', orientation === 'horizontal' ? 'flex-row' : 'flex-col')}>
-        {Array.from({ length: count / 2 }).map((_, i) => (
+        {Array.from({ length: Math.ceil(count / 2) }).map((_, i) => (
             <div key={i} className="relative">
-                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-2 h-4 border-b-2' : 'w-4 h-2 border-r-2')}></div>
-                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-2 h-4 border-b-2 ml-px -mt-px' : 'w-4 h-2 border-r-2 mt-px -ml-px')}></div>
+                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-3 h-5 border-b-2' : 'w-5 h-3 border-r-2')}></div>
+                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-3 h-5 border-b-2 ml-px -mt-px' : 'w-5 h-3 border-r-2 mt-px -ml-px')}></div>
             </div>
         ))}
     </div>
@@ -63,19 +79,26 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
     const playerWest = players.find(p => p.id === 3);
-
-    const allDiscards = players.flatMap(p => p.discards);
     
     // Total tiles = 136. Each side has 17 pairs (34 tiles).
     const tilesPerSide = 34;
-    const southCount = Math.min(tilesPerSide, wallCount);
-    const eastCount = Math.min(tilesPerSide, Math.max(0, wallCount - tilesPerSide));
-    const northCount = Math.min(tilesPerSide, Math.max(0, wallCount - tilesPerSide * 2));
-    const westCount = Math.min(tilesPerSide, Math.max(0, wallCount - tilesPerSide * 3));
+
+    // Simulate wall reduction based on banker position
+    // For simplicity, let's assume banker is always East (player 1) for wall breaking
+    // This part can get very complex, so we simplify for visuals
+    const totalTiles = 136;
+    const tilesDealt = (13 * 4) + 1;
+    const remainingAfterDeal = totalTiles - tilesDealt;
+    const wallTilesToShow = Math.max(0, wallCount - (remainingAfterDeal - wallCount));
+
+    const eastCount = Math.min(tilesPerSide, wallTilesToShow);
+    const southCount = Math.min(tilesPerSide, Math.max(0, wallTilesToShow - tilesPerSide));
+    const westCount = Math.min(tilesPerSide, Math.max(0, wallTilesToShow - tilesPerSide * 2));
+    const northCount = Math.min(tilesPerSide, Math.max(0, wallTilesToShow - tilesPerSide * 3));
 
   return (
     <div className="aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative flex items-center justify-center">
-        <div className="absolute inset-8 border-2 border-yellow-800/30 rounded" />
+        <div className="absolute inset-12 border-2 border-yellow-800/30 rounded" />
         
         {/* Walls */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2"><WallSegment count={northCount} orientation="horizontal" /></div>
@@ -90,7 +113,7 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
         {playerWest && <PlayerInfo player={playerWest} position="left" isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id}/>}
 
         {/* Center Area */}
-        <div className="w-4/5 h-4/5 flex items-center justify-center">
+        <div className="w-3/5 h-3/5 flex items-center justify-center relative">
             {(gameState === 'pre-roll' || gameState === 'banker-roll-for-golden') && (
                 <div className="text-center text-background/80">
                     {gameState === 'pre-roll' && <p className="font-bold text-lg">等待掷骰子开局...</p>}
@@ -105,15 +128,14 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 </div>
             )}
             {gameState === 'playing' && (
-                <div className="w-full h-full grid grid-cols-8 grid-rows-6 gap-1 p-2 bg-black/10 rounded">
-                    {allDiscards.map((tile, index) => (
-                        <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
-                    ))}
-                </div>
+               <>
+                {playerSouth && <DiscardArea discards={playerSouth.discards} position="bottom" />}
+                {playerEast && <DiscardArea discards={playerEast.discards} position="right" />}
+                {playerNorth && <DiscardArea discards={playerNorth.discards} position="top" />}
+                {playerWest && <DiscardArea discards={playerWest.discards} position="left" />}
+               </>
             )}
         </div>
     </div>
   );
 }
-
-    

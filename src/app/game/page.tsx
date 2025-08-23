@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
+import { MahjongTile } from '@/components/game/mahjong-tile';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
@@ -130,8 +131,16 @@ export default function GamePage() {
 
         setPlayers(initialPlayers);
         setWall(wallCopy);
-        setGameState('banker-roll-for-golden');
         setActivePlayer(newBankerId);
+
+        // Transition to next state
+        if (newBankerId === 0) { // If human is the banker
+            setGameState('banker-roll-for-golden');
+        } else {
+            // TODO: Simulate AI rolling for golden tile
+            setGameState('playing');
+        }
+
 
     }, 1500); // Animation delay for dice roll
   }
@@ -283,9 +292,7 @@ export default function GamePage() {
                     {goldenTile && (
                         <div className="flex items-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
                             <span>金牌 (Wild):</span>
-                            <div className="w-6 h-8 flex items-center justify-center text-xs font-bold bg-stone-50 rounded text-black">
-                                {getTileName(goldenTile)}
-                            </div>
+                             <MahjongTile suit={goldenTile.suit} value={goldenTile.value} size="sm" />
                         </div>
                     )}
                 </div>

@@ -45,28 +45,28 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
     if (suit === 'characters') {
       return (
         <div className="flex flex-col items-center justify-between h-full w-full p-1 text-center font-bold">
-            <span className={cn('text-xs', size === 'sm' && 'hidden', suitColor[suit])}>{symbolMap[value]}</span>
-            <span className={cn('text-2xl', size === 'sm' && 'text-lg', suitColor[suit])}>{characterMap[value]}</span>
+            <span className={cn('text-sm', size === 'sm' && 'hidden', suitColor[suit])}>{symbolMap[value]}</span>
+            <span className={cn('text-3xl', size === 'sm' && 'text-xl', suitColor[suit])}>{characterMap[value]}</span>
         </div>
       )
     }
     if (suit === 'wind') {
-      return <span className={cn('text-3xl font-bold', size === 'sm' && 'text-2xl', suitColor[suit])}>{symbolMap[value]}</span>;
+      return <span className={cn('text-4xl font-bold', size === 'sm' && 'text-2xl', suitColor[suit])}>{symbolMap[value]}</span>;
     }
     if (suit === 'dragon') {
-      return <span className={cn('text-3xl font-bold', size === 'sm' && 'text-2xl', dragonColor[value])}>{symbolMap[value]}</span>;
+      return <span className={cn('text-4xl font-bold', size === 'sm' && 'text-2xl', dragonColor[value])}>{symbolMap[value]}</span>;
     }
     if(suit === 'dots') {
       return <div className="grid grid-cols-2 gap-0.5 w-full h-full p-1 items-center justify-items-center">
         {Array.from({ length: parseInt(value, 10) }).map((_, i) => (
-          <div key={i} className={cn("bg-blue-700 rounded-full", size === 'md' ? 'w-2.5 h-2.5' : 'w-1.5 h-1.5')} />
+          <div key={i} className={cn("bg-blue-700 rounded-full", size === 'md' ? 'w-3 h-3' : 'w-2 h-2')} />
         ))}
       </div>
     }
     if(suit === 'bamboo') {
       return <div className="flex flex-col items-center justify-center gap-0.5 h-full p-1">
         {Array.from({ length: parseInt(value, 10) }).map((_, i) => (
-          <div key={i} className={cn("bg-green-700 rounded-sm", size === 'md' ? 'w-1.5 h-4' : 'w-1 h-3')} />
+          <div key={i} className={cn("bg-green-700 rounded-sm", size === 'md' ? 'w-2 h-5' : 'w-1.5 h-3')} />
         ))}
       </div>
     }
@@ -78,7 +78,7 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
       className={cn(
         'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80',
         'dark:bg-gradient-to-b from-stone-50 to-stone-200',
-        size === 'md' ? 'w-12 h-16' : 'w-8 h-10',
+        size === 'md' ? 'w-14 h-20' : 'w-10 h-14',
         isClickable && 'transform transition-transform hover:-translate-y-2 cursor-pointer active:scale-95',
         isGolden && 'shadow-yellow-400/50 shadow-lg border-yellow-500 ring-2 ring-yellow-400',
         className
