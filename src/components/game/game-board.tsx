@@ -97,30 +97,14 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
             {showTimer && <TurnTimerCircle timer={turnTimer} duration={turnDuration} />}
         </div>
         </div>
-        <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
         {goldenTile && (
              <div className="flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
                  <Label className="text-xs text-muted-foreground">金牌 (Wild)</Label>
                  <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
             </div>
         )}
-      </div>
-    </div>
-  );
-};
-
-const MeldArea = ({ player, position }: { player: Player; position: 'bottom' | 'right' | 'top' | 'left' }) => {
-    if (player.melds.length === 0) return null;
-    
-    const positionClasses = {
-        bottom: 'bottom-[16%] left-1/2 -translate-x-1/2 flex-row',
-        top: 'top-[16%] left-1/2 -translate-x-1/2 flex-row-reverse',
-        left: 'left-[16%] top-1/2 -translate-y-1/2 flex-col-reverse',
-        right: 'right-[16%] top-1/2 -translate-y-1/2 flex-col',
-    }
-
-    return (
-        <div className={cn('absolute flex items-center justify-center gap-2 z-10', positionClasses[position])}>
+        {player.melds.length > 0 && (
              <div className="flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
                 <Label className="text-xs text-muted-foreground flex items-center gap-1"><Layers /> 鸣牌区</Label>
                 <div className="flex gap-1">
@@ -131,10 +115,11 @@ const MeldArea = ({ player, position }: { player: Player; position: 'bottom' | '
                     ))}
                 </div>
             </div>
-        </div>
-    );
+        )}
+      </div>
+    </div>
+  );
 };
-
 
 const DiscardArea = ({ discards }: { discards: Tile[] }) => {
     return (
@@ -157,8 +142,8 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     <div className={cn('flex gap-px', orientation === 'horizontal' ? 'flex-row' : 'flex-col')}>
         {Array.from({ length: Math.ceil(count / 2) }).map((_, i) => (
             <div key={i} className="relative">
-                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-5 h-7 border-b-2' : 'w-7 h-5 border-r-2')}></div>
-                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-5 h-7 border-b-2 ml-px -mt-px' : 'w-7 h-5 border-r-2 mt-px -ml-px')}></div>
+                <div className={cn("bg-green-700 border-green-900", orientation === 'horizontal' ? 'w-[2.1vw] h-[3vh] max-w-5 max-h-7 border-b-2' : 'w-[3vh] h-[2.1vw] max-w-7 max-h-5 border-r-2')}></div>
+                <div className={cn("bg-green-700 border-green-900 absolute top-0 left-0", orientation === 'horizontal' ? 'w-[2.1vw] h-[3vh] max-w-5 max-h-7 border-b-2 ml-px -mt-px' : 'w-[3vh] h-[2.1vw] max-w-7 max-h-5 border-r-2 mt-px -ml-px')}></div>
             </div>
         ))}
     </div>
@@ -233,12 +218,6 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2"><WallSegment count={south} orientation="horizontal" /></div>
                 <div className="absolute -left-1 top-1/2 -translate-y-1/2"><WallSegment count={west} orientation="vertical" /></div>
                 <div className="absolute -right-1 top-1/2 -translate-y-1/2"><WallSegment count={east} orientation="vertical" /></div>
-                
-                {/* Meld Areas */}
-                {playerSouth && <MeldArea player={playerSouth} position="bottom" />}
-                {playerNorth && <MeldArea player={playerNorth} position="top" />}
-                {playerWest && <MeldArea player={playerWest} position="left" />}
-                {playerEast && <MeldArea player={playerEast} position="right" />}
                 
                 {/* Center Area */}
                 <div className="w-full h-full flex items-center justify-center relative">
