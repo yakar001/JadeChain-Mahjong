@@ -13,14 +13,15 @@ type DiceRoll = [number, number];
 
 interface GameBoardProps {
   players: Player[];
-  activePlayerId: number;
+  activePlayerId: number | null;
   wallCount: number;
   dice: DiceRoll;
-  gameState: 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden' | 'game-over';
+  gameState: 'pre-roll-seating' | 'rolling-seating' | 'pre-roll' | 'rolling' | 'deal' | 'playing' | 'banker-roll-for-golden' | 'game-over';
   bankerId: number | null;
   turnTimer: number;
   turnDuration: number;
   goldenTile: Tile | null;
+  seatingRolls: (DiceRoll | null)[];
 }
 
 const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number }) => {
@@ -144,7 +145,7 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     </div>
 );
 
-export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile }: GameBoardProps) {
+export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls }: GameBoardProps) {
     const playerSouth = players.find(p => p.id === 0); // Human
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
@@ -152,19 +153,19 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     
     // Total tiles = 136. Each side has 17 pairs (34 tiles).
     const tilesPerSide = 34;
-    const initialWallCount = 136;
+    const initialWallCount = 136 - 52; // After dealing
     
     const allDiscards = players.flatMap(p => p.discards);
 
     const getWallCounts = () => {
         let counts = { east: tilesPerSide, south: tilesPerSide, west: tilesPerSide, north: tilesPerSide };
-        if (gameState === 'pre-roll' || wallCount === 0) return counts;
+        if (gameState === 'pre-roll' || gameState === 'pre-roll-seating' || gameState === 'rolling-seating' || wallCount === 0) return counts;
 
         let tilesToRemove = (initialWallCount - wallCount);
         
         // Banker determines start. 0:S, 1:E, 2:N, 3:W
         const sideOrder: Array<keyof typeof counts> = ['east', 'south', 'west', 'north'];
-        let startIndex = (bankerId || 0); 
+        let startIndex = (bankerId !== null ? (bankerId + 1) % 4 : 0);
         
         while (tilesToRemove > 0) {
             const side = sideOrder[startIndex % 4];
@@ -192,14 +193,14 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
           {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
         </div>
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-[45%] -rotate-90 origin-center">
-          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-[45%]">
+          {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
         </div>
         <div className="absolute -top-2 left-1/2 -translate-x-1/2">
             {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
         </div>
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-[45%] rotate-90 origin-center">
-            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="horizontal" />}
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-[45%]">
+            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
         </div>
 
 
@@ -223,16 +224,31 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 
                 {/* Center Area */}
                 <div className="w-full h-full flex items-center justify-center relative">
-                    {(gameState === 'pre-roll' || gameState === 'banker-roll-for-golden') && (
+                    {(gameState === 'pre-roll' || gameState === 'pre-roll-seating' || gameState === 'banker-roll-for-golden') && (
                         <div className="text-center text-white">
-                            {gameState === 'pre-roll' && <p className="font-bold text-lg">等待掷骰子开局...</p>}
+                            {gameState === 'pre-roll-seating' && <p className="font-bold text-lg">等待掷骰子定座位...</p>}
+                            {gameState === 'pre-roll' && <p className="font-bold text-lg">等待庄家掷骰子开局...</p>}
                             {gameState === 'banker-roll-for-golden' && <p className="font-bold text-lg">等待庄家掷骰开金...</p>}
                         </div>
                     )}
-                     {gameState === 'rolling' && (
-                        <div className="flex items-center justify-center gap-4 animate-bounce">
-                            <Dice value={dice[0]} />
-                            <Dice value={dice[1]} />
+                     {(gameState === 'rolling' || gameState === 'rolling-seating') && (
+                        <div className="flex flex-col items-center justify-center gap-4 animate-bounce">
+                             {gameState === 'rolling-seating' && seatingRolls.length > 0 && (
+                                <div className='grid grid-cols-2 gap-4'>
+                                    {players.map((p, i) => (
+                                        <div key={p.id} className='flex items-center gap-2 bg-black/50 p-2 rounded'>
+                                            <Avatar className='w-6 h-6'><AvatarImage src={p.avatar} /><AvatarFallback>{p.name.charAt(0)}</AvatarFallback></Avatar>
+                                            {seatingRolls[i] ? <><Dice value={seatingRolls[i]![0]} /><Dice value={seatingRolls[i]![1]} /></> : '...'}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {gameState === 'rolling' && (
+                                <div className="flex items-center justify-center gap-4">
+                                    <Dice value={dice[0]} />
+                                    <Dice value={dice[1]} />
+                                </div>
+                            )}
                         </div>
                     )}
                     {(gameState === 'playing' || gameState === 'game-over') && <DiscardArea discards={allDiscards} />}

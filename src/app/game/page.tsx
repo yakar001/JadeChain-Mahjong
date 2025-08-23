@@ -26,7 +26,7 @@ const SIMULATION_ENABLED = false;
 type Tile = { suit: string; value: string };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; };
 type DiceRoll = [number, number];
-type GameState = 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
+type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 
 type RoundResult = {
     winners: Array<{ player: Player; netWin: number }>;
@@ -84,14 +84,15 @@ function GameRoom() {
   const { toast } = useToast();
   
   const [STAKE_AMOUNT] = useState(roomFee);
-  const [gameState, setGameState] = useState<GameState>('pre-roll');
+  const [gameState, setGameState] = useState<GameState>('pre-roll-seating');
   const [wall, setWall] = useState<Tile[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [goldenTile, setGoldenTile] = useState<Tile | null>(null);
-  const [activePlayer, setActivePlayer] = useState(0); // 0 is human player
+  const [activePlayer, setActivePlayer] = useState<number | null>(null); 
   const [drawnTile, setDrawnTile] = useState<Tile | null>(null);
   const [dice, setDice] = useState<DiceRoll>([1, 1]);
-  const [bankerId, setBankerId] = useState(0);
+  const [seatingRolls, setSeatingRolls] = useState<(DiceRoll | null)[]>([]);
+  const [bankerId, setBankerId] = useState<number | null>(null);
   const [shuffleHash, setShuffleHash] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [isAiControlled, setIsAiControlled] = useState(false);
@@ -181,6 +182,7 @@ function GameRoom() {
 
 
   const handleDiscardTile = useCallback(async (playerIndex: number, tileIndex: number) => {
+    if (activePlayer === null) return;
     const updatedPlayers = [...players];
     const player = updatedPlayers[playerIndex];
     if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
@@ -262,6 +264,7 @@ function GameRoom() {
 
   // AI Player Turn Simulation
   useEffect(() => {
+      if (activePlayer === null) return;
       const currentPlayer = players[activePlayer];
       if (SIMULATION_ENABLED && gameState === 'playing' && currentPlayer?.isAI) {
           
@@ -298,8 +301,9 @@ function GameRoom() {
 
   const initializeGame = useCallback(() => {
     clearTimer();
-    setGameState('pre-roll');
+    setGameState('pre-roll-seating');
     setRoundResult(null);
+    setSeatingRolls([]);
     const newDeck = createDeck();
     
     const deckString = JSON.stringify(newDeck.sort((a,b) => (a.suit+a.value).localeCompare(b.suit+b.value)));
@@ -312,14 +316,15 @@ function GameRoom() {
     setWall(shuffled);
     setGoldenTile(null);
     const initialPlayers: Player[] = [
-      { id: 0, name: 'You (南)', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null },
-      { id: 1, name: 'Player 2 (东)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
-      { id: 2, name: 'Player 3 (北)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: false },
-      { id: 3, name: 'Player 4 (西)', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
+      { id: 0, name: 'You', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null },
+      { id: 1, name: 'Player 2', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
+      { id: 2, name: 'Player 3', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: false },
+      { id: 3, name: 'Player 4', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
     ];
     setPlayers(initialPlayers);
     setPot(0);
-    setActivePlayer(0);
+    setActivePlayer(null);
+    setBankerId(null);
     setDrawnTile(null);
     setSelectedTileIndex(null);
     setIsAiControlled(false);
@@ -357,7 +362,57 @@ function GameRoom() {
     initializeGame();
   }, [initializeGame]);
 
+  const handleRollForSeating = () => {
+    setGameState('rolling-seating');
+    const rolls = players.map(() => [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1] as DiceRoll);
+    setSeatingRolls(rolls);
+
+    setTimeout(() => {
+        const playerRolls = players.map((player, index) => ({
+            player,
+            roll: rolls[index],
+            total: rolls[index][0] + rolls[index][1],
+        }));
+
+        playerRolls.sort((a, b) => b.total - a.total);
+
+        const windNames = ['(东)', '(南)', '(西)', '(北)'];
+        
+        const humanPlayerOriginalIndex = players.findIndex(p => !p.isAI);
+        const humanPlayerRollInfo = playerRolls.find(pr => pr.player.id === humanPlayerOriginalIndex);
+        const humanPlayerNewWindIndex = playerRolls.indexOf(humanPlayerRollInfo!);
+        
+        // Let's say East is position 1, South is 0, West is 3, North is 2.
+        // The human is ALWAYS South (position 0).
+        // So we need to rotate the final player array so the human is at index 0.
+        const reorderedPlayers = playerRolls.map((pr, index) => {
+            const windName = windNames[index];
+            return {
+                ...pr.player,
+                name: `${pr.player.name.split(' ')[0]} ${windName}`
+            }
+        });
+        
+        // This is complex. Let's simplify. Human is always South. Highest roller is East.
+        // We just need to assign the names correctly.
+        const newBanker = playerRolls[0].player;
+        setBankerId(newBanker.id);
+
+        const finalPlayers = players.map(p => {
+            const rollInfo = playerRolls.find(pr => pr.player.id === p.id);
+            const windIndex = playerRolls.indexOf(rollInfo!);
+            const windName = windNames[windIndex];
+            const newName = p.isAI ? `Player ${p.id + 1} ${windName}` : `You ${windName}`;
+            return { ...p, name: newName };
+        });
+
+        setPlayers(finalPlayers);
+        setGameState('pre-roll');
+    }, 2000);
+  }
+
   const handleRollDice = () => {
+    if (bankerId === null) return;
     setGameState('rolling');
     const newDice: DiceRoll = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     setDice(newDice);
@@ -368,10 +423,6 @@ function GameRoom() {
     setPot(players.length * STAKE_AMOUNT);
     
     setTimeout(() => {
-        const total = newDice[0] + newDice[1];
-        const newBankerId = (total - 1) % 4;
-        setBankerId(newBankerId);
-        
         const wallCopy = [...wall];
         
         // Use a temporary copy for dealing to avoid state update issues in the loop
@@ -379,31 +430,33 @@ function GameRoom() {
 
         // Deal 13 tiles to each player
         for (let i = 0; i < 13; i++) {
-            for (const player of tempPlayers) {
-                const tile = wallCopy.pop();
-                if (tile) player.hand.push(tile);
+            for (let j = 0; j < tempPlayers.length; j++) {
+                 const playerIndex = (bankerId + j) % tempPlayers.length;
+                 const tile = wallCopy.pop();
+                 if(tile) tempPlayers[playerIndex].hand.push(tile);
             }
         }
         
         // Banker draws one extra tile
         const bankerTile = wallCopy.pop();
-        if (bankerTile) tempPlayers[newBankerId].hand.push(bankerTile);
+        if (bankerTile) tempPlayers[bankerId].hand.push(bankerTile);
 
         setPlayers(tempPlayers);
         setWall(wallCopy);
-        setActivePlayer(newBankerId);
+        setActivePlayer(bankerId);
 
         // Transition to next state
-        if (newBankerId === 0) { // If human is the banker
+        if (bankerId === 0) { // If human is the banker
             setGameState('banker-roll-for-golden');
         } else {
             // Simulate AI rolling for golden tile
-            setGameState('playing');
+            // For now, let's just go straight to playing
+            handleRollForGolden(true); // AI rolls automatically
         }
     }, 1500); // Animation delay for dice roll
   }
 
-  const handleRollForGolden = () => {
+  const handleRollForGolden = (isAi = false) => {
     setGameState('rolling');
     const newDice: DiceRoll = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     setDice(newDice);
@@ -413,11 +466,22 @@ function GameRoom() {
         const wallCopy = [...wall];
         // In a real game, this would be counted from the end of the wall.
         // For simplicity, we'll take it from a calculated index.
-        const goldenIndex = Math.min(total * 2, wallCopy.length - 1);
+        const goldenIndex = Math.min(total, wallCopy.length - 1);
         const golden = wallCopy.splice(goldenIndex, 1)[0];
         setGoldenTile(golden);
         setWall(wallCopy);
         setGameState('playing');
+        
+        // if it was the human player's turn to roll, but an AI is banker and drew for them,
+        // we might need to start the AI turn if simulation is on.
+        if (isAi && activePlayer !== 0 && SIMULATION_ENABLED) {
+            // This will trigger the AI turn useEffect
+        } else if (activePlayer === 0 && !drawnTile) {
+            // It's human banker's turn to discard
+            setDrawnTile(players.find(p => p.id === 0)!.hand.slice(-1)[0]);
+        }
+
+
     }, 1500);
   }
 
@@ -447,6 +511,7 @@ function GameRoom() {
   };
   
   const handleWin = () => {
+      if (activePlayer === null) return;
       const winner = players.find(p => p.id === activePlayer);
       if (!winner) return;
 
@@ -459,6 +524,7 @@ function GameRoom() {
   }
 
   const handleAction = (action: 'pong' | 'kong' | 'chow' | 'skip') => {
+    if (activePlayer === null) return;
     setCanPerformAction(false); // Hide buttons after action
     toast({
         title: `执行操作 (${action})`,
@@ -507,6 +573,14 @@ function GameRoom() {
                     <AlertDialogTitle>闽南游金麻将 (Minnan Golden Mahjong Rules)</AlertDialogTitle>
                     <AlertDialogDescription>
                         <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
+                             <div>
+                                <h3 className="font-semibold text-foreground">开局流程 (Starting the Game)</h3>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li><strong>掷骰定座 (Roll for Seating)：</strong>游戏开始前，所有玩家掷一对骰子比大小。</li>
+                                    <li><strong>决定庄家 (Determine Banker)：</strong>点数最大者为第一局的庄家（东风位）。其他玩家按点数从大到小依次为南、西、北。您的视角将始终是南风位。</li>
+                                     <li><strong>开局掷骰 (Banker's Roll)：</strong>庄家掷骰子，决定从牌墙的何处开始抓牌。</li>
+                                </ul>
+                            </div>
                             <div>
                                 <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
                                 <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
@@ -572,6 +646,7 @@ function GameRoom() {
                 turnTimer={turnTimer}
                 turnDuration={TURN_DURATION}
                 goldenTile={goldenTile}
+                seatingRolls={seatingRolls}
              />
           </CardContent>
         </Card>
@@ -595,8 +670,9 @@ function GameRoom() {
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
                         <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
-                    {gameState === 'pre-roll' && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局 (Roll Dice)</Button>}
-                    {gameState === 'banker-roll-for-golden' && isBankerAndHuman && <Button onClick={handleRollForGolden}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
+                    {gameState === 'pre-roll-seating' && <Button onClick={handleRollForSeating}><Dices className="mr-2"/> 掷骰子定座位 (Roll for Seating)</Button>}
+                    {gameState === 'pre-roll' && activePlayer === 0 && <Button onClick={handleRollDice}><Dices className="mr-2"/> 掷骰子开局 (Roll Dice)</Button>}
+                    {gameState === 'banker-roll-for-golden' && isBankerAndHuman && <Button onClick={() => handleRollForGolden(false)}><Crown className="mr-2 text-yellow-400"/> 掷骰开金 (Roll for Wild)</Button>}
                     {gameState === 'playing' && activePlayer === 0 && !drawnTile && (
                       <Button onClick={handleDrawTile}>
                           <Hand className="mr-2 h-4 w-4" />
