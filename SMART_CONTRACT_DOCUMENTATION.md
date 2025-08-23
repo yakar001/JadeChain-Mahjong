@@ -38,9 +38,9 @@ This contract is central to the gameplay loop and handles the flow of funds for 
     -   **Logic (逻辑)**:
         1.  `require(msg.sender == owner)`: Ensures only the backend can trigger payouts. (确保只有后端可以触发支付。)
         2.  `require(gameId exists and is active)`: Prevents replay attacks or invalid calls. (防止重放攻击或无效调用。)
-        3.  Calculates the total payout to verify it matches the game's pot. (计算总支付金额，验证其与游戏奖池相符。)
+        3.  Calculates the total payout to verify it matches the game's pot minus the table fee. (计算总支付金额，验证其与游戏奖池减去台费后的数额相符。)
         4.  For each winner in the `winners` array, transfer their share of the pot: `$JIN.transfer(winners[i], winnings[i])`. (为 `winners` 数组中的每个赢家转账其应得的奖池份额。)
-        5.  Deduct the `tableFee` from the `biggestWinner`'s payout and transfer it to the `BurnWallet` address: `$JIN.transfer(BurnWallet, tableFee)`. (从 `biggestWinner` 的奖金中扣除 `tableFee` 并将其转移到 `BurnWallet` 地址。)
+        5.  If a `tableFee` is greater than 0, transfer it from the contract's holdings to the `BurnWallet` address: `$JIN.transfer(BurnWallet, tableFee)`. (如果 `tableFee` 大于0，则将该金额从合约持有的资金中转移到 `BurnWallet` 地址。)
         6.  Mark the `gameId` as concluded. (将 `gameId` 标记为已结束。)
         7.  Emits a `GameConcluded` event with detailed results. (发出一个包含详细结果的 `GameConcluded` 事件。)
 
@@ -65,12 +65,12 @@ The game's outcome can affect the staked NFTs. The backend will call this contra
 -   **Off-Chain (链下)**:
     -   Mahjong game logic (tile dealing, discards, win condition checks). (麻将游戏逻辑（发牌、出牌、胡牌条件检查）。)
     -   Player matching. (玩家匹配。)
-    -   Calculating final scores and pot distribution shares. (计算最终得分和奖池分配份额。)
+    -   Calculating final scores, pot distribution shares, and the table fee. (计算最终得分、奖池分配份额和台费。)
 
 -   **On-Chain (链上)**:
     -   Holding and transferring funds (`$JIN`). (资金（`$JIN`）的持有和转移。)
     -   NFT ownership and staking status. (NFT 所有权和质押状态。)
-    -   Final, verified settlement of funds post-game. (游戏结束后经过验证的最终资金结算。)
+    -   Final, verified settlement of funds post-game, including prize distribution and burning the table fee. (游戏结束后经过验证的最终资金结算，包括奖金分配和台费销毁。)
 
 This hybrid approach ensures that the fast-paced gameplay is not hindered by blockchain transaction times, while the economic value and asset ownership remain secure and decentralized on the blockchain.
 这种混合方法确保了快节奏的游戏体验不受区块链交易时间的限制，同时经济价值和资产所有权在链上保持安全和去中心化。

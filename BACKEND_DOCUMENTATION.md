@@ -50,7 +50,7 @@ The core game logic, including state management and win/loss calculations, is ha
 
 ### Game Settlement Flow (游戏结算流程)
 
-1.  **Game End Condition (游戏结束条件)**: The game concludes when any player's balance (chip count) drops to 0 or below. (当任何玩家的余额（筹码数）降至0或以下时，游戏结束。)
+1.  **Game End Condition (游戏结束条件)**: The game concludes when any player's balance (chip count) drops to 0 or below, or a player chooses to leave the game. (当任何玩家的余额（筹码数）降至0或以下，或有玩家选择离开时，游戏结束。)
 2.  **Calculate Net Results (计算净结果)**: The system calculates the net win or loss for each player relative to the initial balance (`INITIAL_BALANCE`). (系统计算每个玩家相对于初始余额的净输赢。)
 3.  **Identify Winners and Losers (识别赢家和输家)**: Players with a balance greater than the initial amount are winners; those with less are losers. (余额高于初始金额的玩家为赢家；低于的为输家。)
 4.  **Proportional Pot Distribution (按比例分配奖池)**: The total prize pool (`pot`, funded by entry fees) is distributed among the winners based on the proportion of their net winnings. (总奖池（由入场费构成）根据赢家们的净赢利比例进行分配。)
@@ -59,16 +59,13 @@ The core game logic, including state management and win/loss calculations, is ha
 5.  **Table Fee (台费)**: The player with the highest net win (the "biggest winner") pays a table fee, which is equal to the room's entry fee (`roomFee`). This amount is deducted from their winnings and is designated for a "burn pool". (净赢利最高的玩家（“大赢家”）需支付等于房间入场费的台费。该金额将从其奖金中扣除，并被指定进入“销毁池”。)
 6.  **Record Keeping (记录保存)**: The results of each match will be recorded and associated with the player's profile. (每场比赛的结果将被记录并与玩家的个人资料关联。)
 
-This entire process is currently simulated on the client-side but is designed to be moved to a secure server action or microservice.
-整个过程目前在客户端模拟，但其设计旨在未来迁移到安全的服务器动作或微服务中。
+This entire process is currently simulated on the client-side but is designed to be moved to a secure server action or microservice. The final, verified results from this server-side process would then be used to call the `concludeGame` function on the smart contract.
+整个过程目前在客户端模拟，但其设计旨在未来迁移到安全的服务器动作或微服务中。这个服务器端流程产生的最终、经过验证的结果，将被用于调用智能合约上的 `concludeGame` 函数。
 
 ## 4. AI Flow Development (Genkit) (AI 心流开发)
 
 We use Genkit to define and manage our AI-powered features.
 我们使用 Genkit 来定义和管理我们的 AI 功能。
-
-*(The rest of the AI flow development guide remains the same.)*
-*(其余的 AI 心流开发指南保持不变。)*
 
 ### How to Create a New AI Flow (如何创建新的 AI 心流)
 
