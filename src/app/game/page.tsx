@@ -33,6 +33,7 @@ type RoundResult = {
     losers: Array<{ player: Player; netLoss: number }>;
     biggestWinner: Player | null;
     tableFee: number;
+    leaver?: Player;
 } | null;
 
 // 初始牌的数据
@@ -123,16 +124,68 @@ function GameRoom() {
   }
     
   // Function to end the game and calculate results
-  const handleEndGame = useCallback((winningPlayer: Player, winAmount: number) => {
+  const handleEndGame = useCallback((finalPlayers: Player[]) => {
     clearTimer();
+    let totalWinnings = 0;
+    const winners = finalPlayers.filter(p => p.balance > INITIAL_BALANCE).map(p => {
+        const netWin = p.balance - INITIAL_BALANCE;
+        totalWinnings += netWin;
+        return { player: p, netWin };
+    });
+
+    const losers = finalPlayers.filter(p => p.balance < INITIAL_BALANCE).map(p => {
+        const netLoss = INITIAL_BALANCE - p.balance;
+        return { player: p, netLoss };
+    });
+
+    // Distribute pot proportionally
+    let biggestWinner: Player | null = null;
+    let maxWin = 0;
+
+    const winnersWithDistribution = winners.map(w => {
+        const share = totalWinnings > 0 ? (w.netWin / totalWinnings) * pot : 0;
+        if(w.netWin > maxWin) {
+            maxWin = w.netWin;
+            biggestWinner = w.player;
+        }
+        return { ...w, potShare: share };
+    });
     
-    // All other players are losers
-    const losingPlayers = players.filter(p => p.id !== winningPlayer.id);
+    const tableFee = STAKE_AMOUNT; // The fee is the initial stake amount
+    
+    setRoundResult({
+        winners: winnersWithDistribution.map(w => ({ player: w.player, netWin: w.potShare })),
+        losers,
+        biggestWinner,
+        tableFee,
+    });
+    
+    setGameState('game-over');
+    
+  }, [pot, STAKE_AMOUNT]);
+
+  const handleWin = useCallback(() => {
+    if (activePlayer === null) return;
+    const winner = players.find(p => p.id === activePlayer);
+    if (!winner) return;
+
+    // In a real game, the win amount would be calculated based on the hand's value.
+    // For simplicity, we'll assume the win amount makes one opponent lose all chips.
+    const opponent = players.find(p => p.id !== activePlayer && p.balance > 0);
+    if(!opponent) { // Game ends if no opponents left
+        const finalPlayers = players.map(p => p.id === winner.id ? { ...p, balance: p.balance + STAKE_AMOUNT } : p);
+        handleEndGame(finalPlayers);
+        return;
+    }
+    
+    const winAmount = opponent.balance;
+
+    const losingPlayers = players.filter(p => p.id !== winner.id);
     const lossAmount = winAmount / losingPlayers.length;
 
     // Calculate final balances
     const finalPlayers = players.map(p => {
-        if (p.id === winningPlayer.id) {
+        if (p.id === winner.id) {
             return { ...p, balance: p.balance + winAmount };
         }
         return { ...p, balance: p.balance - lossAmount };
@@ -140,55 +193,41 @@ function GameRoom() {
 
     const hasPlayerLost = finalPlayers.some(p => p.balance <= 0);
 
-    // If a player has run out of chips, the game truly ends
     if (hasPlayerLost) {
-        let totalWinnings = 0;
-        const winners = finalPlayers.filter(p => p.balance > INITIAL_BALANCE).map(p => {
-            const netWin = p.balance - INITIAL_BALANCE;
-            totalWinnings += netWin;
-            return { player: p, netWin };
-        });
-
-        const losers = finalPlayers.filter(p => p.balance < INITIAL_BALANCE).map(p => {
-            const netLoss = INITIAL_BALANCE - p.balance;
-            return { player: p, netLoss };
-        });
-
-        // Distribute pot proportionally
-        let biggestWinner: Player | null = null;
-        let maxWin = 0;
-
-        const winnersWithDistribution = winners.map(w => {
-            const share = totalWinnings > 0 ? (w.netWin / totalWinnings) * pot : 0;
-            if(w.netWin > maxWin) {
-                maxWin = w.netWin;
-                biggestWinner = w.player;
-            }
-            return { ...w, potShare: share };
-        });
-        
-        const tableFee = STAKE_AMOUNT; // The fee is the initial stake amount
-        
-        setRoundResult({
-            winners: winnersWithDistribution.map(w => ({ player: w.player, netWin: w.potShare })),
-            losers,
-            biggestWinner,
-            tableFee,
-        });
-        
-        setGameState('game-over');
+        handleEndGame(finalPlayers);
     } else {
-        // Continue to the next round (not fully implemented, for now just update balances)
-        setPlayers(finalPlayers);
-        // Reset for next hand, e.g. re-deal etc. For now, we'll just show a toast.
          toast({
             title: "回合结束 (Hand Over)",
-            description: `${winningPlayer.name} wins ${winAmount} chips!`,
+            description: `${winner.name} wins ${winAmount} chips!`,
         });
-        // Here you would reset the hand, keep the balances, and start a new hand.
-        // For simplicity of this implementation, we'll stop here.
+        // In a real game, this would reset the hand and start a new one.
+        // For now, we go to game over to show results.
+        handleEndGame(finalPlayers);
     }
-  }, [players, pot, STAKE_AMOUNT, toast]);
+  }, [players, activePlayer, STAKE_AMOUNT, handleEndGame, toast]);
+
+  const handleLeaveGame = () => {
+    const leaver = players.find(p => p.id === 0);
+    if (!leaver) return;
+
+    const remainingPlayers = players.filter(p => p.id !== 0);
+    const penalty = STAKE_AMOUNT; // The stake amount is forfeited
+    const share = penalty / remainingPlayers.length;
+
+    const winners = remainingPlayers.map(p => ({
+        player: p,
+        netWin: share,
+    }));
+    
+    setRoundResult({
+        winners,
+        losers: [{ player: leaver, netLoss: penalty }],
+        biggestWinner: null,
+        tableFee: 0,
+        leaver,
+    });
+    setGameState('game-over');
+  };
 
 
   const handleDiscardTile = useCallback(async (playerIndex: number, tileIndex: number) => {
@@ -284,7 +323,8 @@ function GameRoom() {
               const tileDrawn = newWall.pop();
               if (!tileDrawn) {
                   // Handle end of wall - for now, just pass turn
-                  setActivePlayer((activePlayer + 1) % players.length);
+                  const finalPlayers = players.map(p => ({...p})); // copy players
+                  handleEndGame(finalPlayers); // End game if wall is empty
                   return;
               }
 
@@ -306,7 +346,7 @@ function GameRoom() {
           const timeoutId = setTimeout(handleAiTurn, 500); // Small delay before AI starts its turn
           return () => clearTimeout(timeoutId);
       }
-  }, [activePlayer, players, gameState, wall, handleDiscardTile]);
+  }, [activePlayer, players, gameState, wall, handleDiscardTile, handleEndGame]);
 
 
   const initializeGame = useCallback(() => {
@@ -475,8 +515,8 @@ function GameRoom() {
         
         // The golden tile is revealed from the back of the wall.
         // Count `total` stacks from the end. The revealed tile is the first tile of that stack.
-        // Index from the end of the wall: (total * 2) - 1
-        const goldenRevealIndex = wallCopy.length - ((total * 2));
+        // Index from the end of the wall: (total * 2)
+        const goldenRevealIndex = wallCopy.length - (total * 2);
 
         if (goldenRevealIndex >= 0 && goldenRevealIndex < wallCopy.length) {
             const golden = wallCopy.splice(goldenRevealIndex, 1)[0];
@@ -524,19 +564,6 @@ function GameRoom() {
     }
   };
   
-  const handleWin = () => {
-      if (activePlayer === null) return;
-      const winner = players.find(p => p.id === activePlayer);
-      if (!winner) return;
-
-      // In a real game, the win amount would be calculated based on the hand's value.
-      // For simplicity, we'll assume the win amount makes one opponent lose all chips.
-      const opponent = players.find(p => p.id !== activePlayer);
-      if(!opponent) return;
-
-      handleEndGame(winner, opponent.balance);
-  }
-
   const handleAction = (action: 'pong' | 'kong' | 'chow' | 'skip') => {
     if (activePlayer === null) return;
     setCanPerformAction(false); // Hide buttons after action
@@ -643,12 +670,35 @@ function GameRoom() {
                 <Shuffle />
                 新对局 (New Game)
             </Button>
-            <Button variant="outline" asChild>
-                <Link href="/">
-                <Undo2 />
-                返回大厅 (Back to Lobby)
-                </Link>
-            </Button>
+            {gameState === 'playing' ? (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline"><Undo2 />返回大厅 (Back to Lobby)</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>确认退出吗？ (Confirm Exit?)</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            当前对局仍在进行中。如果现在退出，您将输掉本局的入场费 {STAKE_AMOUNT} $JIN，并会分配给其他玩家。
+                            (The current game is still in progress. If you exit now, you will forfeit your entry fee of {STAKE_AMOUNT} $JIN, which will be distributed to the other players.)
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleLeaveGame} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            确认退出 (Confirm Exit)
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            ) : (
+                <Button variant="outline" asChild>
+                    <Link href="/">
+                        <Undo2 />
+                        返回大厅 (Back to Lobby)
+                    </Link>
+                </Button>
+            )}
           </div>
         </div>
 
@@ -748,6 +798,7 @@ function GameRoom() {
                 对局结束 (Game Over)
             </AlertDialogTitle>
             <AlertDialogDescription>
+              {roundResult?.leaver ? `${roundResult.leaver.name} 已退出对局。` : ''}
               对局结算详情如下：
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -758,6 +809,7 @@ function GameRoom() {
                     <div className="flex items-center gap-2 text-green-400">
                         <Plus size={16}/>
                         <span>{netWin.toFixed(2)} $JIN</span>
+                         {roundResult.leaver && <span className="text-xs text-muted-foreground">(from leaver)</span>}
                     </div>
                 </div>
             ))}
@@ -766,7 +818,7 @@ function GameRoom() {
                     <span className="font-semibold">{player.name}</span>
                     <div className="flex items-center gap-2 text-red-400">
                         <Minus size={16}/>
-                         <span>{netLoss.toFixed(2)} $JIN from Pot</span>
+                         <span>{netLoss.toFixed(2)} $JIN</span>
                     </div>
                 </div>
             ))}
@@ -807,3 +859,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+      
