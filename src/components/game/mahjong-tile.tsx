@@ -1,3 +1,4 @@
+
 import { cn } from '@/lib/utils';
 import React from 'react';
 
@@ -8,9 +9,12 @@ interface MahjongTileProps {
   suit: TileSuit;
   value: TileValue;
   className?: string;
+  size?: 'md' | 'sm';
+  isClickable?: boolean;
+  isGolden?: boolean;
 }
 
-export function MahjongTile({ suit, value, className }: MahjongTileProps) {
+export function MahjongTile({ suit, value, className, size = 'md', isClickable = false, isGolden = false }: MahjongTileProps) {
   const symbolMap: Record<TileValue, string> = {
     '1': '一', '2': '二', '3': '三', '4': '四', '5': '五', '6': '六', '7': '七', '8': '八', '9': '九',
     'E': '東', 'S': '南', 'W': '西', 'N': '北',
@@ -18,51 +22,51 @@ export function MahjongTile({ suit, value, className }: MahjongTileProps) {
   };
   
   const characterMap: Record<string, string> = {
-    '1': '壹', '2': '貳', '3': '叄', '4': '肆', '5': '伍', '6': '陸', '7': '柒', '8': '捌', '9': '萬'
+    '1': '萬', '2': '萬', '3': '萬', '4': '萬', '5': '萬', '6': '萬', '7': '萬', '8': '萬', '9': '萬'
   }
 
   const suitColor: Record<TileSuit, string> = {
-    bamboo: 'text-green-600',
-    dots: 'text-blue-600',
-    characters: 'text-red-600',
-    wind: 'text-gray-800 dark:text-gray-200',
-    dragon: 'text-gray-800 dark:text-gray-200',
-    flower: 'text-orange-500',
-    season: 'text-teal-500',
+    bamboo: 'text-green-700',
+    dots: 'text-blue-700',
+    characters: 'text-red-700',
+    wind: 'text-gray-900',
+    dragon: 'text-gray-900',
+    flower: 'text-orange-600',
+    season: 'text-teal-600',
   }
   
   const dragonColor: Record<string, string> = {
-    'R': 'text-red-600',
-    'G': 'text-green-600',
-    'B': 'border-2 border-blue-500'
+    'R': 'text-red-700',
+    'G': 'text-green-700',
+    'B': 'border-2 border-blue-600'
   }
 
   const renderContent = () => {
     if (suit === 'characters') {
       return (
-        <div className="flex flex-col items-center justify-between h-full w-full p-1 text-center">
-            <span className={cn('text-xs font-bold', suitColor[suit])}>{symbolMap[value]}</span>
-            <span className={cn('text-2xl font-bold', suitColor[suit])}>{characterMap[value]}</span>
+        <div className="flex flex-col items-center justify-between h-full w-full p-1 text-center font-bold">
+            <span className={cn('text-xs', size === 'sm' && 'hidden', suitColor[suit])}>{symbolMap[value]}</span>
+            <span className={cn('text-2xl', size === 'sm' && 'text-lg', suitColor[suit])}>{characterMap[value]}</span>
         </div>
       )
     }
     if (suit === 'wind') {
-      return <span className={cn('text-3xl font-bold', suitColor[suit])}>{symbolMap[value]}</span>;
+      return <span className={cn('text-3xl font-bold', size === 'sm' && 'text-2xl', suitColor[suit])}>{symbolMap[value]}</span>;
     }
     if (suit === 'dragon') {
-      return <span className={cn('text-3xl font-bold', dragonColor[value])}>{symbolMap[value]}</span>;
+      return <span className={cn('text-3xl font-bold', size === 'sm' && 'text-2xl', dragonColor[value])}>{symbolMap[value]}</span>;
     }
     if(suit === 'dots') {
-      return <div className="grid grid-cols-3 gap-0.5 w-full h-full p-1 items-center">
+      return <div className="grid grid-cols-2 gap-0.5 w-full h-full p-1 items-center justify-items-center">
         {Array.from({ length: parseInt(value, 10) }).map((_, i) => (
-          <div key={i} className="bg-blue-600 rounded-full w-2 h-2 mx-auto" />
+          <div key={i} className={cn("bg-blue-700 rounded-full", size === 'md' ? 'w-2.5 h-2.5' : 'w-1.5 h-1.5')} />
         ))}
       </div>
     }
     if(suit === 'bamboo') {
       return <div className="flex flex-col items-center justify-center gap-0.5 h-full p-1">
         {Array.from({ length: parseInt(value, 10) }).map((_, i) => (
-          <div key={i} className="bg-green-600 rounded-sm w-1 h-3" />
+          <div key={i} className={cn("bg-green-700 rounded-sm", size === 'md' ? 'w-1.5 h-4' : 'w-1 h-3')} />
         ))}
       </div>
     }
@@ -72,7 +76,11 @@ export function MahjongTile({ suit, value, className }: MahjongTileProps) {
   return (
     <div
       className={cn(
-        'w-12 h-16 bg-stone-100 dark:bg-stone-200 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400 transform transition-transform hover:-translate-y-1',
+        'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80',
+        'dark:bg-gradient-to-b from-stone-50 to-stone-200',
+        size === 'md' ? 'w-12 h-16' : 'w-8 h-10',
+        isClickable && 'transform transition-transform hover:-translate-y-2 cursor-pointer active:scale-95',
+        isGolden && 'shadow-yellow-400/50 shadow-lg border-yellow-500 ring-2 ring-yellow-400',
         className
       )}
     >

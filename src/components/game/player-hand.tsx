@@ -1,28 +1,50 @@
+
 import { MahjongTile } from './mahjong-tile';
 
-const playerHand = [
-  { suit: 'bamboo', value: '1' },
-  { suit: 'bamboo', value: '2' },
-  { suit: 'bamboo', value: '3' },
-  { suit: 'dots', value: '4' },
-  { suit: 'dots', value: '5' },
-  { suit: 'dots', value: '6' },
-  { suit: 'characters', value: '7' },
-  { suit: 'characters', value: '8' },
-  { suit: 'characters', value: '9' },
-  { suit: 'wind', value: 'W' },
-  { suit: 'wind', value: 'W' },
-  { suit: 'dragon', value: 'G' },
-];
+type Tile = { suit: string; value: string };
 
-export function PlayerHand() {
+interface PlayerHandProps {
+    hand: Tile[];
+    onDiscard: (tileIndex: number) => void;
+    canDiscard: boolean;
+    goldenTile: Tile | null;
+}
+
+export function PlayerHand({ hand, onDiscard, canDiscard, goldenTile }: PlayerHandProps) {
+
+  // Sort hand for better readability
+  const sortOrder = ['dots', 'bamboo', 'characters', 'wind', 'dragon'];
+  const sortedHand = [...hand].sort((a, b) => {
+    const suitA = sortOrder.indexOf(a.suit);
+    const suitB = sortOrder.indexOf(b.suit);
+    if (suitA !== suitB) {
+      return suitA - suitB;
+    }
+    return a.value.localeCompare(b.value);
+  });
+  
+  const isGolden = (tile: Tile) => {
+      return goldenTile?.suit === tile.suit && goldenTile?.value === tile.value;
+  }
+
   return (
-    <div className="flex flex-wrap gap-2 justify-center p-4 bg-background rounded-lg">
-      {playerHand.map((tile, index) => (
-        <MahjongTile key={index} suit={tile.suit} value={tile.value as any} />
+    <div className="flex flex-wrap gap-2 justify-center p-4 bg-background/50 rounded-lg min-h-[8rem]">
+      {sortedHand.map((tile, index) => (
+        <button
+          key={index}
+          onClick={() => onDiscard(index)}
+          disabled={!canDiscard}
+          className="disabled:cursor-not-allowed"
+          aria-label={`Discard ${tile.value} of ${tile.suit}`}
+        >
+          <MahjongTile 
+            suit={tile.suit} 
+            value={tile.value as any} 
+            isClickable={canDiscard}
+            isGolden={isGolden(tile)}
+          />
+        </button>
       ))}
-       <div className="w-4" />
-      <MahjongTile suit="dragon" value="B" />
     </div>
   );
 }
