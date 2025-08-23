@@ -67,15 +67,13 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
 
   return (
     <div className={cn('flex items-center gap-2 z-10', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
-        {player.melds.length > 0 && (
-            <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
-                {player.melds.map((meld, i) => (
-                    <div key={i} className="flex gap-px">
-                        {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
-                    </div>
-                ))}
-            </div>
-        )}
+         <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
+            {player.melds.map((meld, i) => (
+                <div key={i} className="flex gap-px">
+                    {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
+                </div>
+            ))}
+        </div>
         <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg border-2', isActive ? 'border-primary' : 'border-transparent', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
             <Avatar className={cn('h-10 w-10')}>
                 <AvatarImage src={player.avatar} />
@@ -210,16 +208,16 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 <div className="absolute inset-4 sm:inset-8 md:inset-12 border-2 border-yellow-800/30 rounded" />
                 
                 {/* Walls */}
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-full">
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-full flex justify-center">
                     <WallSegment count={north} orientation="horizontal" />
                 </div>
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-full flex flex-col justify-end">
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-full flex flex-col justify-end items-center">
                     <WallSegment count={south} orientation="horizontal" />
                 </div>
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-full h-full">
+                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-full h-full flex items-center">
                     <WallSegment count={west} orientation="vertical" />
                 </div>
-                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-full h-full flex flex-row justify-end">
+                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-full h-full flex flex-row justify-end items-center">
                     <WallSegment count={east} orientation="vertical" />
                 </div>
                 
