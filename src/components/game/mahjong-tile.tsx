@@ -18,59 +18,68 @@ interface MahjongTileProps {
 // SVG Components for Tiles
 
 const TilePattern = ({ suit, value }: { suit: TileSuit, value: TileValue }) => {
-    const redColor = "#c13824";
-    const greenColor = "#006A4E";
-    const blueColor = "#003366";
+    const redColor = "#D0332D";
+    const greenColor = "#1A744F";
+    const blueColor = "#1D1E3B";
 
     if (suit === 'dots') {
-        const Dot = ({ color = blueColor }: { color?: string }) => (
-            <div className="aspect-square w-[22%] m-[1.5%] rounded-full border-[10%]" style={{ borderColor: color, borderWidth: 'max(1px, 10%)' }}>
-                <div className="w-full h-full rounded-full flex items-center justify-center transform scale-[0.85]">
-                     <div className="w-[35%] h-[35%] rounded-full" style={{ backgroundColor: color }}></div>
-                </div>
-            </div>
+        const Dot = ({ color = blueColor, cx, cy }: { color?: string, cx: number, cy: number }) => (
+           <>
+            <circle cx={cx} cy={cy} r="6.5" fill="white" stroke={color} strokeWidth="1.5" />
+            <circle cx={cx} cy={cy} r="3" fill={color} />
+           </>
         );
         switch (value) {
-            case '1': return <div className="w-full h-full flex justify-center items-center p-[10%]"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="#d1e4c1" stroke="#006A4E" strokeWidth="3" /><circle cx="50" cy="50" r="30" fill="none" stroke="#006A4E" strokeWidth="1" strokeDasharray="4" /><circle cx="50" cy="50" r="22" fill="#f4c3c3" stroke="#c13824" strokeWidth="2" /><circle cx="50" cy="50" r="14" fill="#f4c3c3" /><path d="M50,15 A35,35 0 0,1 50,85 A35,35 0 0,1 50,15 M35,25 A25,25 0 0,1 65,25 A25,25 0 0,1 35,25 M25,35 A15,15 0 0,1 75,35 A15,15 0 0,1 25,35" fill="none" stroke="#006A4E" strokeWidth="0.5" opacity="0.5" /></svg></div>;
-            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-[8%]"><Dot color={greenColor} /><Dot color={redColor} /></div>;
-            case '3': return <div className="w-full h-full flex flex-col justify-between p-[8%]"><div className="flex justify-start"><Dot color={blueColor}/></div><div className="flex justify-center"><Dot color={redColor}/></div><div className="flex justify-end"><Dot color={greenColor}/></div></div>;
-            case '4': return <div className="w-full h-full flex flex-col justify-between p-[8%]"><div className="flex justify-between"><Dot color={blueColor}/><Dot color={greenColor}/></div><div className="flex justify-between"><Dot color={greenColor}/><Dot color={blueColor}/></div></div>;
-            case '5': return <div className="w-full h-full flex flex-col justify-between p-[8%]"><div className="flex justify-between"><Dot color={blueColor}/><Dot color={greenColor}/></div><div className="flex justify-center"><Dot color={redColor}/></div><div className="flex justify-between"><Dot color={greenColor}/><Dot color={blueColor}/></div></div>;
-            case '6': return <div className="w-full h-full flex flex-col justify-around items-center p-[8%]"><div className="flex justify-around w-full"><Dot color={greenColor}/><Dot color={greenColor}/></div><div className="flex justify-around w-full"><Dot color={redColor}/><Dot color={redColor}/><Dot color={redColor}/><Dot color={redColor}/></div></div>;
-            case '7': return <div className="w-full h-full flex flex-col justify-between p-[8%]"><div className="flex justify-between w-[66%] self-start"><Dot color={greenColor}/><Dot color={greenColor}/></div><div className="flex justify-between w-full"><Dot color={greenColor}/><Dot color={redColor}/></div><div className="flex justify-between w-full"><Dot color={redColor}/><Dot color={redColor}/></div></div>
-            case '8': return <div className="w-full h-full flex flex-wrap justify-around content-around p-[8%]">{Array(8).fill(0).map((_, i) => <Dot key={i} color={blueColor} />)}</div>;
-            case '9': return <div className="w-full h-full flex flex-wrap justify-around content-around p-[8%]">{Array(3).fill(0).map((_, i) => <Dot key={`r${i}`} color={redColor} />)}{Array(3).fill(0).map((_, i) => <Dot key={`g${i}`} color={greenColor} />)}{Array(3).fill(0).map((_, i) => <Dot key={`b${i}`} color={blueColor} />)}</div>;
+            case '1': return <svg viewBox="0 0 50 70" className="w-full h-full p-2"><g transform="translate(0, 10)"><circle cx="25" cy="25" r="20" fill="#F0F0E0" stroke="#888" strokeWidth="0.5"/><circle cx="25" cy="25" r="16" fill="none" stroke={greenColor} strokeWidth="2"/><circle cx="25" cy="25" r="8" fill={redColor} stroke="white" strokeWidth="1"/><path d="M 25 9 A 16 16 0 0 1 25 41 A 16 16 0 0 1 25 9" fill="none" stroke={greenColor} strokeWidth="1" strokeDasharray="3 2" transform="rotate(45 25 25)"/><path d="M 25 9 A 16 16 0 0 1 25 41 A 16 16 0 0 1 25 9" fill="none" stroke={greenColor} strokeWidth="1" strokeDasharray="3 2" transform="rotate(-45 25 25)"/></g></svg>;
+            case '2': return <svg viewBox="0 0 50 70"><Dot color={greenColor} cx="25" cy="20" /><Dot color={redColor} cx="25" cy="50" /></svg>;
+            case '3': return <svg viewBox="0 0 50 70"><Dot color={blueColor} cx="15" cy="20" /><Dot color={redColor} cx="25" cy="35" /><Dot color={greenColor} cx="35" cy="50" /></svg>;
+            case '4': return <svg viewBox="0 0 50 70"><Dot color={blueColor} cx="17" cy="20" /><Dot color={greenColor} cx="33" cy="20" /><Dot color={greenColor} cx="17" cy="50" /><Dot color={blueColor} cx="33" cy="50" /></svg>;
+            case '5': return <svg viewBox="0 0 50 70"><Dot color={blueColor} cx="17" cy="20" /><Dot color={greenColor} cx="33" cy="20" /><Dot color={redColor} cx="25" cy="35" /><Dot color={greenColor} cx="17" cy="50" /><Dot color={blueColor} cx="33" cy="50" /></svg>;
+            case '6': return <svg viewBox="0 0 50 70"><Dot color={greenColor} cx="17" cy="18" /><Dot color={greenColor} cx="33" cy="18" /><Dot color={redColor} cx="17" cy="35" /><Dot color={redColor} cx="33" cy="35" /><Dot color={redColor} cx="17" cy="52" /><Dot color={redColor} cx="33" cy="52" /></svg>;
+            case '7': return <svg viewBox="0 0 50 70"><Dot color={greenColor} cx="17" cy="15" /><Dot color={greenColor} cx="25" cy="22" /><Dot color={greenColor} cx="33" cy="15" /><Dot color={redColor} cx="17" cy="35" /><Dot color={redColor} cx="33" cy="35" /><Dot color={redColor} cx="17" cy="55" /><Dot color={redColor} cx="33" cy="55" /></svg>;
+            case '8': return <svg viewBox="0 0 50 70"><Dot color={blueColor} cx="17" cy="12" /><Dot color={blueColor} cx="33" cy="12" /><Dot color={blueColor} cx="17" cy="28" /><Dot color={blueColor} cx="33" cy="28" /><Dot color={blueColor} cx="17" cy="44" /><Dot color={blueColor} cx="33" cy="44" /><Dot color={blueColor} cx="17" cy="60" /><Dot color={blueColor} cx="33" cy="60" /></svg>;
+            case '9': return <svg viewBox="0 0 50 70"><Dot color={redColor} cx="17" cy="18" /><Dot color={redColor} cx="25" cy="18" /><Dot color={redColor} cx="33" cy="18" /><Dot color={greenColor} cx="17" cy="35" /><Dot color={greenColor} cx="25" cy="35" /><Dot color={greenColor} cx="33" cy="35" /><Dot color={blueColor} cx="17" cy="52" /><Dot color={blueColor} cx="25" cy="52" /><Dot color={blueColor} cx="33" cy="52" /></svg>;
             default: return null;
         }
     }
 
     if (suit === 'bamboo') {
-        const Stick = ({ color }: { color: string }) => <div className="w-[10%] h-[40%] rounded-sm" style={{backgroundColor: color}}></div>
+        const Stick = ({ color = greenColor, x, y, width = 4, height = 20 }: { color?: string, x: number, y: number, width?: number, height?: number }) => (
+            <g transform={`translate(${x}, ${y})`}>
+                <rect x="0" y="0" width={width} height={height} fill={color} rx="1"/>
+                <rect x="0" y="4" width={width} height="1.5" fill="white" fillOpacity="0.7"/>
+                <rect x="0" y="9" width={width} height="1.5" fill="white" fillOpacity="0.7"/>
+                <rect x="0" y="14" width={width} height="1.5" fill="white" fillOpacity="0.7"/>
+            </g>
+        );
         switch (value) {
-            case '1': return <div className="w-full h-full flex justify-center items-center p-[10%]"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 8C35 15, 30 38, 50 45 C70 38, 65 15, 50 8Z" fill="#508a38" /><path d="M50 43C40 50, 42 65, 50 70 C58 65, 60 50, 50 43Z" fill="#508a38" /><path d="M48 68 C35 75, 35 90, 48 95 L52 95 C65 90, 65 75, 52 68Z" fill="#c04848" /><path d="M50 44 C52 46, 52 49, 50 51 C48 49, 48 46, 50 44Z" fill="white" /><path d="M42 22 C40 20, 38 22, 40 25 C45 28, 55 28, 60 25 C62 22, 60 20, 58 22 C55 24, 45 24, 42 22Z" fill="#508a38" /></svg></div>;
-            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-[8%]"><Stick color={greenColor}/><Stick color={blueColor}/></div>;
-            case '3': return <div className="w-full h-full flex flex-col justify-around items-center p-[8%]"><Stick color={greenColor}/><div className="flex gap-[10%]"><Stick color={blueColor}/><Stick color={greenColor}/></div></div>;
-            case '4': return <div className="w-full h-full flex justify-around items-center p-[8%]"><div className="flex flex-col gap-[10%]"><Stick color={blueColor}/><Stick color={greenColor}/></div><div className="flex flex-col gap-[10%]"><Stick color={greenColor}/><Stick color={blueColor}/></div></div>;
-            case '5': return <div className="w-full h-full flex flex-col justify-between items-center p-[12%]"><div className="flex justify-between w-full"><Stick color={greenColor}/><Stick color={blueColor}/></div><Stick color={redColor}/><div className="flex justify-between w-full"><Stick color={blueColor}/><Stick color={greenColor}/></div></div>;
-            case '6': return <div className="w-full h-full flex flex-col justify-center items-center gap-[10%]"><div className="flex gap-[10%] w-full justify-center"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex gap-[10%] w-full justify-center"><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/></div></div>;
-            case '7': return <div className="w-full h-full flex flex-col justify-between items-center p-[10%]"><Stick color={redColor}/><div className="flex justify-between w-full"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex justify-between w-full"><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/></div></div>;
-            case '8': return <div className="w-full h-full flex flex-col justify-between items-center p-[10%]"><div className="flex gap-x-[12%] gap-y-2 flex-wrap w-full justify-center"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex gap-x-[12%] gap-y-2 flex-wrap w-full justify-center"><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/></div></div>;
-            case '9': return <div className="w-full h-full flex flex-col justify-around items-center p-[8%]"><div className="flex gap-[10%] w-full justify-center"><Stick color={redColor}/><Stick color={redColor}/><Stick color={redColor}/></div><div className="flex gap-[10%] w-full justify-center"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex gap-[10%] w-full justify-center"><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/></div></div>;
+            case '1': return <svg viewBox="0 0 50 70" className="w-full h-full p-2"><g transform="translate(5, 12) scale(0.9)"><path d="M22.5,3 C 24,5 24.5,7 23,9 C 20,13 15,12 13,10 C 11,8 11.5,5.5 13,4 C 15,2 17,2.5 18.5,4.5 M23,9 C 25,11 30,12 33,11 C 36,10 37,7 35,5 C 33,3 30,3 27.5,4.5 M22.5,15 C 20,18 19,23 21,26 C 23,29 27,29 29.5,26 C 32,23 31.5,18 29.5,15 C 27.5,12 24.5,12 22.5,15 Z M20,28 C 17,32 18,37 21,40 C 23,42 27,42 29,39 C 32,36 31,31 28,28 M25,43 C 25,45 25,48 25,50" stroke={greenColor} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M22,20 C 24,20 26,22 26,24 C 26,26 24,28 22,28 C 20,28 18,26 18,24 C 18,22 20,20 22,20Z" fill={redColor}/></g></svg>;
+            case '2': return <svg viewBox="0 0 50 70"><Stick color={greenColor} x="23" y="10" /><Stick color={greenColor} x="23" y="40" /></svg>;
+            case '3': return <svg viewBox="0 0 50 70"><Stick color={greenColor} x="23" y="10" /><Stick color={redColor} x="13" y="40" /><Stick color={redColor} x="33" y="40" /></svg>;
+            case '4': return <svg viewBox="0 0 50 70"><Stick color={greenColor} x="13" y="10" /><Stick color={blueColor} x="33" y="10" /><Stick color={blueColor} x="13" y="40" /><Stick color={greenColor} x="33" y="40" /></svg>;
+            case '5': return <svg viewBox="0 0 50 70"><Stick color={greenColor} x="12" y="10" /><Stick color={blueColor} x="34" y="10" /><Stick color={redColor} x="23" y="25" /><Stick color={blueColor} x="12" y="40" /><Stick color={greenColor} x="34" y="40" /></svg>;
+            case '6': return <svg viewBox="0 0 50 70"><Stick x="12" y="10" /><Stick x="23" y="10" /><Stick x="34" y="10" /><Stick color={redColor} x="12" y="40" /><Stick color={redColor} x="23" y="40" /><Stick color={redColor} x="34" y="40" /></svg>;
+            case '7': return <svg viewBox="0 0 50 70"><Stick color={redColor} x="23" y="8" /><Stick x="12" y="28" /><Stick x="23" y="28" /><Stick x="34" y="28" /><Stick x="12" y="48" /><Stick x="23" y="48" /><Stick x="34" y="48" /></svg>;
+            case '8': return <svg viewBox="0 0 50 70" className="p-1"><path d="M12 15 L 18 25 L 12 35 M 38 15 L 32 25 L 38 35 M 12 40 L 18 50 L 12 60 M 38 40 L 32 50 L 38 60" stroke={greenColor} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            case '9': return <svg viewBox="0 0 50 70"><Stick color={redColor} x="12" y="8" /><Stick color={redColor} x="23" y="8" /><Stick color={redColor} x="34" y="8" /><Stick color={greenColor} x="12" y="28" /><Stick color={greenColor} x="23" y="28" /><Stick color={greenColor} x="34" y="28" /><Stick color={blueColor} x="12" y="48" /><Stick color={blueColor} x="23" y="48" /><Stick color={blueColor} x="34" y="48" /></svg>;
             default: return null;
         }
     }
 
-    const symbolMap: Record<TileValue, string> = { '1': '一', '2': '二', '3': '三', '4': '四', '5': '五', '6': '六', '7': '七', '8': '八', '9': '九', 'E': '東', 'S': '南', 'W': '西', 'N': '北', 'R': '中', 'G': '發', 'B': '白' };
+    const symbolMap: Record<string, string> = { '1': '一', '2': '二', '3': '三', '4': '四', '5': '伍', '6': '六', '7': '七', '8': '八', '9': '九', 'E': '東', 'S': '南', 'W': '西', 'N': '北', 'R': '中', 'G': '發', 'B': '白' };
     
     if (suit === 'characters') {
-        return <div className="relative flex flex-col items-center justify-between h-full p-1 font-bold font-headline leading-none text-[20%]"><span className='text-black text-[80%] self-end'>{symbolMap[value]}</span><span className='text-red-600 text-[100%]'>萬</span></div>;
+        return <div className="relative flex flex-col items-center justify-between h-full p-1 leading-none">
+            <span className='text-black font-bold font-headline' style={{ fontSize: '2.5em' }}>{symbolMap[value]}</span>
+            <span className='text-red-600 font-bold font-headline' style={{ fontSize: '2.8em' }}>萬</span>
+        </div>;
     }
     if (suit === 'wind' || suit === 'dragon') {
-        const color = suit === 'dragon' && value === 'R' ? redColor : suit === 'dragon' && value === 'G' ? greenColor : 'black';
+        const color = suit === 'dragon' && value === 'R' ? redColor : suit === 'dragon' && value === 'G' ? greenColor : blueColor;
         if (value === 'B') {
             return <div className="w-[80%] h-[90%] border-blue-600 rounded" style={{ borderWidth: 'max(1px, 8%)'}} />;
         }
-        return <span className={'font-bold font-headline text-[40%]'} style={{color}}>{symbolMap[value]}</span>;
+        return <span className={'font-bold font-headline'} style={{color, fontSize: '4.5em'}}>{symbolMap[value]}</span>;
     }
     return null;
 }
@@ -80,7 +89,7 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
   return (
     <div
       className={cn(
-        'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80 overflow-hidden',
+        'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80 overflow-hidden relative',
         'dark:bg-gradient-to-b from-stone-50 to-stone-200',
         size === 'md' ? 'w-[6.5vw] h-[9vw] max-w-[65px] max-h-[90px]' : 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
         isClickable && 'transform transition-transform hover:-translate-y-2 cursor-pointer active:scale-95',
@@ -88,6 +97,7 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
         className
       )}
     >
+        {isGolden && <div className="absolute inset-0 bg-yellow-400/20 animate-pulse"></div>}
       <div className="w-full h-full flex items-center justify-center">
         <TilePattern suit={suit} value={value} />
       </div>
