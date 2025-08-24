@@ -214,7 +214,7 @@ function GameRoom() {
     }
   }, [players, activePlayer, STAKE_AMOUNT, handleEndGame, toast, playSound]);
 
-  const handleLeaveGame = () => {
+  const handleLeaveGame = (andStartNew = false) => {
     const leaver = players.find(p => p.id === 0);
     if (!leaver) return;
 
@@ -227,14 +227,23 @@ function GameRoom() {
         netWin: share,
     }));
     
-    setRoundResult({
-        winners,
-        losers: [{ player: leaver, netLoss: penalty }],
-        biggestWinner: null,
-        tableFee: 0,
-        leaver,
-    });
-    setGameState('game-over');
+    if (andStartNew) {
+      toast({
+        variant: 'destructive',
+        title: '您已退出当前对局 (You Left the Game)',
+        description: `您输掉了入场费 ${STAKE_AMOUNT} $JIN。正在开始新对局...`,
+      });
+      setTimeout(initializeGame, 1500);
+    } else {
+      setRoundResult({
+          winners,
+          losers: [{ player: leaver, netLoss: penalty }],
+          biggestWinner: null,
+          tableFee: 0,
+          leaver,
+      });
+      setGameState('game-over');
+    }
   };
 
 
@@ -433,7 +442,7 @@ function GameRoom() {
         // Accurate dealing logic based on dice roll
         // The dice total determines the starting player for the deal, counting counter-clockwise from the banker.
         const diceTotal = newDice[0] + newDice[1];
-        const dealStartIndex = (bankerId + diceTotal - 1) % players.length;
+        const dealStartIndex = (bankerId + diceTotal - 1) % tempPlayers.length;
 
         // Deal 13 tiles to each player
         for (let i = 0; i < 13; i++) {
@@ -559,6 +568,8 @@ function GameRoom() {
     Expert: "高手场",
     Master: "大师场",
   };
+
+  const isGameInProgress = gameState === 'playing';
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -632,11 +643,36 @@ function GameRoom() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <Button variant="outline" onClick={initializeGame}>
-                <Shuffle />
-                新对局 (New Game)
-            </Button>
-            {gameState === 'playing' ? (
+            
+            {isGameInProgress ? (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline"><Shuffle />新对局 (New Game)</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>开始新对局吗？ (Start a New Game?)</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            当前对局仍在进行中。如果现在开始新对局，您将输掉本局的入场费 {STAKE_AMOUNT} $JIN。
+                            (The current game is still in progress. If you start a new game now, you will forfeit your entry fee of {STAKE_AMOUNT} $JIN for this round.)
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleLeaveGame(true)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            确认 (Confirm)
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            ) : (
+                <Button variant="outline" onClick={initializeGame}>
+                    <Shuffle />
+                    新对局 (New Game)
+                </Button>
+            )}
+
+            {isGameInProgress ? (
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="outline"><Undo2 />返回大厅 (Back to Lobby)</Button>
@@ -651,7 +687,7 @@ function GameRoom() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                         <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleLeaveGame} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        <AlertDialogAction onClick={() => handleLeaveGame(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                             确认退出 (Confirm Exit)
                         </AlertDialogAction>
                         </AlertDialogFooter>
