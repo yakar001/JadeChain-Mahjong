@@ -18,42 +18,46 @@ interface MahjongTileProps {
 
 const TilePattern = ({ suit, value, size }: { suit: TileSuit, value: TileValue, size: 'md' | 'sm' }) => {
     const sizeClass = size === 'md' ? { dot: "w-[1.4vh]", bamboo: "w-[0.5vh] h-[2.5vh]" } : { dot: "w-[1vw] h-[1vw] max-w-[0.5rem] max-h-[0.5rem]", bamboo: "w-[0.4vw] h-[1.8vw] max-w-[0.2rem] max-h-[0.8rem]" };
-    const redColor = "bg-red-600";
-    const greenColor = "bg-green-600";
-    const blueColor = "bg-blue-600";
+    const redColor = "#c13824";
+    const greenColor = "#006A4E";
+    const blueColor = "#003366";
 
     if (suit === 'dots') {
-        const dots = (count: number, color: string) => Array.from({ length: count }).map((_, i) => (
-            <div key={i} className={cn("rounded-full", color, sizeClass.dot)} />
-        ));
+        const Dot = ({ color }: { color: string }) => (
+            <div className="flex items-center justify-center" style={{ width: '22%', height: '22%'}}>
+                <div className="w-full h-full rounded-full border-[1.5px]" style={{ borderColor: color }}>
+                    <div className="w-full h-full rounded-full flex items-center justify-center transform scale-[0.85]">
+                         <div className="w-[30%] h-[30%] rounded-full" style={{ backgroundColor: color }}></div>
+                    </div>
+                </div>
+            </div>
+        );
         switch (value) {
-            case '1': return <div className={cn("w-full h-full flex justify-center items-center p-1")}><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="#d1e4c1" stroke="#508a38" strokeWidth="2" /><circle cx="50" cy="50" r="30" fill="none" stroke="#508a38" strokeWidth="1" strokeDasharray="4" /><circle cx="50" cy="50" r="22" fill="#f4c3c3" stroke="#c04848" strokeWidth="1.5" /><circle cx="50" cy="50" r="14" fill="#f4c3c3" /><path d="M50,15 A35,35 0 0,1 50,85 A35,35 0 0,1 50,15 M35,25 A25,25 0 0,1 65,25 A25,25 0 0,1 35,25 M25,35 A15,15 0 0,1 75,35 A15,15 0 0,1 25,35" fill="none" stroke="#508a38" strokeWidth="0.5" opacity="0.5" /></svg></div>;
-            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-1">{dots(1, greenColor)}{dots(1, blueColor)}</div>;
-            case '3': return <div className="w-full h-full grid grid-cols-3 grid-rows-3 p-1"><div className="col-start-1 row-start-1 self-start justify-self-start">{dots(1, redColor)}</div><div className="col-start-2 row-start-2 self-center justify-self-center">{dots(1, blueColor)}</div><div className="col-start-3 row-start-3 self-end justify-self-end">{dots(1, greenColor)}</div></div>;
-            case '4': return <div className="w-full h-full flex justify-center items-center gap-4 p-1"><div className="flex flex-col gap-3">{dots(1, blueColor)}{dots(1, blueColor)}</div><div className="flex flex-col gap-3">{dots(1, greenColor)}{dots(1, greenColor)}</div></div>;
-            case '5': return <div className="w-full h-full grid grid-cols-3 grid-rows-3 p-1"><div className="col-start-1 row-start-1">{dots(1, redColor)}</div><div className="col-start-3 row-start-1">{dots(1, greenColor)}</div><div className="col-start-2 row-start-2">{dots(1, blueColor)}</div><div className="col-start-1 row-start-3">{dots(1, greenColor)}</div><div className="col-start-3 row-start-3">{dots(1, redColor)}</div></div>;
-            case '6': return <div className="w-full h-full flex flex-col justify-center items-center gap-1 p-1"><div className="flex justify-center gap-x-3">{dots(2, redColor)}</div><div className="flex justify-center gap-x-3">{dots(4, greenColor)}</div></div>;
-            case '7': return <div className="w-full h-full flex flex-col justify-center items-center gap-1 p-1"><div className="flex justify-between w-full -mb-1" style={{ transform: 'rotate(20deg) translateY(-2px)' }}><div className="translate-x-1">{dots(1, greenColor)}</div><div>{dots(1, greenColor)}</div><div className="-translate-x-1">{dots(1, greenColor)}</div></div><div className="flex justify-around w-full">{dots(2, redColor)}</div><div className="flex justify-around w-full">{dots(2, redColor)}</div></div>;
-            case '8': return <div className="w-full h-full flex flex-col justify-around p-1">{dots(8, blueColor).map((d, i) => <div key={i} className='h-full flex items-center'>{d}</div>).reduce((acc, el, i) => { if (i % 2 === 0) { acc.push([el]); } else { acc[acc.length - 1].push(el); } return acc; }, [] as JSX.Element[][]).map((pair, i) => <div key={i} className="flex justify-around">{pair}</div>)}</div>;
-            case '9': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-around">{dots(3, redColor)}</div><div className="flex justify-around">{dots(3, greenColor)}</div><div className="flex justify-around">{dots(3, blueColor)}</div></div>;
+            case '1': return <div className="w-full h-full flex justify-center items-center p-1"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="#d1e4c1" stroke="#006A4E" strokeWidth="3" /><circle cx="50" cy="50" r="30" fill="none" stroke="#006A4E" strokeWidth="1" strokeDasharray="4" /><circle cx="50" cy="50" r="22" fill="#f4c3c3" stroke="#c13824" strokeWidth="2" /><circle cx="50" cy="50" r="14" fill="#f4c3c3" /><path d="M50,15 A35,35 0 0,1 50,85 A35,35 0 0,1 50,15 M35,25 A25,25 0 0,1 65,25 A25,25 0 0,1 35,25 M25,35 A15,15 0 0,1 75,35 A15,15 0 0,1 25,35" fill="none" stroke="#006A4E" strokeWidth="0.5" opacity="0.5" /></svg></div>;
+            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-1"><Dot color={greenColor} /><Dot color={redColor} /></div>;
+            case '3': return <div className="w-full h-full flex flex-col justify-between p-2"><div className="flex justify-start"><Dot color={blueColor}/></div><div className="flex justify-center"><Dot color={redColor}/></div><div className="flex justify-end"><Dot color={greenColor}/></div></div>;
+            case '4': return <div className="w-full h-full flex flex-col justify-between p-2"><div className="flex justify-between"><Dot color={blueColor}/><Dot color={greenColor}/></div><div className="flex justify-between"><Dot color={greenColor}/><Dot color={blueColor}/></div></div>;
+            case '5': return <div className="w-full h-full flex flex-col justify-between p-2"><div className="flex justify-between"><Dot color={blueColor}/><Dot color={greenColor}/></div><div className="flex justify-center"><Dot color={redColor}/></div><div className="flex justify-between"><Dot color={greenColor}/><Dot color={blueColor}/></div></div>;
+            case '6': return <div className="w-full h-full flex flex-col justify-around p-2"><div className="flex justify-around"><Dot color={greenColor}/><Dot color={greenColor}/></div><div className="flex justify-around"><Dot color={redColor}/><Dot color={redColor}/><Dot color={redColor}/><Dot color={redColor}/></div></div>;
+            case '7': return <div className="w-full h-full flex flex-col justify-between p-2"><div className="flex justify-between"><Dot color={greenColor}/><Dot color={greenColor}/><Dot color={greenColor}/></div><div className="flex justify-around"><Dot color={redColor}/><Dot color={redColor}/></div><div className="flex justify-around"><Dot color={redColor}/><Dot color={redColor}/></div></div>
+            case '8': return <div className="w-full h-full flex flex-col justify-around p-2"><div className="flex justify-around"><Dot color={blueColor}/><Dot color={blueColor}/></div><div className="flex justify-around"><Dot color={blueColor}/><Dot color={blueColor}/></div><div className="flex justify-around"><Dot color={blueColor}/><Dot color={blueColor}/></div><div className="flex justify-around"><Dot color={blueColor}/><Dot color={blueColor}/></div></div>;
+            case '9': return <div className="w-full h-full flex flex-col justify-around p-2"><div className="flex justify-around"><Dot color={redColor}/><Dot color={redColor}/><Dot color={redColor}/></div><div className="flex justify-around"><Dot color={greenColor}/><Dot color={greenColor}/><Dot color={greenColor}/></div><div className="flex justify-around"><Dot color={blueColor}/><Dot color={blueColor}/><Dot color={blueColor}/></div></div>;
             default: return null;
         }
     }
 
     if (suit === 'bamboo') {
-        const sticks = (count: number, color: string) => Array.from({ length: count }).map((_, i) => (
-             <div key={i} className={cn("rounded-sm", color, sizeClass.bamboo )} />
-        ));
+        const Stick = ({ color }: { color: string }) => <div className="w-[6px] h-[28px] rounded-sm" style={{backgroundColor: color}}></div>
         switch (value) {
-            case '1': return <svg className={cn("w-full h-full p-1")} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 8C35 15, 30 38, 50 45 C70 38, 65 15, 50 8Z" fill="#508a38" /><path d="M50 43C40 50, 42 65, 50 70 C58 65, 60 50, 50 43Z" fill="#508a38" /><path d="M48 68 C35 75, 35 90, 48 95 L52 95 C65 90, 65 75, 52 68Z" fill="#c04848" /><path d="M50 44 C52 46, 52 49, 50 51 C48 49, 48 46, 50 44Z" fill="white" /><path d="M42 22 C40 20, 38 22, 40 25 C45 28, 55 28, 60 25 C62 22, 60 20, 58 22 C55 24, 45 24, 42 22Z" fill="#508a38" /></svg>;
-            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-1">{sticks(1, blueColor)}{sticks(1, greenColor)}</div>;
-            case '3': return <div className="w-full h-full flex flex-col justify-around items-center p-1">{sticks(1, blueColor)}{sticks(2, greenColor)}</div>;
-            case '4': return <div className="w-full h-full flex flex-col justify-center items-center gap-2 p-1"><div className="flex justify-center gap-2">{sticks(1, blueColor)}{sticks(1, greenColor)}</div><div className="flex justify-center gap-2">{sticks(1, greenColor)}{sticks(1, blueColor)}</div></div>;
-            case '5': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-around">{sticks(2, greenColor)}</div><div className="flex justify-center">{sticks(1, redColor)}</div><div className="flex justify-around">{sticks(2, blueColor)}</div></div>;
-            case '6': return <div className="w-full h-full flex flex-col justify-center gap-1"><div className="flex justify-around">{sticks(3, greenColor)}</div><div className="flex justify-around">{sticks(3, blueColor)}</div></div>;
-            case '7': return <div className="w-full h-full flex flex-col justify-around p-1"><div className="flex justify-center">{sticks(1, redColor)}</div><div className="flex justify-around">{sticks(3, greenColor)}</div><div className="flex justify-around">{sticks(3, blueColor)}</div></div>;
-            case '8': return <div className="w-full h-full flex flex-col justify-around items-center scale-90 p-1"><div className="flex justify-between w-full -rotate-45">{sticks(2, greenColor)}<div className="w-1"/>{sticks(2, greenColor)}</div><div className="flex justify-between w-full rotate-45">{sticks(2, blueColor)}<div className="w-1"/>{sticks(2, blueColor)}</div></div>;
-            case '9': return <div className="w-full h-full flex flex-col justify-around"><div className="flex justify-around">{sticks(3, redColor)}</div><div className="flex justify-around">{sticks(3, greenColor)}</div><div className="flex justify-around">{sticks(3, blueColor)}</div></div>;
+            case '1': return <svg className={cn("w-full h-full p-2")} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 8C35 15, 30 38, 50 45 C70 38, 65 15, 50 8Z" fill="#508a38" /><path d="M50 43C40 50, 42 65, 50 70 C58 65, 60 50, 50 43Z" fill="#508a38" /><path d="M48 68 C35 75, 35 90, 48 95 L52 95 C65 90, 65 75, 52 68Z" fill="#c04848" /><path d="M50 44 C52 46, 52 49, 50 51 C48 49, 48 46, 50 44Z" fill="white" /><path d="M42 22 C40 20, 38 22, 40 25 C45 28, 55 28, 60 25 C62 22, 60 20, 58 22 C55 24, 45 24, 42 22Z" fill="#508a38" /></svg>;
+            case '2': return <div className="w-full h-full flex flex-col justify-around items-center p-1"><Stick color={redColor}/><Stick color={greenColor}/></div>;
+            case '3': return <div className="w-full h-full flex flex-col justify-around items-center p-1"><Stick color={redColor}/><div className="flex gap-2"><Stick color={greenColor}/><Stick color={greenColor}/></div></div>;
+            case '4': return <div className="w-full h-full flex justify-around items-center p-1"><div className="flex flex-col gap-2"><Stick color={blueColor}/><Stick color={greenColor}/></div><div className="flex flex-col gap-2"><Stick color={greenColor}/><Stick color={blueColor}/></div></div>;
+            case '5': return <div className="w-full h-full flex flex-col justify-between items-center p-2"><div className="flex justify-between w-full"><Stick color={greenColor}/><Stick color={blueColor}/></div><Stick color={redColor}/><div className="flex justify-between w-full"><Stick color={blueColor}/><Stick color={greenColor}/></div></div>;
+            case '6': return <div className="w-full h-full flex flex-col justify-center items-center gap-2"><div className="flex gap-2"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex gap-2"><Stick color={redColor}/><Stick color={redColor}/><Stick color={redColor}/></div></div>;
+            case '7': return <div className="w-full h-full flex flex-col justify-between items-center p-2"><Stick color={redColor}/><div className="flex justify-between w-full"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex justify-between w-full"><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/></div></div>;
+            case '8': return <div className="w-full h-full flex flex-col justify-between items-center p-2"><div className="flex gap-4"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex gap-4"><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/></div></div>;
+            case '9': return <div className="w-full h-full flex flex-col justify-around items-center"><div className="flex gap-4"><Stick color={redColor}/><Stick color={redColor}/><Stick color={redColor}/></div><div className="flex gap-4"><Stick color={greenColor}/><Stick color={greenColor}/><Stick color={greenColor}/></div><div className="flex gap-4"><Stick color={blueColor}/><Stick color={blueColor}/><Stick color={blueColor}/></div></div>;
             default: return null;
         }
     }
