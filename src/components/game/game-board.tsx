@@ -12,7 +12,6 @@ type Tile = { suit: string; value: string };
 type Discard = { tile: Tile, playerId: number };
 type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
-type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win' | 'golden1' | 'golden2' | 'golden3';
 
 interface GameBoardProps {
   players: Player[];
@@ -31,8 +30,6 @@ interface GameBoardProps {
   onRollForStart: () => void;
   onRollForGolden: () => void;
   eastPlayerId: number | null;
-  canPerformAction: boolean;
-  onAction: (action: Action) => void;
 }
 
 const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number }) => {
@@ -168,7 +165,7 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     </div>
 );
 
-export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, canPerformAction, onAction }: GameBoardProps) {
+export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId }: GameBoardProps) {
     const playerSouth = players.find(p => p.id === 0); // Human
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
@@ -267,18 +264,6 @@ export function GameBoard({ players, discards, activePlayerId, wallCount, dice, 
                     <DiscardArea discards={discards} />
                 </div>
                 
-                 {/* Action Buttons Area */}
-                 {canPerformAction && (
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20">
-                        <div className="flex items-center justify-center gap-2 sm:gap-4 p-2 sm:p-3 bg-background/80 rounded-lg w-auto">
-                            <Button onClick={() => onAction('chow')} size="sm">吃 (Chow)</Button>
-                            <Button onClick={() => onAction('pong')} size="sm">碰 (Pong)</Button>
-                            <Button onClick={() => onAction('kong')} size="sm">杠 (Kong)</Button>
-                            <Button onClick={() => onAction('skip')} size="sm" variant="secondary">跳过 (Skip)</Button>
-                        </div>
-                    </div>
-                )}
-
                 {/* Dice Rolling Overlay */}
                 {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll') || gameState === 'banker-roll-for-golden') && (
                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-20">
