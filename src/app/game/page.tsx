@@ -796,7 +796,10 @@ function GameRoom() {
                              <div>
                                 <h3 className="font-semibold text-foreground">游戏玩法 (Gameplay)</h3>
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>动作提示 (Action Prompts)：</strong>当上家打出一张牌后，如果您的手牌可以进行“吃”、“碰”或“杠”，系统会自动弹出相应按钮供您选择。</li>
+                                    <li><strong>吃 (Chow):</strong> 只能吃您**上家**（左边的玩家）打出的牌来组成顺子。</li>
+                                    <li><strong>碰 (Pong):</strong> 可以碰**任何一家**打出的牌来组成刻子（三张相同的牌）。</li>
+                                    <li><strong>杠 (Kong):</strong> 可以杠**任何一家**打出的牌来组成杠子（四张相同的牌）。</li>
+                                    <li><strong>优先级 (Priority):</strong> 碰和杠的优先级高于吃。如果多个玩家可以对同一张牌执行操作，碰/杠会优于吃。</li>
                                     <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌后，如果手牌已满足胡牌条件，系统会自动出现“自摸胡牌”按钮。</li>
                                     <li><strong>高级策略 (Advanced Strategy)：</strong>您可以选择忽略当前的胡牌提示，继续游戏以追求“游金”等更高番数的牌型。</li>
                                 </ul>
@@ -1046,5 +1049,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
