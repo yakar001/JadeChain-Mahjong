@@ -697,7 +697,11 @@ function GameRoom() {
             title: `操作无效 (${action.charAt(0).toUpperCase() + action.slice(1)} Invalid)`,
             description: `您的手牌不满足'${action}'的条件。`,
         });
-        setActionPossibilities({ chow: false, pong: false, kong: false }); 
+        setActionPossibilities({ chow: false, pong: false, kong: false });
+        // After an invalid action, the turn should pass to the next player.
+        const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+        const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+        setActivePlayer(nextPlayer.id);
         return;
     }
 
@@ -1096,3 +1100,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
