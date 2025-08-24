@@ -44,24 +44,20 @@ const TilePattern = ({ suit, value }: { suit: TileSuit, value: TileValue }) => {
     }
 
     if (suit === 'bamboo') {
-        const Stick = ({ color = greenColor, x, y, width = 4, height = 20 }: { color?: string, x: number, y: number, width?: number, height?: number }) => (
-            <g transform={`translate(${x}, ${y})`}>
-                <rect x="0" y="0" width={width} height={height} fill={color} rx="1"/>
-                <rect x="0" y="4" width={width} height="1.5" fill="white" fillOpacity="0.7"/>
-                <rect x="0" y="9" width={width} height="1.5" fill="white" fillOpacity="0.7"/>
-                <rect x="0" y="14" width={width} height="1.5" fill="white" fillOpacity="0.7"/>
-            </g>
+        const Stick = ({ color, transform }: { color: string, transform: string }) => (
+            <path d="M -2,-11.5 l 0,-2.5 a 1.5,1.5 0 0 1 3,0 l 0,2.5 M -2,11.5 l 0,2.5 a 1.5,1.5 0 0 0 3,0 l 0,-2.5 M -2,-2.5 l 0,-5 M 2,-2.5 l 0,-5 M -2,2.5 l 0,5 M 2,2.5 l 0,5 M 0,-1.5 a 4,4 0 0 0 0,3" 
+                  stroke={color} strokeWidth="1.5" fill="none" transform={transform} strokeLinecap="round" strokeLinejoin="round" />
         );
-         switch (value) {
+        switch (value) {
             case '1': return <svg viewBox="0 0 50 70" className="w-full h-full p-2"><g transform="translate(5, 12) scale(0.9)"><path d="M22.5,3 C 24,5 24.5,7 23,9 C 20,13 15,12 13,10 C 11,8 11.5,5.5 13,4 C 15,2 17,2.5 18.5,4.5 M23,9 C 25,11 30,12 33,11 C 36,10 37,7 35,5 C 33,3 30,3 27.5,4.5 M22.5,15 C 20,18 19,23 21,26 C 23,29 27,29 29.5,26 C 32,23 31.5,18 29.5,15 C 27.5,12 24.5,12 22.5,15 Z M20,28 C 17,32 18,37 21,40 C 23,42 27,42 29,39 C 32,36 31,31 28,28 M25,43 C 25,45 25,48 25,50" stroke={greenColor} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M22,20 C 24,20 26,22 26,24 C 26,26 24,28 22,28 C 20,28 18,26 18,24 C 18,22 20,20 22,20Z" fill={redColor}/></g></svg>;
-            case '2': return <svg viewBox="0 0 50 70" className="p-1"><path d="M25 15 L 20 25 L 25 35 M25 40 L 30 50 L 25 60" stroke={greenColor} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-            case '3': return <svg viewBox="0 0 50 70" className="p-1"><path d="M25 15 L 20 25 L 25 35 M20 40 L 25 50 L 30 50 L 25 60" stroke={greenColor} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-            case '4': return <svg viewBox="0 0 50 70" className="p-1"><path d="M18 15 L 13 25 L 18 35 M32 15 L 37 25 L 32 35 M18 40 L 13 50 L 18 60 M32 40 L 37 50 L 32 60" stroke={greenColor} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-            case '5': return <svg viewBox="0 0 50 70"><Stick color={greenColor} x="12" y="10" /><Stick color={blueColor} x="34" y="10" /><Stick color={redColor} x="23" y="25" /><Stick color={blueColor} x="12" y="40" /><Stick color={greenColor} x="34" y="40" /></svg>;
-            case '6': return <svg viewBox="0 0 50 70" className="p-1"><path d="M18 15 L 13 25 L 18 35 M25 15 L 20 25 L 25 35 M32 15 L 37 25 L 32 35 M18 40 L 13 50 L 18 60 M25 40 L 20 50 L 25 60 M32 40 L 37 50 L 32 60" stroke={greenColor} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-            case '7': return <svg viewBox="0 0 50 70"><Stick color={redColor} x="23" y="8" /><Stick x="12" y="28" /><Stick x="23" y="28" /><Stick x="34" y="28" /><Stick x="12" y="48" /><Stick x="23" y="48" /><Stick x="34" y="48" /></svg>;
-            case '8': return <svg viewBox="0 0 50 70" className="p-1"><path d="M12 15 L 18 25 L 12 35 M 38 15 L 32 25 L 38 35 M 12 40 L 18 50 L 12 60 M 38 40 L 32 50 L 38 60" stroke={greenColor} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-            case '9': return <svg viewBox="0 0 50 70"><Stick color={redColor} x="12" y="8" /><Stick color={redColor} x="23" y="8" /><Stick color={redColor} x="34" y="8" /><Stick color={greenColor} x="12" y="28" /><Stick color={greenColor} x="23" y="28" /><Stick color={greenColor} x="34" y="28" /><Stick color={blueColor} x="12" y="48" /><Stick color={blueColor} x="23" y="48" /><Stick color={blueColor} x="34" y="48" /></svg>;
+            case '2': return <svg viewBox="0 0 50 70"><g transform="translate(25, 35)"><Stick color={redColor} transform="translate(0, -16)" /><Stick color={greenColor} transform="translate(0, 16)" /></g></svg>;
+            case '3': return <svg viewBox="0 0 50 70"><g transform="translate(25, 35)"><Stick color={redColor} transform="translate(0, -16)" /><Stick color={greenColor} transform="translate(-8, 16)" /><Stick color={greenColor} transform="translate(8, 16)" /></g></svg>;
+            case '4': return <svg viewBox="0 0 50 70"><g transform="translate(25, 35)"><Stick color={blueColor} transform="translate(-8, -16)" /><Stick color={greenColor} transform="translate(8, -16)" /><Stick color={greenColor} transform="translate(-8, 16)" /><Stick color={blueColor} transform="translate(8, 16)" /></g></svg>;
+            case '5': return <svg viewBox="0 0 50 70"><g transform="translate(25, 35)"><Stick color={greenColor} transform="translate(-9, -16)" /><Stick color={blueColor} transform="translate(9, -16)" /><Stick color={redColor} transform="translate(0, 0)" /><Stick color={blueColor} transform="translate(-9, 16)" /><Stick color={greenColor} transform="translate(9, 16)" /></g></svg>;
+            case '6': return <svg viewBox="0 0 50 70"><g transform="translate(25, 35)"><Stick color={greenColor} transform="translate(-8, -16)" /><Stick color={greenColor} transform="translate(8, -16)" /><Stick color={greenColor} transform="translate(-8, 0)" /><Stick color={greenColor} transform="translate(8, 0)" /><Stick color={greenColor} transform="translate(-8, 16)" /><Stick color={greenColor} transform="translate(8, 16)" /></g></svg>;
+            case '7': return <svg viewBox="0 0 50 70"><g transform="translate(25, 35)"><Stick color={redColor} transform="translate(0, -22)" /><Stick color={greenColor} transform="translate(-9, -2)" /><Stick color={greenColor} transform="translate(0, -2)" /><Stick color={greenColor} transform="translate(9, -2)" /><Stick color={greenColor} transform="translate(-9, 18)" /><Stick color={greenColor} transform="translate(0, 18)" /><Stick color={greenColor} transform="translate(9, 18)" /></g></svg>;
+            case '8': return <svg viewBox="0 0 50 70" className="w-full h-full p-1"><g transform="translate(25, 35) scale(0.9)"><path d="M -16 -20 l 6 8 l -6 8 M 16 -20 l -6 8 l 6 8 M -16 5 l 6 8 l -6 8 M 16 5 l -6 8 l 6 8" stroke={greenColor} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></g></svg>;
+            case '9': return <svg viewBox="0 0 50 70"><g transform="translate(25, 35)"><Stick color={redColor} transform="translate(-10, -18)" /><Stick color={redColor} transform="translate(0, -18)" /><Stick color={redColor} transform="translate(10, -18)" /><Stick color={greenColor} transform="translate(-10, 0)" /><Stick color={greenColor} transform="translate(0, 0)" /><Stick color={greenColor} transform="translate(10, 0)" /><Stick color={blueColor} transform="translate(-10, 18)" /><Stick color={blueColor} transform="translate(0, 18)" /><Stick color={blueColor} transform="translate(10, 18)" /></g></svg>;
             default: return null;
         }
     }
