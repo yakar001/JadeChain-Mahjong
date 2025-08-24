@@ -108,5 +108,3 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
     </div>
   );
 }
-
-    
