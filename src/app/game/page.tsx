@@ -170,30 +170,37 @@ function GameRoom() {
     
   }, [pot, STAKE_AMOUNT]);
 
-  const handleWin = useCallback(() => {
-    if (activePlayer === null) return;
-    const winner = players.find(p => p.id === activePlayer);
+  const handleWin = useCallback((winnerId?: number) => {
+    const id = winnerId !== undefined ? winnerId : activePlayer;
+    if (id === null) return;
+
+    const winner = players.find(p => p.id === id);
     if (!winner) return;
     
     playSound("自摸胡牌");
 
+    toast({
+        title: `${winner.name} 胡牌了！ (Win!)`,
+        description: `恭喜玩家 ${winner.name} 获得胜利！`,
+    });
+
     // In a real game, the win amount would be calculated based on the hand's value.
     // For simplicity, we'll assume the win amount makes one opponent lose all chips.
-    const opponent = players.find(p => p.id !== activePlayer && p.balance > 0);
+    const opponent = players.find(p => p.id !== id && p.balance > 0);
     if(!opponent) { // Game ends if no opponents left
-        const finalPlayers = players.map(p => p.id === winner.id ? { ...p, balance: p.balance + STAKE_AMOUNT } : p);
+        const finalPlayers = players.map(p => p.id === id ? { ...p, balance: p.balance + STAKE_AMOUNT } : p);
         handleEndGame(finalPlayers);
         return;
     }
     
-    const winAmount = opponent.balance;
+    const winAmount = opponent.balance > 0 ? opponent.balance : INITIAL_BALANCE;
 
-    const losingPlayers = players.filter(p => p.id !== winner.id);
+    const losingPlayers = players.filter(p => p.id !== id);
     const lossAmount = winAmount / losingPlayers.length;
 
     // Calculate final balances
     const finalPlayers = players.map(p => {
-        if (p.id === winner.id) {
+        if (p.id === id) {
             return { ...p, balance: p.balance + winAmount };
         }
         return { ...p, balance: p.balance - lossAmount };
@@ -296,39 +303,77 @@ function GameRoom() {
     }
   }, [players, activePlayer, playSound]);
 
-  // AI Player Logic
+  // Game flow and AI automation
   useEffect(() => {
-    if (gameState !== 'playing' || activePlayer === null) return;
+    const isOurTurn = (playerId: number | null) => players.find(p => p.id === playerId)?.isAI;
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-    const currentPlayer = players.find(p => p.id === activePlayer);
-    if (currentPlayer && currentPlayer.isAI) {
-      const aiThinkTime = Math.random() * 1000 + 1000; // Simulate 1-2s thinking
+    const runGameFlow = async () => {
+      switch (gameState) {
+        case 'pre-roll-seating':
+          // In this simulation, any player can trigger the roll, but we can automate it
+          await delay(1000);
+          handleRollForSeating();
+          break;
+        case 'pre-roll-banker':
+          if (isOurTurn(eastPlayerId)) {
+            await delay(1500);
+            handleRollForBanker();
+          }
+          break;
+        case 'pre-roll':
+          if (isOurTurn(bankerId)) {
+            await delay(1500);
+            handleRollDice();
+          }
+          break;
+        case 'banker-roll-for-golden':
+           if (isOurTurn(bankerId)) {
+            await delay(1500);
+            handleRollForGolden();
+          }
+          break;
+        case 'playing':
+          const currentPlayer = players.find(p => p.id === activePlayer);
+          if (currentPlayer && currentPlayer.isAI) {
+            await delay(Math.random() * 1000 + 1000); // Simulate 1-2s thinking
 
-      const timeout = setTimeout(() => {
-        // AI Draw Logic (simplified)
-        const wallCopy = [...wall];
-        const drawnTile = wallCopy.pop();
-        if (drawnTile) {
-          const updatedPlayers = players.map(p => {
-            if (p.id === activePlayer) {
-              return { ...p, hand: [...p.hand, drawnTile] };
+            // AI Win check (simple)
+            if (Math.random() < 0.05) { // 5% chance to win on their turn
+              handleWin(currentPlayer.id);
+              return;
             }
-            return p;
-          });
-          setWall(wallCopy);
-          setPlayers(updatedPlayers);
-          
-          // AI Discard Logic (simplified: discard last tile)
-          const handSize = updatedPlayers.find(p=>p.id === activePlayer)!.hand.length;
-          handleDiscardTile(activePlayer, handSize - 1);
-        } else {
-           // No tiles left, handle draw
-           handleEndGame(players);
-        }
-      }, aiThinkTime);
-      return () => clearTimeout(timeout);
-    }
-  }, [gameState, activePlayer, players, wall, handleDiscardTile, handleEndGame]);
+
+            // AI Draw Logic
+            const wallCopy = [...wall];
+            const drawnTile = wallCopy.pop();
+            if (drawnTile) {
+              const updatedPlayers = players.map(p => {
+                if (p.id === activePlayer) {
+                  return { ...p, hand: [...p.hand, drawnTile] };
+                }
+                return p;
+              });
+              setWall(wallCopy);
+              setPlayers(updatedPlayers);
+              
+              await delay(500); // Wait a bit after drawing
+              
+              // AI Discard Logic (random discard)
+              const handSize = updatedPlayers.find(p=>p.id === activePlayer)!.hand.length;
+              const discardIndex = Math.floor(Math.random() * handSize);
+              handleDiscardTile(activePlayer, discardIndex);
+
+            } else {
+              handleEndGame(players); // No tiles left, handle draw
+            }
+          }
+          break;
+      }
+    };
+    
+    runGameFlow();
+  }, [gameState, eastPlayerId, bankerId, activePlayer]);
 
 
   // Timer useEffect
@@ -823,7 +868,7 @@ function GameRoom() {
                       </Button>
                     )}
                     {gameState === 'playing' && activePlayer === 0 && drawnTile && (
-                        <Button onClick={handleWin} variant="destructive">
+                        <Button onClick={() => handleWin()} variant="destructive">
                             <Trophy className="mr-2 h-4 w-4 text-yellow-300"/>
                             自摸胡牌 (Win)
                         </Button>
@@ -932,3 +977,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
