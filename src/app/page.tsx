@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,17 @@ import { useWallet } from "@/context/wallet-context";
 const userKycLevel = 1; 
 
 const initialRooms = [
+  { 
+    tier: "Free", 
+    tierDisplay: "免费体验娱乐场 (Free Play)",
+    fee: 0, 
+    prize: 0, 
+    players: 4,
+    minPlayers: 4,
+    icon: <Star className="text-yellow-400" />,
+    description: "无需费用，尽情娱乐",
+    kycRequired: 0,
+  },
   { 
     tier: "Novice", 
     tierDisplay: "新手场 (Novice)",
@@ -140,8 +152,8 @@ export default function Home() {
   const handleJoinRoom = async (room: typeof rooms[0]) => {
     if (isJoining) return;
 
-    // 1. Check Wallet Connection
-    if (!walletAddress) {
+    // 1. Check Wallet Connection (skip for free rooms)
+    if (room.fee > 0 && !walletAddress) {
         toast({
             variant: "destructive",
             title: "钱包未连接 (Wallet Not Connected)",
@@ -171,10 +183,13 @@ export default function Home() {
     
     setIsJoining(room.tier);
 
-    // 4. Deduct tokens
-    const success = await deductTokens(room.fee);
+    // 4. Deduct tokens (skip for free rooms)
+    let paymentSuccess = true;
+    if (room.fee > 0) {
+        paymentSuccess = await deductTokens(room.fee);
+    }
 
-    if (success) {
+    if (paymentSuccess) {
       // 5. Navigate to game room
       router.push(`/game?tier=${room.tier}&fee=${room.fee}`);
     } else {
