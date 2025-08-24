@@ -175,7 +175,7 @@ function GameRoom() {
     const winner = players.find(p => p.id === activePlayer);
     if (!winner) return;
     
-    playSound("自摸");
+    playSound("自摸胡牌");
 
     // In a real game, the win amount would be calculated based on the hand's value.
     // For simplicity, we'll assume the win amount makes one opponent lose all chips.
@@ -216,7 +216,15 @@ function GameRoom() {
 
   const handleLeaveGame = (andStartNew = false) => {
     const leaver = players.find(p => p.id === 0);
-    if (!leaver) return;
+    if (!leaver || gameState !== 'playing') {
+      // If game is not in progress, leaving is free.
+      if (andStartNew) {
+        initializeGame();
+      } else {
+        // Just go back to lobby, router will handle this.
+      }
+      return;
+    }
 
     const remainingPlayers = players.filter(p => p.id !== 0);
     const penalty = STAKE_AMOUNT; // The stake amount is forfeited
@@ -250,7 +258,8 @@ function GameRoom() {
   const handleDiscardTile = useCallback(async (playerIndex: number, tileIndex: number) => {
     if (activePlayer === null) return;
     const updatedPlayers = [...players];
-    const player = updatedPlayers[playerIndex];
+    const player = updatedPlayers.find(p => p.id === playerIndex);
+
     if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
       console.error("Invalid discard attempt");
       return;
@@ -265,7 +274,7 @@ function GameRoom() {
     setDrawnTile(null);
     setSelectedTileIndex(null); // Reset selection for human player
     
-    if (playerIndex === 0) {
+    if (player.id === 0) {
         clearTimer(); // Human player made a move, clear timer
     }
 
@@ -275,16 +284,52 @@ function GameRoom() {
     
     // Check if other players can perform an action (Pong, Kong, Chow)
     // For simulation, we'll just enable it for the human player if it's an AI's turn
-    if (playerIndex !== 0) {
+    if (player.id !== 0) {
         // Placeholder logic: just enable buttons for demo
         setCanPerformAction(true);
     } else {
          if(players.length > 1) {
-            const nextPlayerIndex = (activePlayer + 1) % players.length;
-            setActivePlayer(nextPlayerIndex);
+            const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+            const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+            setActivePlayer(nextPlayer.id);
         }
     }
   }, [players, activePlayer, playSound]);
+
+  // AI Player Logic
+  useEffect(() => {
+    if (gameState !== 'playing' || activePlayer === null) return;
+
+    const currentPlayer = players.find(p => p.id === activePlayer);
+    if (currentPlayer && currentPlayer.isAI) {
+      const aiThinkTime = Math.random() * 1000 + 1000; // Simulate 1-2s thinking
+
+      const timeout = setTimeout(() => {
+        // AI Draw Logic (simplified)
+        const wallCopy = [...wall];
+        const drawnTile = wallCopy.pop();
+        if (drawnTile) {
+          const updatedPlayers = players.map(p => {
+            if (p.id === activePlayer) {
+              return { ...p, hand: [...p.hand, drawnTile] };
+            }
+            return p;
+          });
+          setWall(wallCopy);
+          setPlayers(updatedPlayers);
+          
+          // AI Discard Logic (simplified: discard last tile)
+          const handSize = updatedPlayers.find(p=>p.id === activePlayer)!.hand.length;
+          handleDiscardTile(activePlayer, handSize - 1);
+        } else {
+           // No tiles left, handle draw
+           handleEndGame(players);
+        }
+      }, aiThinkTime);
+      return () => clearTimeout(timeout);
+    }
+  }, [gameState, activePlayer, players, wall, handleDiscardTile, handleEndGame]);
+
 
   // Timer useEffect
   useEffect(() => {
@@ -335,12 +380,45 @@ function GameRoom() {
     
     setWall(shuffled);
     setGoldenTile(null);
-    const initialPlayers: Player[] = [
-      { id: 0, name: 'You', avatar: 'https://placehold.co/40x40.png', isAI: false, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null },
-      { id: 1, name: 'Player 2', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
-      { id: 2, name: 'Player 3', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: false },
-      { id: 3, name: 'Player 4', avatar: 'https://placehold.co/40x40.png', isAI: true, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: true },
-    ];
+
+    // Create Human Player
+    const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null };
+    
+    const initialPlayers: Player[] = [humanPlayer];
+    
+    // Add AI players if it's a free room and not full
+    if(roomTier === 'Free' && initialPlayers.length < 4) {
+      const aiPlayersNeeded = 4 - initialPlayers.length;
+      for(let i=1; i<=aiPlayersNeeded; i++) {
+        initialPlayers.push({
+          id: i,
+          name: `AI 玩家 ${i+1} (电脑)`,
+          avatar: `https://placehold.co/40x40.png`,
+          isAI: true,
+          hand: [],
+          discards: [],
+          melds: [],
+          balance: INITIAL_BALANCE,
+          hasLocation: Math.random() > 0.5 // Simulate location for AI
+        })
+      }
+    } else if (initialPlayers.length < 4) {
+       const playersNeeded = 4 - initialPlayers.length;
+       for(let i=1; i<=playersNeeded; i++) {
+        initialPlayers.push({
+          id: i,
+          name: `玩家 ${i+1}`,
+          avatar: `https://placehold.co/40x40.png`,
+          isAI: false, // In real game, these would be other humans
+          hand: [],
+          discards: [],
+          melds: [],
+          balance: INITIAL_BALANCE,
+          hasLocation: Math.random() > 0.5
+        })
+      }
+    }
+    
     setPlayers(initialPlayers);
     setPot(0);
     setActivePlayer(null);
@@ -365,7 +443,7 @@ function GameRoom() {
         }
     };
     requestLocation();
-  }, []);
+  }, [roomTier]);
   
 
   useEffect(() => {
@@ -397,8 +475,8 @@ function GameRoom() {
             const windIndex = playerRolls.indexOf(rollInfo!);
             const windName = windNames[windIndex];
             // Adjust name based on human player vs AI
-            const baseName = p.isAI ? `Player ${p.id === 0 ? 1 : p.id + 1}` : 'You';
-            const newName = `${baseName} ${windName}`;
+            const baseName = p.name.split(' ')[0];
+            const newName = p.isAI ? `${baseName} (电脑) ${windName}` : `${baseName} ${windName}`;
             return { ...p, name: newName, isEast: p.id === newEastPlayer.id };
         });
 
@@ -442,20 +520,21 @@ function GameRoom() {
         // Accurate dealing logic based on dice roll
         // The dice total determines the starting player for the deal, counting counter-clockwise from the banker.
         const diceTotal = newDice[0] + newDice[1];
-        const dealStartIndex = (bankerId + diceTotal - 1) % tempPlayers.length;
+        const bankerIndex = tempPlayers.findIndex((p: Player) => p.id === bankerId);
+        const dealStartPlayerIndex = (bankerIndex + diceTotal - 1) % tempPlayers.length;
 
         // Deal 13 tiles to each player
         for (let i = 0; i < 13; i++) {
             for (let j = 0; j < tempPlayers.length; j++) {
-                 const playerIndex = (dealStartIndex + j) % tempPlayers.length;
+                 const playerArrayIndex = (dealStartPlayerIndex + j) % tempPlayers.length;
                  const tile = wallCopy.pop();
-                 if(tile) tempPlayers[playerIndex].hand.push(tile);
+                 if(tile) tempPlayers[playerArrayIndex].hand.push(tile);
             }
         }
         
         // Banker draws one extra tile
         const bankerTile = wallCopy.pop();
-        if (bankerTile) tempPlayers[bankerId].hand.push(bankerTile);
+        if (bankerTile) tempPlayers[bankerIndex].hand.push(bankerTile);
 
         setPlayers(tempPlayers);
         setWall(wallCopy);
@@ -549,8 +628,9 @@ function GameRoom() {
     // Placeholder for actual game logic (e.g., forming a meld)
     
     // After action, it's this player's turn to discard. For now, we just pass to next player for simulation flow.
-    const nextPlayerIndex = (activePlayer + 1) % players.length;
-    setActivePlayer(nextPlayerIndex);
+    const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+    const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+    setActivePlayer(nextPlayer.id);
   };
 
   useEffect(() => {
@@ -563,6 +643,7 @@ function GameRoom() {
   const humanPlayer = players.find(p => p.id === 0);
   
   const roomTierMap: Record<string, string> = {
+    Free: "免费体验娱乐场",
     Novice: "新手场",
     Adept: "进阶场",
     Expert: "高手场",
@@ -644,63 +725,53 @@ function GameRoom() {
                 </AlertDialogContent>
             </AlertDialog>
             
-            {isGameInProgress ? (
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="outline"><Shuffle />新对局 (New Game)</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>开始新对局吗？ (Start a New Game?)</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            当前对局仍在进行中。如果现在开始新对局，您将输掉本局的入场费 {STAKE_AMOUNT} $JIN。
-                            (The current game is still in progress. If you start a new game now, you will forfeit your entry fee of {STAKE_AMOUNT} $JIN for this round.)
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleLeaveGame(true)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            确认 (Confirm)
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            ) : (
-                <Button variant="outline" onClick={initializeGame}>
-                    <Shuffle />
-                    新对局 (New Game)
-                </Button>
-            )}
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline"><Shuffle />新对局 (New Game)</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>开始新对局吗？ (Start a New Game?)</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {isGameInProgress ? `当前对局仍在进行中。如果现在开始新对局，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN。` : '您确定要开始一个新对局吗？'}
+                        {isGameInProgress ? `(The current game is still in progress. If you start a new game now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN for this round.)` : '(Are you sure you want to start a new game?)'}
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleLeaveGame(true)} className={isGameInProgress ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
+                        确认 (Confirm)
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
-            {isGameInProgress ? (
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="outline"><Undo2 />返回大厅 (Back to Lobby)</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>确认退出吗？ (Confirm Exit?)</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            当前对局仍在进行中。如果现在退出，您将输掉本局的入场费 {STAKE_AMOUNT} $JIN，并会分配给其他玩家。
-                            (The current game is still in progress. If you exit now, you will forfeit your entry fee of {STAKE_AMOUNT} $JIN, which will be distributed to the other players.)
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline"><Undo2 />返回大厅 (Back to Lobby)</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>确认退出吗？ (Confirm Exit?)</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {isGameInProgress ? `当前对局仍在进行中。如果现在退出，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN，并会分配给其他玩家。` : '您确定要返回大厅吗？'}
+                        {isGameInProgress ? `(The current game is still in progress. If you exit now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN, which will be distributed to the other players.)` : '(Are you sure you want to return to the lobby?)'}
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                    {isGameInProgress ? (
                         <AlertDialogAction onClick={() => handleLeaveGame(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            确认退出 (Confirm Exit)
+                           确认退出 (Confirm Exit)
                         </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            ) : (
-                <Button variant="outline" asChild>
-                    <Link href="/">
-                        <Undo2 />
-                        返回大厅 (Back to Lobby)
-                    </Link>
-                </Button>
-            )}
+                    ) : (
+                         <AlertDialogAction asChild>
+                            <Link href="/">确认 (Confirm)</Link>
+                        </AlertDialogAction>
+                    )}
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -861,5 +932,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
