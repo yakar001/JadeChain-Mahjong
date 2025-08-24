@@ -6,7 +6,7 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -17,6 +17,7 @@ import crypto from 'crypto';
 import { getSpeech } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { MahjongTile } from '@/components/game/mahjong-tile';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
@@ -24,7 +25,7 @@ type Discard = { tile: Tile; playerId: number };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
-type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win' | 'golden1' | 'golden2' | 'golden3';
+type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win';
 type ActionPossibility = {
     chow: boolean;
     pong: boolean;
@@ -37,6 +38,7 @@ type RoundResult = {
     biggestWinner: Player | null;
     tableFee: number;
     leaver?: Player;
+    finalHands: Player[];
 } | null;
 
 // 初始牌的数据
@@ -178,6 +180,7 @@ function GameRoom() {
         losers,
         biggestWinner,
         tableFee,
+        finalHands: finalPlayers
     });
     
     setGameState('game-over');
@@ -191,6 +194,17 @@ function GameRoom() {
     const winner = players.find(p => p.id === id);
     if (!winner) return;
     
+    // SIMULATION: Check if the hand is actually a winning hand.
+    // In a real game, this would involve complex logic. Here, we'll use a 70% chance of success.
+    if (Math.random() < 0.3) {
+         toast({
+            variant: "destructive",
+            title: "诈胡! (False Win!)",
+            description: "您的手牌未满足胡牌条件。(Your hand does not meet the winning criteria.)",
+        });
+        return; // The win is invalid, so we stop here.
+    }
+
     playSound("自摸胡牌");
 
     toast({
@@ -269,6 +283,7 @@ function GameRoom() {
           biggestWinner: null,
           tableFee: 0,
           leaver,
+          finalHands: players,
       });
       setGameState('game-over');
     }
@@ -306,7 +321,7 @@ function GameRoom() {
     if (player.id !== 0) {
         // Rule: Chow is only possible from the previous player (上家).
         // In this setup, player 1 (East) is the previous player for player 0 (South).
-        const previousPlayerId = 1;
+        const previousPlayerId = (0 + players.length - 1) % players.length;
         
         // This is a simulation of checking the hand.
         const canChow = (playerIndex === previousPlayerId) && Math.random() < 0.3; // 30% chance to chow from previous player
@@ -674,15 +689,24 @@ function GameRoom() {
   const handleAction = async (action: Action) => {
     clearTimer(actionTimerRef);
     if (activePlayer === null) return;
+    
+    // SIMULATION: Check if the action is valid. 50% chance of being invalid for demo purposes.
+     if (Math.random() < 0.5) {
+        toast({
+            variant: "destructive",
+            title: `操作无效 (${action.charAt(0).toUpperCase() + action.slice(1)} Invalid)`,
+            description: `您的手牌不满足'${action}'的条件。`,
+        });
+        setActionPossibilities({ chow: false, pong: false, kong: false }); 
+        return;
+    }
+
     const actionSoundMap = {
       'pong': '碰',
       'kong': '杠',
       'chow': '吃',
       'skip': '',
       'win': '胡牌',
-      'golden1': '游金',
-      'golden2': '双游',
-      'golden3': '三游',
     }
     
     if (actionSoundMap[action]) {
@@ -981,7 +1005,7 @@ function GameRoom() {
       </div>
 
        <AlertDialog open={gameState === 'game-over'}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
                 <Trophy className="text-yellow-400" />
@@ -992,40 +1016,63 @@ function GameRoom() {
               对局结算详情如下：
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="my-4 space-y-3 text-sm">
-            {roundResult?.winners.map(({ player, netWin }) => (
-                <div key={player.id} className="flex justify-between items-center">
-                    <span className="font-semibold">{player.name}</span>
-                    <div className="flex items-center gap-2 text-green-400">
-                        <Plus size={16}/>
-                        <span>{netWin.toFixed(2)} $JIN</span>
-                         {roundResult.leaver && <span className="text-xs text-muted-foreground">(from leaver)</span>}
-                    </div>
+          <div className="my-4 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
+             <div>
+                <h3 className="font-semibold mb-2 text-base flex items-center gap-2"><Eye /> 玩家手牌 (Player Hands)</h3>
+                <div className="space-y-3 rounded-md bg-muted/50 p-3">
+                    {roundResult?.finalHands.map(player => (
+                        <div key={player.id}>
+                            <p className="font-semibold text-foreground mb-1">{player.name}</p>
+                            <div className="flex flex-wrap gap-1">
+                                {player.hand.map((tile, i) => (
+                                    <MahjongTile key={i} suit={tile.suit} value={tile.value as any} size="sm" />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
                 </div>
-            ))}
-             {roundResult?.losers.map(({ player, netLoss }) => (
-                <div key={player.id} className="flex justify-between items-center">
-                    <span className="font-semibold">{player.name}</span>
-                    <div className="flex items-center gap-2 text-red-400">
-                        <Minus size={16}/>
-                         <span>{netLoss.toFixed(2)} $JIN</span>
-                    </div>
-                </div>
-            ))}
+            </div>
+
             <Separator />
-            {roundResult?.biggestWinner && (
-                 <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <span>大赢家台费 (Biggest Winner Fee)</span>
-                    <div className="flex items-center gap-2">
-                        <Minus size={12}/>
-                        <span>{roundResult.tableFee.toFixed(2)} $JIN (to Burn Pool)</span>
+
+            <div>
+                 <h3 className="font-semibold mb-2 text-base">输赢结算 (Payouts)</h3>
+                <div className="space-y-3">
+                    {roundResult?.winners.map(({ player, netWin }) => (
+                        <div key={player.id} className="flex justify-between items-center">
+                            <span className="font-semibold">{player.name}</span>
+                            <div className="flex items-center gap-2 text-green-400">
+                                <Plus size={16}/>
+                                <span>{netWin.toFixed(2)} $JIN</span>
+                                {roundResult.leaver && <span className="text-xs text-muted-foreground">(from leaver)</span>}
+                            </div>
+                        </div>
+                    ))}
+                    {roundResult?.losers.map(({ player, netLoss }) => (
+                        <div key={player.id} className="flex justify-between items-center">
+                            <span className="font-semibold">{player.name}</span>
+                            <div className="flex items-center gap-2 text-red-400">
+                                <Minus size={16}/>
+                                <span>{netLoss.toFixed(2)} $JIN</span>
+                            </div>
+                        </div>
+                    ))}
+                    <Separator />
+                    {roundResult?.biggestWinner && (
+                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                            <span>大赢家台费 (Biggest Winner Fee)</span>
+                            <div className="flex items-center gap-2">
+                                <Minus size={12}/>
+                                <span>{roundResult.tableFee.toFixed(2)} $JIN (to Burn Pool)</span>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex justify-between items-center font-bold text-base pt-2 border-t">
+                            <span>总奖池 (Total Pot)</span>
+                            <span>{pot} $JIN</span>
+                        </div>
                     </div>
-                </div>
-            )}
-             <div className="flex justify-between items-center font-bold text-base pt-2 border-t">
-                    <span>总奖池 (Total Pot)</span>
-                    <span>{pot} $JIN</span>
-                </div>
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogAction onClick={initializeGame}>
