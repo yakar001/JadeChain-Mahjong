@@ -23,6 +23,7 @@ type Discard = { tile: Tile; playerId: number };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
+type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win' | 'golden1' | 'golden2' | 'golden3';
 
 type RoundResult = {
     winners: Array<{ player: Player; netWin: number }>;
@@ -293,8 +294,17 @@ function GameRoom() {
     // Check if other players can perform an action (Pong, Kong, Chow)
     // For simulation, we'll just enable it for the human player if it's an AI's turn
     if (player.id !== 0) {
-        // Placeholder logic: just enable buttons for demo
-        setCanPerformAction(true);
+        // SIMULATION: 50% chance to show action buttons to the player
+        if (Math.random() < 0.5) {
+            setCanPerformAction(true);
+        } else {
+            // If no action is taken, move to the next player
+            if(players.length > 1) {
+                const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+                const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+                setActivePlayer(nextPlayer.id);
+            }
+        }
     } else {
          if(players.length > 1) {
             const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
@@ -649,7 +659,7 @@ function GameRoom() {
     }
   };
   
-  const handleAction = (action: 'pong' | 'kong' | 'chow' | 'skip' | 'win' | 'golden1' | 'golden2' | 'golden3') => {
+  const handleAction = async (action: Action) => {
     if (activePlayer === null) return;
     const actionSoundMap = {
       'pong': '碰',
@@ -667,16 +677,32 @@ function GameRoom() {
     }
     
     setCanPerformAction(false); // Hide buttons after action
-    toast({
-        title: `执行操作 (${action})`,
-        description: `您选择了 ${action}。`,
-    });
-    // Placeholder for actual game logic (e.g., forming a meld)
     
-    // After action, it's this player's turn to discard. For now, we just pass to next player for simulation flow.
-    const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
-    const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
-    setActivePlayer(nextPlayer.id);
+    if (action !== 'skip') {
+        toast({
+            title: `执行操作 (${action})`,
+            description: `您选择了 ${action}。正在模拟匹配手牌...`,
+        });
+        // SIMULATION: Wait for a moment to simulate matching tiles
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        toast({
+            title: `匹配成功`,
+            description: `已为您组成牌组。请打出一张牌。`,
+        });
+    }
+
+    // After action, it's this player's turn to discard.
+    // For now, we just pass to next player for simulation flow if skipping.
+    if (action === 'skip') {
+        const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+        const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+        setActivePlayer(nextPlayer.id);
+    } else {
+        // If the player made a move, it's their turn.
+        // We simulate drawing a tile to allow them to discard.
+        setActivePlayer(0);
+        handleDrawTile();
+    }
   };
 
   useEffect(() => {

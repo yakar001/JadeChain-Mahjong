@@ -269,12 +269,12 @@ export function GameBoard({ players, discards, activePlayerId, wallCount, dice, 
                 
                  {/* Action Buttons Area */}
                  {canPerformAction && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
-                        <div className="flex items-center justify-center gap-2 sm:gap-4 p-2 sm:p-4 bg-background/80 rounded-lg w-auto">
-                            <Button onClick={() => onAction('chow')} size="lg">吃 (Chow)</Button>
-                            <Button onClick={() => onAction('pong')} size="lg">碰 (Pong)</Button>
-                            <Button onClick={() => onAction('kong')} size="lg">杠 (Kong)</Button>
-                            <Button onClick={() => onAction('skip')} size="lg" variant="secondary">跳过 (Skip)</Button>
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20">
+                        <div className="flex items-center justify-center gap-2 sm:gap-4 p-2 sm:p-3 bg-background/80 rounded-lg w-auto">
+                            <Button onClick={() => onAction('chow')} size="sm">吃 (Chow)</Button>
+                            <Button onClick={() => onAction('pong')} size="sm">碰 (Pong)</Button>
+                            <Button onClick={() => onAction('kong')} size="sm">杠 (Kong)</Button>
+                            <Button onClick={() => onAction('skip')} size="sm" variant="secondary">跳过 (Skip)</Button>
                         </div>
                     </div>
                 )}
