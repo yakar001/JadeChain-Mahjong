@@ -10,11 +10,12 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 // Simulate a user's KYC level
 const userKycLevel = 1; 
 
-const rooms = [
+const initialRooms = [
   { 
     tier: "Novice", 
     tierDisplay: "新手场 (Novice)",
@@ -105,6 +106,32 @@ const tournaments = [
 
 export default function Home() {
   const { toast } = useToast();
+  const [rooms, setRooms] = useState(initialRooms);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRooms(currentRooms => 
+        currentRooms.map(room => {
+          // Only update if the room is not full
+          if (room.players < room.minPlayers) {
+            // Randomly decide to add a player or not
+            const change = Math.random() > 0.6 ? 1 : 0;
+            const newPlayers = Math.min(room.players + change, room.minPlayers);
+            return { ...room, players: newPlayers };
+          }
+          // If the room is full, randomly decide if someone leaves
+          if (room.players === room.minPlayers) {
+             const change = Math.random() > 0.9 ? -1 : 0;
+             const newPlayers = Math.max(0, room.players + change);
+             return { ...room, players: newPlayers };
+          }
+          return room;
+        })
+      );
+    }, 3000); // Update every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleJoinRoom = (event: MouseEvent, room: typeof rooms[0]) => {
     if (room.kycRequired > userKycLevel) {
@@ -318,3 +345,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
