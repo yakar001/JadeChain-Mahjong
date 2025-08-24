@@ -223,12 +223,11 @@ function GameRoom() {
 
   const handleLeaveGame = (andStartNew = false) => {
     const leaver = players.find(p => p.id === 0);
-    if (!leaver || gameState !== 'playing') {
-      // If game is not in progress, leaving is free.
+    const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
+    
+    if (!leaver || !isGameInProgress) {
       if (andStartNew) {
         initializeGame();
-      } else {
-        // Just go back to lobby, router will handle this.
       }
       return;
     }
@@ -373,6 +372,7 @@ function GameRoom() {
     };
     
     runGameFlow();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, eastPlayerId, bankerId, activePlayer]);
 
 
@@ -695,7 +695,7 @@ function GameRoom() {
     Master: "大师场",
   };
 
-  const isGameInProgress = gameState === 'playing';
+  const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -838,6 +838,8 @@ function GameRoom() {
                 onRollForStart={handleRollDice}
                 onRollForGolden={handleRollForGolden}
                 eastPlayerId={eastPlayerId}
+                canPerformAction={canPerformAction}
+                onAction={handleAction}
              />
           </CardContent>
         </Card>
@@ -888,15 +890,6 @@ function GameRoom() {
                         selectedTileIndex={selectedTileIndex}
                     />
                 </div>
-
-                {canPerformAction && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 rounded-lg z-20">
-                        <Button onClick={() => handleAction('chow')} size="lg">吃 (Chow)</Button>
-                        <Button onClick={() => handleAction('pong')} size="lg">碰 (Pong)</Button>
-                        <Button onClick={() => handleAction('kong')} size="lg">杠 (Kong)</Button>
-                        <Button onClick={() => handleAction('skip')} size="lg" variant="secondary">跳过 (Skip)</Button>
-                    </div>
-                )}
             </div>
 
         </div>
@@ -977,3 +970,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
