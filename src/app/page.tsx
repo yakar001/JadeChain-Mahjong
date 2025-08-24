@@ -1,16 +1,17 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star, ShieldCheck, Loader2 } from "lucide-react";
-import type { ReactElement, MouseEvent } from "react";
+import type { ReactElement } from "react";
 import Image from "next/image";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useWallet } from "@/context/wallet-context";
 
 // Simulate a user's KYC level
 const userKycLevel = 1; 
@@ -107,6 +108,9 @@ const tournaments = [
 export default function Home() {
   const { toast } = useToast();
   const [rooms, setRooms] = useState(initialRooms);
+  const [isJoining, setIsJoining] = useState<string | null>(null);
+  const router = useRouter();
+  const { deductTokens, walletAddress } = useWallet();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -133,9 +137,21 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleJoinRoom = (event: MouseEvent, room: typeof rooms[0]) => {
+  const handleJoinRoom = async (room: typeof rooms[0]) => {
+    if (isJoining) return;
+
+    // 1. Check Wallet Connection
+    if (!walletAddress) {
+        toast({
+            variant: "destructive",
+            title: "钱包未连接 (Wallet Not Connected)",
+            description: "请先连接您的钱包再加入对局。",
+        });
+        return;
+    }
+
+    // 2. Check KYC Level
     if (room.kycRequired > userKycLevel) {
-      event.preventDefault(); // Prevent navigation
       toast({
         variant: "destructive",
         title: "KYC 等级不足 (KYC Level Too Low)",
@@ -143,12 +159,27 @@ export default function Home() {
       });
       return;
     }
+    
+    // 3. Check if room is full
      if (room.players < room.minPlayers) {
-      event.preventDefault(); // Prevent navigation
       toast({
         title: "正在等待更多玩家 (Waiting for More Players)",
         description: `房间 ${room.tierDisplay} 需要 ${room.minPlayers} 名玩家才能开始。`,
       });
+      return;
+    }
+    
+    setIsJoining(room.tier);
+
+    // 4. Deduct tokens
+    const success = await deductTokens(room.fee);
+
+    if (success) {
+      // 5. Navigate to game room
+      router.push(`/game?tier=${room.tier}&fee=${room.fee}`);
+    } else {
+      // Error toast is handled within deductTokens
+      setIsJoining(null);
     }
   };
 
@@ -164,8 +195,8 @@ export default function Home() {
         <TabsContent value="standard" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {rooms.map((room) => {
-              const canJoin = room.players >= room.minPlayers && userKycLevel >= room.kycRequired;
               const isWaiting = room.players < room.minPlayers;
+              const isBusy = isJoining === room.tier;
 
               return (
                 <Card key={room.tier} className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300">
@@ -198,19 +229,23 @@ export default function Home() {
                     <p className="text-sm text-center text-muted-foreground mb-2">
                       入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
                     </p>
-                    <Button className="w-full" asChild={canJoin} disabled={!canJoin}>
-                      {isWaiting ? (
-                          <div className="cursor-not-allowed w-full flex items-center justify-center">
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              等待玩家...
-                          </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => handleJoinRoom(room)} 
+                      disabled={isBusy || isWaiting}
+                    >
+                      {isBusy ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          正在加入...
+                        </>
+                      ) : isWaiting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          等待玩家...
+                        </>
                       ) : (
-                          <Link
-                              href={`/game?tier=${room.tier}&fee=${room.fee}`}
-                              onClick={(e) => handleJoinRoom(e, room)}
-                          >
-                            加入对局 (Join Game)
-                          </Link>
+                        "加入对局 (Join Game)"
                       )}
                     </Button>
                   </CardFooter>
@@ -345,5 +380,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

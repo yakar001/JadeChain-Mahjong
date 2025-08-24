@@ -2,18 +2,16 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Wallet, LogOut } from 'lucide-react';
-import { useSidebar } from '@/components/ui/sidebar';
 import { useWallet } from '@/context/wallet-context';
 
 export function AppHeader() {
-  const { isMobile } = useSidebar();
   const { walletAddress, connectWallet, disconnectWallet } = useWallet();
 
   const truncatedAddress = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : '';
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
-      <div className="md:hidden">
+      <div>
         <SidebarTrigger />
       </div>
       <div className="flex-1" />
