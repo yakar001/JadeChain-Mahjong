@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star, ShieldCheck } from "lucide-react";
+import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star, ShieldCheck, Loader2 } from "lucide-react";
 import type { ReactElement, MouseEvent } from "react";
 import Image from "next/image";
 import { Progress } from "@/components/ui/progress";
@@ -20,7 +20,8 @@ const rooms = [
     tierDisplay: "新手场 (Novice)",
     fee: 10, 
     prize: 38, 
-    players: 1234, 
+    players: 3, 
+    minPlayers: 4,
     icon: <Feather className="text-green-400" />,
     description: "轻松入门，熟悉规则",
     kycRequired: 0,
@@ -30,7 +31,8 @@ const rooms = [
     tierDisplay: "进阶场 (Adept)",
     fee: 50, 
     prize: 190, 
-    players: 876,
+    players: 4,
+    minPlayers: 4,
     icon: <Sword className="text-blue-400" />,
     description: "磨炼技巧，初显锋芒",
     kycRequired: 0,
@@ -40,7 +42,8 @@ const rooms = [
     tierDisplay: "高手场 (Expert)",
     fee: 200, 
     prize: 760, 
-    players: 451,
+    players: 1,
+    minPlayers: 4,
     icon: <Crown className="text-purple-400" />,
     description: "高手过招，一较高下",
     kycRequired: 1,
@@ -50,7 +53,8 @@ const rooms = [
     tierDisplay: "大师场 (Master)",
     fee: 1000, 
     prize: 3800, 
-    players: 102,
+    players: 4,
+    minPlayers: 4,
     icon: <Diamond className="text-yellow-400" />,
     description: "巅峰对决，问鼎雀神",
     kycRequired: 2,
@@ -110,6 +114,14 @@ export default function Home() {
         title: "KYC 等级不足 (KYC Level Too Low)",
         description: `进入 ${room.tierDisplay} 需要 KYC 等级 ${room.kycRequired}。请先提升您的 KYC 等级。`,
       });
+      return;
+    }
+     if (room.players < room.minPlayers) {
+      event.preventDefault(); // Prevent navigation
+      toast({
+        title: "正在等待更多玩家 (Waiting for More Players)",
+        description: `房间 ${room.tierDisplay} 需要 ${room.minPlayers} 名玩家才能开始。`,
+      });
     }
   };
 
@@ -124,48 +136,59 @@ export default function Home() {
         </TabsList>
         <TabsContent value="standard" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {rooms.map((room) => (
-              <Card key={room.tier} className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{room.tierDisplay}</span>
-                    {room.icon}
-                  </CardTitle>
-                  <CardDescription>{room.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-accent/50 rounded-md">
-                    <div>
-                      <p className="text-xs text-muted-foreground">奖池</p>
-                      <p className="font-bold text-lg text-primary flex items-center gap-1"><Trophy size={16} /> {room.prize.toLocaleString()} $JIN</p>
+            {rooms.map((room) => {
+              const canJoin = room.players >= room.minPlayers && userKycLevel >= room.kycRequired;
+              const isWaiting = room.players < room.minPlayers;
+
+              return (
+                <Card key={room.tier} className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>{room.tierDisplay}</span>
+                      {room.icon}
+                    </CardTitle>
+                    <CardDescription>{room.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-accent/50 rounded-md">
+                      <div>
+                        <p className="text-xs text-muted-foreground">奖池</p>
+                        <p className="font-bold text-lg text-primary flex items-center gap-1"><Trophy size={16} /> {room.prize.toLocaleString()} $JIN</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground text-right">在线玩家</p>
+                        <p className="font-bold text-lg flex items-center gap-1">{room.players.toLocaleString()} / {room.minPlayers} <Users size={16} /></p>
+                      </div>
                     </div>
-                     <div>
-                      <p className="text-xs text-muted-foreground text-right">在线玩家</p>
-                      <p className="font-bold text-lg flex items-center gap-1">{room.players.toLocaleString()} <Users size={16} /></p>
-                    </div>
-                  </div>
-                   {room.kycRequired > 0 && (
-                    <div className="flex items-center justify-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
-                        <ShieldCheck size={16} />
-                        <span>需要 KYC 等级 {room.kycRequired}</span>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter className="flex-col items-stretch">
-                   <p className="text-sm text-center text-muted-foreground mb-2">
-                    入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
-                  </p>
-                  <Button className="w-full" asChild>
-                    <Link
-                      href={`/game?tier=${room.tier}&fee=${room.fee}`}
-                      onClick={(e) => handleJoinRoom(e, room)}
-                    >
-                      加入对局 (Join Game)
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                    {room.kycRequired > 0 && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
+                          <ShieldCheck size={16} />
+                          <span>需要 KYC 等级 {room.kycRequired}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="flex-col items-stretch">
+                    <p className="text-sm text-center text-muted-foreground mb-2">
+                      入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
+                    </p>
+                    <Button className="w-full" asChild={canJoin} disabled={!canJoin}>
+                      {isWaiting ? (
+                          <div className="cursor-not-allowed w-full flex items-center justify-center">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              等待玩家...
+                          </div>
+                      ) : (
+                          <Link
+                              href={`/game?tier=${room.tier}&fee=${room.fee}`}
+                              onClick={(e) => handleJoinRoom(e, room)}
+                          >
+                            加入对局 (Join Game)
+                          </Link>
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+            )})}
           </div>
         </TabsContent>
         <TabsContent value="ranked" className="mt-6">
