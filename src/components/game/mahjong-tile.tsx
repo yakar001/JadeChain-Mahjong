@@ -34,7 +34,7 @@ const TilePattern = ({ suit, value }: { suit: TileSuit, value: TileValue }) => {
             case '4': return <svg viewBox="0 0 50 70"><g transform="translate(0, 5)"><Dot color={greenColor} cx="18" cy="18" /><Dot color={blueColor} cx="32" cy="18" /><Dot color={blueColor} cx="18" cy="42" /><Dot color={greenColor} cx="32" cy="42" /></g></svg>;
             case '5': return <svg viewBox="0 0 50 70"><g transform="translate(0, 5)"><Dot color={blueColor} cx="16" cy="16" /><Dot color={greenColor} cx="34" cy="16" /><Dot color={redColor} cx="25" cy="30" /><Dot color={greenColor} cx="16" cy="44" /><Dot color={blueColor} cx="34" cy="44" /></g></svg>;
             case '6': return <svg viewBox="0 0 50 70"><g transform="translate(0, 5)"><Dot color={redColor} cx="18" cy="15" /><Dot color={redColor} cx="32" cy="15" /><Dot color={blueColor} cx="18" cy="30" /><Dot color={blueColor} cx="32" cy="30" /><Dot color={blueColor} cx="18" cy="45" /><Dot color={blueColor} cx="32" cy="45" /></g></svg>;
-            case '7': return <svg viewBox="0 0 50 70"><g transform="translate(0, 5)"><g transform="translate(0, -2)"><Dot color={greenColor} cx="16" cy="16" /><Dot color={greenColor} cx="25" cy="22" /><Dot color={greenColor} cx="34" cy="16" /></g><g transform="translate(0, 2)"><Dot color={redColor} cx="18" cy="38" /><Dot color={redColor} cx="32" cy="38" /><Dot color={redColor} cx="18" cy="50" /><Dot color={redColor} cx="32" cy="50" /></g></g></svg>;
+            case '7': return <svg viewBox="0 0 50 70"><g transform="translate(0, 5)"><g transform="rotate(15 25 18)"><Dot color={greenColor} cx="16" cy="18" /><Dot color={greenColor} cx="25" cy="18" /><Dot color={greenColor} cx="34" cy="18" /></g><g><Dot color={redColor} cx="18" cy="38" /><Dot color={redColor} cx="32" cy="38" /><Dot color={redColor} cx="18" cy="50" /><Dot color={redColor} cx="32" cy="50" /></g></g></svg>;
             case '8': return <svg viewBox="0 0 50 70"><g transform="translate(0, 5)"><Dot color={blueColor} cx="18" cy="14" /><Dot color={blueColor} cx="32" cy="14" /><Dot color={blueColor} cx="18" cy="24" /><Dot color={blueColor} cx="32" cy="24" /><Dot color={blueColor} cx="18" cy="34" /><Dot color={blueColor} cx="32" cy="34" /><Dot color={blueColor} cx="18" cy="44" /><Dot color={blueColor} cx="32" cy="44" /></g></svg>;
             case '9': return <svg viewBox="0 0 50 70"><g transform="translate(0, 5)"><Dot color={greenColor} cx="17" cy="15" /><Dot color={greenColor} cx="25" cy="15" /><Dot color={greenColor} cx="33" cy="15" /><Dot color={redColor} cx="17" cy="30" /><Dot color={redColor} cx="25" cy="30" /><Dot color={redColor} cx="33" cy="30" /><Dot color={blueColor} cx="17" cy="45" /><Dot color={blueColor} cx="25" cy="45" /><Dot color={blueColor} cx="33" cy="45" /></g></svg>;
             default: return null;
@@ -67,11 +67,10 @@ const TilePattern = ({ suit, value }: { suit: TileSuit, value: TileValue }) => {
     const symbolMap: Record<string, string> = { '1': '一', '2': '二', '3': '三', '4': '四', '5': '五', '6': '六', '7': '七', '8': '八', '9': '九', 'E': '東', 'S': '南', 'W': '西', 'N': '北', 'R': '中', 'G': '發', 'B': '白' };
     
     if (suit === 'characters') {
-        const valueCharacter = value in symbolMap ? symbolMap[value] : ''
+        const valueCharacter = value in symbolMap ? symbolMap[value] : '';
         return <svg viewBox="0 0 50 70" className="w-full h-full p-1" >
-            <text x="50%" y="10%" dominantBaseline="hanging" textAnchor="middle" fontSize="12" fill={redColor} className="font-bold font-headline">{symbolMap[value]}</text>
-            <text x="50%" y="45%" dominantBaseline="middle" textAnchor="middle" fontSize="38" fill={blueColor} className="font-bold font-headline">{valueCharacter}</text>
-            <text x="50%" y="80%" dominantBaseline="middle" textAnchor="middle" fontSize="38" fill={redColor} className="font-bold font-headline">萬</text>
+            <text x="50%" y="28%" dominantBaseline="middle" textAnchor="middle" fontSize="24" fill={blueColor} className="font-bold font-headline">{valueCharacter}</text>
+            <text x="50%" y="72%" dominantBaseline="middle" textAnchor="middle" fontSize="32" fill={redColor} className="font-bold font-headline">萬</text>
         </svg>;
     }
 
