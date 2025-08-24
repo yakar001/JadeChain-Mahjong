@@ -25,6 +25,11 @@ type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: T
 type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win' | 'golden1' | 'golden2' | 'golden3';
+type ActionPossibility = {
+    chow: boolean;
+    pong: boolean;
+    kong: boolean;
+}
 
 type RoundResult = {
     winners: Array<{ player: Player; netWin: number }>;
@@ -112,7 +117,7 @@ function GameRoom() {
   const [pot, setPot] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult>(null);
   const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
-  const [canPerformAction, setCanPerformAction] = useState(false);
+  const [actionPossibilities, setActionPossibilities] = useState<ActionPossibility>({ chow: false, pong: false, kong: false });
   const [actionTimer, setActionTimer] = useState(ACTION_DURATION);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const actionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -297,18 +302,23 @@ function GameRoom() {
     const tileName = getTileName(tileToDiscard);
     playSound(tileName);
     
-    // Check if other players can perform an action (Pong, Kong, Chow)
+    // For the human player, check if they can perform an action on an AI's discard.
     if (player.id !== 0) {
-        // SIMULATION: 50% chance to show action buttons to the player
-        if (Math.random() < 0.5) {
-            setCanPerformAction(true);
+        // Rule: Chow is only possible from the previous player (上家).
+        // In this setup, player 1 (East) is the previous player for player 0 (South).
+        const previousPlayerId = 1;
+        
+        // This is a simulation of checking the hand.
+        const canChow = (playerIndex === previousPlayerId) && Math.random() < 0.3; // 30% chance to chow from previous player
+        const canPong = Math.random() < 0.2; // 20% chance to pong from anyone
+        const canKong = Math.random() < 0.1; // 10% chance to kong from anyone
+
+        if (canChow || canPong || canKong) {
+            setActionPossibilities({ chow: canChow, pong: canPong, kong: canKong });
         } else {
-            // If no action is taken, move to the next player
-            if(players.length > 1) {
-                const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
-                const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
-                setActivePlayer(nextPlayer.id);
-            }
+            const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+            const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+            setActivePlayer(nextPlayer.id);
         }
     } else {
          if(players.length > 1) {
@@ -405,7 +415,8 @@ function GameRoom() {
 
    // Timer for player's action (Chow, Pong, Kong)
     useEffect(() => {
-        if (canPerformAction) {
+        const hasAction = actionPossibilities.chow || actionPossibilities.pong || actionPossibilities.kong;
+        if (hasAction) {
             setActionTimer(ACTION_DURATION);
             actionTimerRef.current = setInterval(() => {
                 setActionTimer(prev => prev - 1);
@@ -414,7 +425,7 @@ function GameRoom() {
         } else {
             clearTimer(actionTimerRef);
         }
-    }, [canPerformAction]);
+    }, [actionPossibilities]);
 
   // Handle auto-actions on timer expiration
   useEffect(() => {
@@ -423,7 +434,7 @@ function GameRoom() {
       handleDiscardTile(0, players[0].hand.length - 1);
       return;
     }
-     if (actionTimer <= 0 && canPerformAction) {
+     if (actionTimer <= 0 && (actionPossibilities.chow || actionPossibilities.pong || actionPossibilities.kong)) {
         handleAction('skip');
         return;
     }
@@ -435,7 +446,7 @@ function GameRoom() {
       }, aiThinkTime);
       return () => clearTimeout(timeout);
     }
-  }, [turnTimer, actionTimer, isAiControlled, canPerformAction, activePlayer, drawnTile, players, handleDiscardTile, toast]);
+  }, [turnTimer, actionTimer, isAiControlled, actionPossibilities, activePlayer, drawnTile, players, handleDiscardTile, toast]);
 
   const initializeGame = useCallback(() => {
     clearTimer(timerRef);
@@ -678,7 +689,7 @@ function GameRoom() {
         playSound(actionSoundMap[action]);
     }
     
-    setCanPerformAction(false); 
+    setActionPossibilities({ chow: false, pong: false, kong: false }); 
     
     if (action !== 'skip') {
         toast({
@@ -748,6 +759,7 @@ function GameRoom() {
   };
 
   const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
+  const hasAction = actionPossibilities.chow || actionPossibilities.pong || actionPossibilities.kong;
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -914,7 +926,7 @@ function GameRoom() {
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
                         <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
-                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && !canPerformAction && (
+                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && !hasAction && (
                       <Button onClick={handleDrawTile}>
                           <Hand className="mr-2 h-4 w-4" />
                           摸牌 (Draw Tile)
@@ -929,32 +941,31 @@ function GameRoom() {
                  </div>
             </div>
             
-            <div className="relative p-4 bg-background/50 rounded-lg min-h-[12rem] flex items-center justify-center">
-                {/* Action Buttons Area */}
-                {canPerformAction && (
+            <div className="relative p-4 bg-background/50 rounded-lg min-h-[12rem] flex items-end justify-center">
+               
+                 {/* Action Buttons Area */}
+                {hasAction && (
                     <div className="absolute bottom-4 left-4 z-20 space-y-2">
                         <div className='w-full mb-1'>
                             <Progress value={(actionTimer / ACTION_DURATION) * 100} className="h-1 [&>div]:bg-yellow-400" />
                         </div>
                         <div className="flex flex-col gap-2">
-                            <Button onClick={() => handleAction('chow')} size="sm">吃 (Chow)</Button>
-                            <Button onClick={() => handleAction('pong')} size="sm">碰 (Pong)</Button>
-                            <Button onClick={() => handleAction('kong')} size="sm">杠 (Kong)</Button>
+                            {actionPossibilities.chow && <Button onClick={() => handleAction('chow')} size="sm">吃 (Chow)</Button>}
+                            {actionPossibilities.pong && <Button onClick={() => handleAction('pong')} size="sm">碰 (Pong)</Button>}
+                            {actionPossibilities.kong && <Button onClick={() => handleAction('kong')} size="sm">杠 (Kong)</Button>}
                             <Button onClick={() => handleAction('skip')} size="sm" variant="secondary">跳过 ({actionTimer}s)</Button>
                         </div>
                     </div>
                 )}
                 
-                {/* Hand Area (Center) */}
-                <div className="flex items-end gap-4">
-                    <PlayerHand 
-                        hand={humanPlayer?.hand || []} 
-                        onTileClick={handleSelectOrDiscardTile}
-                        canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
-                        goldenTile={goldenTile}
-                        selectedTileIndex={selectedTileIndex}
-                    />
-                </div>
+                {/* Hand Area */}
+                <PlayerHand 
+                    hand={humanPlayer?.hand || []} 
+                    onTileClick={handleSelectOrDiscardTile}
+                    canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
+                    goldenTile={goldenTile}
+                    selectedTileIndex={selectedTileIndex}
+                />
             </div>
 
         </div>
@@ -1035,3 +1046,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
