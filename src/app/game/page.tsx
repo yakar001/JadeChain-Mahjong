@@ -76,7 +76,7 @@ const shuffleDeck = (deck: Tile[]): Tile[] => {
 
 const getTileName = (tile: Tile): string => {
     if (tile.suit === 'dots') return `${tile.value}筒`;
-    if (tile.suit === 'bamboo') return `${tile.value}索`;
+    if (tile.suit === 'bamboo') return `${tile.value}条`;
     if (tile.suit === 'characters') return `${tile.value}万`;
     const honorMap: Record<string, string> = { 'E': '东风', 'S': '南风', 'W': '西风', 'N': '北风', 'R': '红中', 'G': '发财', 'B': '白板' };
     return honorMap[tile.value] || '';
@@ -110,6 +110,17 @@ function GameRoom() {
   const [canPerformAction, setCanPerformAction] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const playSound = useCallback(async (text: string) => {
+    if (isMuted) return;
+    try {
+        const response = await getSpeech(text);
+        if(response.media) {
+            setAudioSrc(response.media);
+        }
+    } catch (error) {
+        console.error(`Error playing sound for "${text}":`, error);
+    }
+  }, [isMuted]);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -163,6 +174,8 @@ function GameRoom() {
     if (activePlayer === null) return;
     const winner = players.find(p => p.id === activePlayer);
     if (!winner) return;
+    
+    playSound("自摸");
 
     // In a real game, the win amount would be calculated based on the hand's value.
     // For simplicity, we'll assume the win amount makes one opponent lose all chips.
@@ -199,7 +212,7 @@ function GameRoom() {
         // For now, we go to game over to show results.
         handleEndGame(finalPlayers);
     }
-  }, [players, activePlayer, STAKE_AMOUNT, handleEndGame, toast]);
+  }, [players, activePlayer, STAKE_AMOUNT, handleEndGame, toast, playSound]);
 
   const handleLeaveGame = () => {
     const leaver = players.find(p => p.id === 0);
@@ -248,17 +261,8 @@ function GameRoom() {
     }
 
     // Play audio for discarded tile
-    if (!isMuted) {
-        try {
-            const tileName = getTileName(tileToDiscard);
-            const response = await getSpeech(tileName);
-            if(response.media) {
-                setAudioSrc(response.media);
-            }
-        } catch (error) {
-            console.error("Error playing discard audio:", error);
-        }
-    }
+    const tileName = getTileName(tileToDiscard);
+    playSound(tileName);
     
     // Check if other players can perform an action (Pong, Kong, Chow)
     // For simulation, we'll just enable it for the human player if it's an AI's turn
@@ -271,7 +275,7 @@ function GameRoom() {
             setActivePlayer(nextPlayerIndex);
         }
     }
-  }, [players, activePlayer, isMuted]);
+  }, [players, activePlayer, playSound]);
 
   // Timer useEffect
   useEffect(() => {
@@ -511,8 +515,23 @@ function GameRoom() {
     }
   };
   
-  const handleAction = (action: 'pong' | 'kong' | 'chow' | 'skip') => {
+  const handleAction = (action: 'pong' | 'kong' | 'chow' | 'skip' | 'win' | 'golden1' | 'golden2' | 'golden3') => {
     if (activePlayer === null) return;
+    const actionSoundMap = {
+      'pong': '碰',
+      'kong': '杠',
+      'chow': '吃',
+      'skip': '',
+      'win': '胡牌',
+      'golden1': '游金',
+      'golden2': '双游',
+      'golden3': '三游',
+    }
+    
+    if (actionSoundMap[action]) {
+        playSound(actionSoundMap[action]);
+    }
+    
     setCanPerformAction(false); // Hide buttons after action
     toast({
         title: `执行操作 (${action})`,
@@ -806,3 +825,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
