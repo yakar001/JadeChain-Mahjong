@@ -19,7 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], discards: Tile[][]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
+type Discard = { tile: Tile; playerId: number };
+type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 
@@ -92,6 +93,7 @@ function GameRoom() {
   const [gameState, setGameState] = useState<GameState>('pre-roll-seating');
   const [wall, setWall] = useState<Tile[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [discards, setDiscards] = useState<Discard[]>([]);
   const [goldenTile, setGoldenTile] = useState<Tile | null>(null);
   const [activePlayer, setActivePlayer] = useState<number | null>(null); 
   const [drawnTile, setDrawnTile] = useState<Tile | null>(null);
@@ -274,7 +276,7 @@ function GameRoom() {
     const tileToDiscard = player.hand[tileIndex];
     
     player.hand.splice(tileIndex, 1);
-    player.discards.push([tileToDiscard]);
+    setDiscards(prev => [...prev, { tile: tileToDiscard, playerId: playerIndex }]);
     
     setPlayers(updatedPlayers);
     setDrawnTile(null);
@@ -424,10 +426,11 @@ function GameRoom() {
     const shuffled = shuffleDeck(newDeck);
     
     setWall(shuffled);
+    setDiscards([]);
     setGoldenTile(null);
 
     // Create Human Player
-    const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], discards: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null };
+    const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null };
     
     const initialPlayers: Player[] = [humanPlayer];
     
@@ -441,7 +444,6 @@ function GameRoom() {
           avatar: `https://placehold.co/40x40.png`,
           isAI: true,
           hand: [],
-          discards: [],
           melds: [],
           balance: INITIAL_BALANCE,
           hasLocation: Math.random() > 0.5 // Simulate location for AI
@@ -456,7 +458,6 @@ function GameRoom() {
           avatar: `https://placehold.co/40x40.png`,
           isAI: false, // In real game, these would be other humans
           hand: [],
-          discards: [],
           melds: [],
           balance: INITIAL_BALANCE,
           hasLocation: Math.random() > 0.5
@@ -824,6 +825,7 @@ function GameRoom() {
           <CardContent className="p-2 md:p-4">
             <GameBoard 
                 players={players} 
+                discards={discards}
                 activePlayerId={activePlayer}
                 wallCount={wall.length}
                 dice={dice}
@@ -970,5 +972,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    

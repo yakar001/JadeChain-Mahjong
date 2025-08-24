@@ -9,12 +9,14 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 
 type Tile = { suit: string; value: string };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; discards: Tile[][]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
+type Discard = { tile: Tile, playerId: number };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win' | 'golden1' | 'golden2' | 'golden3';
 
 interface GameBoardProps {
   players: Player[];
+  discards: Discard[];
   activePlayerId: number | null;
   wallCount: number;
   dice: DiceRoll;
@@ -126,11 +128,11 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
   );
 };
 
-const DiscardArea = ({ discards }: { discards: Tile[][] }) => {
+const DiscardArea = ({ discards }: { discards: Discard[] }) => {
     return (
         <div className="w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
-            {discards.flat().map((tile, index) => (
-                <MahjongTile key={index} suit={tile.suit} value={tile.value as any} size="sm" />
+            {discards.map((discard, index) => (
+                <MahjongTile key={index} suit={discard.tile.suit} value={discard.tile.value as any} size="sm" />
             ))}
         </div>
     );
@@ -166,7 +168,7 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     </div>
 );
 
-export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, canPerformAction, onAction }: GameBoardProps) {
+export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, canPerformAction, onAction }: GameBoardProps) {
     const playerSouth = players.find(p => p.id === 0); // Human
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
@@ -176,8 +178,6 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     const tilesPerSide = 34;
     const initialWallCount = 136 - 52; // After dealing
     
-    const allDiscards = players.flatMap(p => p.discards);
-
     const getWallCounts = () => {
         let counts = { east: tilesPerSide, south: tilesPerSide, west: tilesPerSide, north: tilesPerSide };
         if (gameState === 'pre-roll' || gameState === 'pre-roll-seating' || gameState === 'rolling-seating' || wallCount === 0) return counts;
@@ -263,17 +263,19 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 </div>
                 
                 {/* Center Area */}
-                <div className="absolute inset-[20%] flex items-center justify-center">
-                    <DiscardArea discards={allDiscards} />
+                <div className="absolute inset-[20%]">
+                    <DiscardArea discards={discards} />
                 </div>
                 
                  {/* Action Buttons Area */}
                  {canPerformAction && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 rounded-lg z-20">
-                        <Button onClick={() => onAction('chow')} size="lg">吃 (Chow)</Button>
-                        <Button onClick={() => onAction('pong')} size="lg">碰 (Pong)</Button>
-                        <Button onClick={() => onAction('kong')} size="lg">杠 (Kong)</Button>
-                        <Button onClick={() => onAction('skip')} size="lg" variant="secondary">跳过 (Skip)</Button>
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+                        <div className="flex items-center justify-center gap-2 sm:gap-4 p-2 sm:p-4 bg-background/80 rounded-lg w-auto">
+                            <Button onClick={() => onAction('chow')} size="lg">吃 (Chow)</Button>
+                            <Button onClick={() => onAction('pong')} size="lg">碰 (Pong)</Button>
+                            <Button onClick={() => onAction('kong')} size="lg">杠 (Kong)</Button>
+                            <Button onClick={() => onAction('skip')} size="lg" variant="secondary">跳过 (Skip)</Button>
+                        </div>
                     </div>
                 )}
 
@@ -320,5 +322,3 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
-
-    
