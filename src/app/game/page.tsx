@@ -27,9 +27,13 @@ type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win';
 type ActionPossibility = {
-    chow: boolean;
-    pong: boolean;
-    kong: boolean;
+    playerId: number;
+    actions: {
+        win: boolean;
+        pong: boolean;
+        kong: boolean;
+        chow: boolean;
+    }
 }
 
 type RoundResult = {
@@ -119,7 +123,7 @@ function GameRoom() {
   const [pot, setPot] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult>(null);
   const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
-  const [actionPossibilities, setActionPossibilities] = useState<ActionPossibility>({ chow: false, pong: false, kong: false });
+  const [actionPossibilities, setActionPossibilities] = useState<ActionPossibility[]>([]);
   const [actionTimer, setActionTimer] = useState(ACTION_DURATION);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const actionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -317,31 +321,42 @@ function GameRoom() {
     const tileName = getTileName(tileToDiscard);
     playSound(tileName);
     
-    // For the human player, check if they can perform an action on an AI's discard.
-    if (player.id !== 0) {
-        // Rule: Chow is only possible from the previous player (上家).
-        // In this setup, player 1 (East) is the previous player for player 0 (South).
-        const previousPlayerId = (0 + players.length - 1) % players.length;
-        
-        // This is a simulation of checking the hand.
-        const canChow = (playerIndex === previousPlayerId) && Math.random() < 0.3; // 30% chance to chow from previous player
-        const canPong = Math.random() < 0.2; // 20% chance to pong from anyone
-        const canKong = Math.random() < 0.1; // 10% chance to kong from anyone
+    // Check for actions from other players
+    const potentialActions: ActionPossibility[] = [];
+    players.forEach(p => {
+        if (p.id !== playerIndex) {
+             const previousPlayerId = (p.id + players.length - 1) % players.length;
+             // SIMULATION: Check if a player can perform an action.
+             const canWin = Math.random() < 0.05; // 5% chance to win on any discard
+             const canPong = Math.random() < 0.2; // 20% chance
+             const canKong = Math.random() < 0.1; // 10% chance
+             const canChow = (playerIndex === previousPlayerId) && Math.random() < 0.3; // 30% from previous player
 
-        if (canChow || canPong || canKong) {
-            setActionPossibilities({ chow: canChow, pong: canPong, kong: canKong });
-        } else {
-            const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
-            const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
-            setActivePlayer(nextPlayer.id);
+             if (canWin || canPong || canKong || canChow) {
+                 potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
+             }
+        }
+    });
+
+    if (potentialActions.length > 0) {
+        // Priority: Win > Kong/Pong > Chow
+        const winAction = potentialActions.find(p => p.actions.win);
+        const pongKongAction = potentialActions.find(p => p.actions.pong || p.actions.kong);
+        const chowAction = potentialActions.find(p => p.actions.chow);
+
+        if (winAction) {
+             setActionPossibilities([winAction]);
+        } else if (pongKongAction) {
+             setActionPossibilities([pongKongAction]);
+        } else if (chowAction) {
+             setActionPossibilities([chowAction]);
         }
     } else {
-         if(players.length > 1) {
-            const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
-            const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
-            setActivePlayer(nextPlayer.id);
-        }
+        const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+        const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+        setActivePlayer(nextPlayer.id);
     }
+    
   }, [players, activePlayer, playSound]);
 
   // Game flow and AI automation
@@ -375,7 +390,7 @@ function GameRoom() {
           break;
         case 'playing':
           const currentPlayer = players.find(p => p.id === activePlayer);
-          if (currentPlayer && currentPlayer.isAI) {
+          if (currentPlayer && currentPlayer.isAI && !actionPossibilities.length) {
             await delay(Math.random() * 1000 + 1000); // Simulate 1-2s thinking
 
             if (Math.random() < 0.05) { 
@@ -411,7 +426,7 @@ function GameRoom() {
     
     runGameFlow();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, eastPlayerId, bankerId, activePlayer]);
+  }, [gameState, eastPlayerId, bankerId, activePlayer, actionPossibilities]);
 
 
   // Timer for player's turn
@@ -430,8 +445,8 @@ function GameRoom() {
 
    // Timer for player's action (Chow, Pong, Kong)
     useEffect(() => {
-        const hasAction = actionPossibilities.chow || actionPossibilities.pong || actionPossibilities.kong;
-        if (hasAction) {
+        const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
+        if (humanPlayerAction) {
             setActionTimer(ACTION_DURATION);
             actionTimerRef.current = setInterval(() => {
                 setActionTimer(prev => prev - 1);
@@ -449,8 +464,8 @@ function GameRoom() {
       handleDiscardTile(0, players[0].hand.length - 1);
       return;
     }
-     if (actionTimer <= 0 && (actionPossibilities.chow || actionPossibilities.pong || actionPossibilities.kong)) {
-        handleAction('skip');
+     if (actionTimer <= 0 && actionPossibilities.length > 0) {
+        handleAction('skip', 0);
         return;
     }
 
@@ -686,18 +701,18 @@ function GameRoom() {
     }
   };
   
-  const handleAction = async (action: Action) => {
+  const handleAction = async (action: Action, playerId: number) => {
     clearTimer(actionTimerRef);
     if (activePlayer === null) return;
     
     // SIMULATION: Check if the action is valid. 50% chance of being invalid for demo purposes.
-     if (Math.random() < 0.5) {
+     if (Math.random() < 0.5 && action !== 'skip') {
         toast({
             variant: "destructive",
             title: `操作无效 (${action.charAt(0).toUpperCase() + action.slice(1)} Invalid)`,
             description: `您的手牌不满足'${action}'的条件。`,
         });
-        setActionPossibilities({ chow: false, pong: false, kong: false });
+        setActionPossibilities([]);
         // After an invalid action, the turn should pass to the next player.
         const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
         const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
@@ -717,7 +732,7 @@ function GameRoom() {
         playSound(actionSoundMap[action]);
     }
     
-    setActionPossibilities({ chow: false, pong: false, kong: false }); 
+    setActionPossibilities([]); 
     
     if (action !== 'skip') {
         toast({
@@ -729,13 +744,13 @@ function GameRoom() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const updatedPlayers = [...players];
-        const humanPlayer = updatedPlayers.find(p => p.id === 0);
+        const actionPlayer = updatedPlayers.find(p => p.id === playerId);
         const lastDiscard = discards[discards.length-1]?.tile;
-        if(humanPlayer && lastDiscard) {
+        if(actionPlayer && lastDiscard) {
             // Find two matching tiles from hand for Pong/Kong. This is a simple simulation.
             let tilesToMeld = [lastDiscard];
             let foundCount = 0;
-            const newHand = humanPlayer.hand.filter(tile => {
+            const newHand = actionPlayer.hand.filter(tile => {
                 if (tile.value === lastDiscard.value && tile.suit === lastDiscard.suit && foundCount < 2) {
                     tilesToMeld.push(tile);
                     foundCount++;
@@ -745,8 +760,8 @@ function GameRoom() {
             });
 
             if (foundCount >= 1) { // A real game needs 2 for pong, 3 for kong
-                humanPlayer.hand = newHand;
-                humanPlayer.melds.push(tilesToMeld);
+                actionPlayer.hand = newHand;
+                actionPlayer.melds.push(tilesToMeld);
                 setPlayers(updatedPlayers);
             }
         }
@@ -757,11 +772,12 @@ function GameRoom() {
         });
 
         // After action, it's this player's turn to discard.
-        setActivePlayer(0);
-        setDrawnTile({suit: 'placeholder', value: 'placeholder'}); // Use a placeholder to enable discard
+        setActivePlayer(playerId);
+        if (playerId === 0) {
+            setDrawnTile({suit: 'placeholder', value: 'placeholder'}); // Use a placeholder to enable discard for human player
+        }
     }
 
-    // After action, it's this player's turn to discard.
     if (action === 'skip') {
         const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
         const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
@@ -777,6 +793,7 @@ function GameRoom() {
   }, [audioSrc]);
 
   const humanPlayer = players.find(p => p.id === 0);
+  const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
   
   const roomTierMap: Record<string, string> = {
     Free: "免费体验娱乐场",
@@ -787,7 +804,6 @@ function GameRoom() {
   };
 
   const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
-  const hasAction = actionPossibilities.chow || actionPossibilities.pong || actionPossibilities.kong;
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -809,15 +825,6 @@ function GameRoom() {
                     <AlertDialogDescription>
                         <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
                              <div>
-                                <h3 className="font-semibold text-foreground">开局流程 (Starting the Game)</h3>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>掷骰定座 (Roll for Seating)：</strong>游戏开始前，所有玩家掷一对骰子比大小。点数最大者为东风位，其余玩家按点数高低逆时针就座。您的视角将始终是南风位。</li>
-                                    <li><strong>东风定庄 (East Wind is Banker)：</strong>东风位玩家自动成为第一局的庄家。</li>
-                                     <li><strong>庄家掷骰开局 (Banker's Roll for Deal)：</strong>庄家掷骰子，根据点数决定从牌墙的何处开始抓牌。</li>
-                                     <li><strong>庄家掷骰开金 (Banker's Roll for Golden Tile)：</strong>发牌结束后，庄家再次掷骰子，根据点数从牌墙末尾翻开一张牌作为“金”。</li>
-                                </ul>
-                            </div>
-                            <div>
                                 <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
                                 <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
                             </div>
@@ -827,9 +834,8 @@ function GameRoom() {
                                     <li><strong>吃 (Chow):</strong> 只能吃您**上家**（左边的玩家）打出的牌来组成顺子。</li>
                                     <li><strong>碰 (Pong):</strong> 可以碰**任何一家**打出的牌来组成刻子（三张相同的牌）。</li>
                                     <li><strong>杠 (Kong):</strong> 可以杠**任何一家**打出的牌来组成杠子（四张相同的牌）。</li>
-                                    <li><strong>优先级 (Priority):</strong> 碰和杠的优先级高于吃。如果多个玩家可以对同一张牌执行操作，碰/杠会优于吃。</li>
-                                    <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌后，如果手牌已满足胡牌条件，系统会自动出现“自摸胡牌”按钮。</li>
-                                    <li><strong>高级策略 (Advanced Strategy)：</strong>您可以选择忽略当前的胡牌提示，继续游戏以追求“游金”等更高番数的牌型。</li>
+                                    <li><strong>优先级 (Priority):</strong> 胡牌 > 碰/杠 > 吃。如果多个玩家可以对同一张牌执行操作，高优先级的操作会覆盖低优先级的。</li>
+                                    <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌或有玩家弃牌后，如果您的手牌已满足胡牌条件，系统会自动出现“胡牌”按钮。</li>
                                 </ul>
                             </div>
                             <div>
@@ -837,23 +843,7 @@ function GameRoom() {
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
                                      <li><strong>普通胡牌 (Standard Win)：</strong>赢家获得奖池内所有押金。输家均分损失。</li>
                                      <li><strong>自摸 (Self-Drawn Win)：</strong>自摸胡牌的赢家，奖金翻倍。</li>
-                                     <li><strong>游金 (Golden Tour Win)：</strong>使用“金牌”作为胡牌的关键张时，称为“游金”。根据打出金牌的时机获得额外翻倍奖励。本次模拟中，自摸胡牌即视为游金成功。</li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-foreground">公平性保证 (Fairness Guarantee)</h3>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>洗牌哈希 (Shuffle Hash)：</strong>游戏开始前，系统会对一副完整的、排序好的麻将牌进行加密哈希计算，并立即显示该哈希值。这意味着牌墙在发牌前就已完全确定，无法被篡改。</li>
-                                    <li><strong>掷骰子 (Dice Roll)：</strong>所有的掷骰子操作均在服务器端完成，保证结果的随机性。</li>
-                                </ul>
-                            </div>
-                             <div>
-                                <h3 className="font-semibold text-foreground">游金规则详解 (Golden Tour Rules)</h3>
-                                <p>当玩家以“金牌”作为胡牌的关键张时，称为“游金”，并根据打出金牌的时机获得额外翻倍奖励。</p>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>一游 (Single Tour)：</strong>在胡牌时，将一张金牌作为普通牌打出。如果成功胡牌，则总分翻2倍。</li>
-                                    <li><strong>双游 (Double Tour)：</strong>在“一游”的基础上，再次摸牌时恰好胡牌，此时再次打出一张金牌并声明胡牌。如果成功，则总分翻4倍。</li>
-                                    <li><strong>三游 (Triple Tour)：</strong>极为罕见。在“双游”成功后，若摸牌后仍未胡牌，则再次打出一张金牌。若最终成功胡牌，则总分翻8倍。</li>
+                                     <li><strong>游金 (Golden Tour Win)：</strong>使用“金牌”作为胡牌的关键张时，称为“游金”。根据打出金牌的时机获得额外翻倍奖励。</li>
                                 </ul>
                             </div>
                         </div>
@@ -957,7 +947,7 @@ function GameRoom() {
                         <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
                         <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                     </div>
-                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && !hasAction && (
+                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && !humanPlayerAction && (
                       <Button onClick={handleDrawTile}>
                           <Hand className="mr-2 h-4 w-4" />
                           摸牌 (Draw Tile)
@@ -975,16 +965,17 @@ function GameRoom() {
             <div className="relative p-4 bg-background/50 rounded-lg min-h-[12rem] flex items-end justify-center">
                
                  {/* Action Buttons Area */}
-                {hasAction && (
+                {humanPlayerAction && (
                     <div className="absolute bottom-4 left-4 z-20 space-y-2">
                         <div className='w-full mb-1'>
                             <Progress value={(actionTimer / ACTION_DURATION) * 100} className="h-1 [&>div]:bg-yellow-400" />
                         </div>
                         <div className="flex flex-col gap-2">
-                            {actionPossibilities.chow && <Button onClick={() => handleAction('chow')} size="sm">吃 (Chow)</Button>}
-                            {actionPossibilities.pong && <Button onClick={() => handleAction('pong')} size="sm">碰 (Pong)</Button>}
-                            {actionPossibilities.kong && <Button onClick={() => handleAction('kong')} size="sm">杠 (Kong)</Button>}
-                            <Button onClick={() => handleAction('skip')} size="sm" variant="secondary">跳过 ({actionTimer}s)</Button>
+                            {humanPlayerAction.actions.win && <Button onClick={() => handleWin(0)} size="sm" variant="destructive">胡 (Win)</Button>}
+                            {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', 0)} size="sm">吃 (Chow)</Button>}
+                            {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm">碰 (Pong)</Button>}
+                            {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm">杠 (Kong)</Button>}
+                            <Button onClick={() => handleAction('skip', 0)} size="sm" variant="secondary">跳过 ({actionTimer}s)</Button>
                         </div>
                     </div>
                 )}
@@ -1100,5 +1091,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
