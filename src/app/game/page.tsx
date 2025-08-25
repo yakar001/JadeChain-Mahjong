@@ -325,12 +325,12 @@ function GameRoom() {
     const potentialActions: ActionPossibility[] = [];
     players.forEach(p => {
         if (p.id !== playerIndex) {
-             const previousPlayerId = (p.id + players.length - 1) % players.length;
+             const previousPlayerId = (playerIndex + players.length - 1) % players.length;
              // SIMULATION: Check if a player can perform an action.
              const canWin = Math.random() < 0.05; // 5% chance to win on any discard
              const canPong = Math.random() < 0.2; // 20% chance
              const canKong = Math.random() < 0.1; // 10% chance
-             const canChow = (playerIndex === previousPlayerId) && Math.random() < 0.3; // 30% from previous player
+             const canChow = (p.id === (playerIndex + 1) % players.length) && Math.random() < 0.3; // 30% from previous player
 
              if (canWin || canPong || canKong || canChow) {
                  potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
@@ -350,6 +350,8 @@ function GameRoom() {
              setActionPossibilities([pongKongAction]);
         } else if (chowAction) {
              setActionPossibilities([chowAction]);
+        } else {
+            setActionPossibilities(potentialActions);
         }
     } else {
         const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
@@ -393,6 +395,14 @@ function GameRoom() {
           if (currentPlayer && currentPlayer.isAI && !actionPossibilities.length) {
             await delay(Math.random() * 1000 + 1000); // Simulate 1-2s thinking
 
+            // Banker starts with 14 tiles, so they discard directly.
+            if (currentPlayer.hand.length % 3 === 2) {
+                const discardIndex = Math.floor(Math.random() * currentPlayer.hand.length);
+                handleDiscardTile(activePlayer, discardIndex);
+                return;
+            }
+
+            // Otherwise, draw a tile then discard.
             if (Math.random() < 0.05) { 
               handleWin(currentPlayer.id);
               return;
@@ -426,7 +436,7 @@ function GameRoom() {
     
     runGameFlow();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, eastPlayerId, bankerId, activePlayer, actionPossibilities]);
+  }, [gameState, eastPlayerId, bankerId, activePlayer, actionPossibilities, players]);
 
 
   // Timer for player's turn
@@ -1091,3 +1101,4 @@ export default function GamePage() {
         </Suspense>
     )
 }
+ 
