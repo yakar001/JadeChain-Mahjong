@@ -130,50 +130,22 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
   );
 };
 
-const DiscardArea = ({ discards, latestDiscard, orientation = 'bottom' }: { discards: Tile[], latestDiscard: Discard | null, orientation?: 'top' | 'bottom' | 'left' | 'right' }) => {
-    const MAX_TILES_PER_ROW = 8;
-    const MAX_ROWS = 3;
-    
-    const rotationClasses = {
-        top: 'rotate-180',
-        bottom: '',
-        left: 'rotate-90',
-        right: '-rotate-90'
-    };
-
+const DiscardArea = ({ discards, latestDiscard }: { discards: Tile[], latestDiscard: Discard | null }) => {
     return (
-        <div className="relative flex flex-col items-center justify-center gap-1 p-1">
-            {Array.from({ length: MAX_ROWS }).map((_, rowIndex) => (
-                <div key={rowIndex} className="flex gap-1 justify-start">
-                    {discards.slice(rowIndex * MAX_TILES_PER_ROW, (rowIndex + 1) * MAX_TILES_PER_ROW).map((tile, index) => (
-                        <div key={index} className={cn(rotationClasses[orientation])}>
-                            <MahjongTile 
-                                suit={tile.suit} 
-                                value={tile.value as any} 
-                                size="sm"
-                            />
-                        </div>
-                    ))}
-                </div>
-            ))}
-             {latestDiscard && (
-                <div 
-                    className="absolute z-10 transition-all duration-150"
-                    style={{
-                        top: `${Math.floor((discards.length-1) / MAX_TILES_PER_ROW) * 2.5 + 0.25}rem`,
-                        left: `${((discards.length-1) % MAX_TILES_PER_ROW) * 1.75 + 0.25}rem`
-                    }}
-                >
-                    <div className={cn(rotationClasses[orientation])}>
-                      <MahjongTile 
-                          suit={latestDiscard.tile.suit} 
-                          value={latestDiscard.tile.value as any} 
-                          size="sm"
-                          isLatestDiscard={true}
-                      />
+        <div className="relative grid grid-cols-8 gap-1 p-1 w-[14rem] h-[8.5rem]">
+            {discards.map((tile, index) => {
+                const isLatest = latestDiscard?.tile === tile && latestDiscard?.playerId === discards[index].playerId;
+                return (
+                    <div key={index} className="relative">
+                        <MahjongTile 
+                            suit={tile.suit} 
+                            value={tile.value as any} 
+                            size="sm"
+                            isLatestDiscard={isLatest}
+                        />
                     </div>
-                </div>
-            )}
+                );
+            })}
         </div>
     );
 }
@@ -303,35 +275,52 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                     <WallSegment count={east} orientation="vertical" />
                 </div>
                 
-                {/* Center Discard Area and Player Discard Areas */}
-                 <div className="absolute inset-[22%] bg-green-800/50 border-2 border-yellow-800/30 rounded flex items-center justify-center">
-                     {/* Center Area */}
-                    <div className={cn("absolute inset-0 flex items-center justify-center", isLandscape && "[transform:rotateX(-60deg)_translateZ(-50px)]")}>
-                        <div className="bg-black/50 p-2 md:p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
-                            {isLandscape ? (
-                                <>
-                                    <h2 className="text-2xl font-bold text-yellow-400 font-headline tracking-widest" style={{textShadow: '0 0 5px #fde047, 0 0 10px #fde047'}}>游金</h2>
-                                    <p className="text-xs font-mono uppercase tracking-wider text-yellow-200/80">ya-kar</p>
-                                </>
-                            ) : (
-                                <h2 className="text-sm font-bold text-yellow-400 font-headline tracking-widest">牌墙</h2>
-                            )}
-                            <div className='flex items-center justify-center gap-2 md:gap-4 mt-2'>
-                                <Layers className="w-4 h-4 md:w-8 md:h-8"/>
-                                <div>
-                                    <p className="text-base md:text-lg font-bold">{wallCount}</p>
-                                    <p className="text-xs">剩余</p>
+                {/* Discard Areas */}
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-[60%] h-[60%] relative">
+                        {playerNorth && (
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 origin-center rotate-180">
+                                <DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard?.playerId === playerNorth.id ? latestDiscard : null} />
+                            </div>
+                        )}
+                        {playerWest && (
+                             <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 origin-center rotate-90">
+                                <DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard?.playerId === playerWest.id ? latestDiscard : null} />
+                            </div>
+                        )}
+                        {playerEast && (
+                             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 origin-center -rotate-90">
+                                <DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard?.playerId === playerEast.id ? latestDiscard : null} />
+                            </div>
+                        )}
+                        {playerSouth && (
+                             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 origin-center">
+                                <DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard?.playerId === playerSouth.id ? latestDiscard : null} />
+                            </div>
+                        )}
+
+                        {/* Center Info Box */}
+                        <div className={cn("absolute inset-0 flex items-center justify-center", isLandscape && "[transform:rotateX(-60deg)_translateZ(-50px)]")}>
+                            <div className="bg-black/50 p-2 md:p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
+                                {isLandscape ? (
+                                    <>
+                                        <h2 className="text-2xl font-bold text-yellow-400 font-headline tracking-widest" style={{textShadow: '0 0 5px #fde047, 0 0 10px #fde047'}}>游金</h2>
+                                        <p className="text-xs font-mono uppercase tracking-wider text-yellow-200/80">ya-kar</p>
+                                    </>
+                                ) : (
+                                    <h2 className="text-sm font-bold text-yellow-400 font-headline tracking-widest">牌墙</h2>
+                                )}
+                                <div className='flex items-center justify-center gap-2 md:gap-4 mt-2'>
+                                    <Layers className="w-4 h-4 md:w-8 md:h-8"/>
+                                    <div>
+                                        <p className="text-base md:text-lg font-bold">{wallCount}</p>
+                                        <p className="text-xs">剩余</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                  </div>
-
-                {playerNorth && <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-[14rem] h-[8rem]"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard?.playerId === playerNorth.id ? latestDiscard : null} orientation="top" /></div>}
-                {playerWest && <div className="absolute left-[18%] top-1/2 -translate-y-1/2 w-[8rem] h-[14rem] origin-top-left -rotate-90"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard?.playerId === playerWest.id ? latestDiscard : null} orientation="left"/></div>}
-                {playerEast && <div className="absolute right-[18%] top-1/2 -translate-y-1/2 w-[8rem] h-[14rem] origin-top-right rotate-90"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard?.playerId === playerEast.id ? latestDiscard : null} orientation="right"/></div>}
-                {playerSouth && <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 w-[14rem] h-[8rem]"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard?.playerId === playerSouth.id ? latestDiscard : null} orientation="bottom"/></div>}
-                
 
                 {/* Dice Rolling Overlay */}
                 {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll') || gameState === 'banker-roll-for-golden') && (
