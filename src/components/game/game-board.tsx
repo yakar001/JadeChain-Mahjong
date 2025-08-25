@@ -132,31 +132,52 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
 
 const DiscardArea = ({ discards, latestDiscard, orientation = 'bottom' }: { discards: Tile[], latestDiscard: Discard | null, orientation?: 'top' | 'bottom' | 'left' | 'right' }) => {
     const MAX_TILES_PER_ROW = 8;
+    const MAX_ROWS = 3;
     
     const rotationClasses = {
         top: 'rotate-180',
-        bottom: 'rotate-0',
+        bottom: '',
         left: 'rotate-90',
         right: '-rotate-90'
-    }
+    };
 
     return (
-        <div className="w-full h-full relative p-1 flex items-center justify-center">
-            <div className="grid grid-cols-8 gap-1">
-                {discards.slice(0, MAX_TILES_PER_ROW * 2).map((tile, index) => (
-                    <div key={index} className={cn(rotationClasses[orientation])}>
-                        <MahjongTile 
-                            suit={tile.suit} 
-                            value={tile.value as any} 
-                            size="sm" 
-                            isLatestDiscard={latestDiscard?.tile === tile && latestDiscard?.playerId === discards[index].playerId}
-                        />
+        <div className="relative flex flex-col items-center justify-center gap-1 p-1">
+            {Array.from({ length: MAX_ROWS }).map((_, rowIndex) => (
+                <div key={rowIndex} className="flex gap-1 justify-start">
+                    {discards.slice(rowIndex * MAX_TILES_PER_ROW, (rowIndex + 1) * MAX_TILES_PER_ROW).map((tile, index) => (
+                        <div key={index} className={cn(rotationClasses[orientation])}>
+                            <MahjongTile 
+                                suit={tile.suit} 
+                                value={tile.value as any} 
+                                size="sm"
+                            />
+                        </div>
+                    ))}
+                </div>
+            ))}
+             {latestDiscard && (
+                <div 
+                    className="absolute z-10 transition-all duration-150"
+                    style={{
+                        top: `${Math.floor((discards.length-1) / MAX_TILES_PER_ROW) * 2.5 + 0.25}rem`,
+                        left: `${((discards.length-1) % MAX_TILES_PER_ROW) * 1.75 + 0.25}rem`
+                    }}
+                >
+                    <div className={cn(rotationClasses[orientation])}>
+                      <MahjongTile 
+                          suit={latestDiscard.tile.suit} 
+                          value={latestDiscard.tile.value as any} 
+                          size="sm"
+                          isLatestDiscard={true}
+                      />
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
         </div>
     );
 }
+
 
 const Dice = ({ value }: { value: number }) => {
     const Icon = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6][value - 1];
@@ -264,7 +285,7 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
 
         <div className={cn("absolute", isLandscape ? "inset-0" : "inset-[8%]")}>
             <div className={cn(
-                "aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative grid grid-cols-3 grid-rows-3",
+                "aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative",
                  isLandscape && "bg-green-900/80 border-amber-700/80 [transform-style:preserve-3d] [transform:perspective(1000px)_rotateX(60deg)] w-full h-full"
             )}>
                 
@@ -283,7 +304,7 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 </div>
                 
                 {/* Center Discard Area and Player Discard Areas */}
-                 <div className="row-start-2 col-start-2 bg-green-800/50 border-2 border-yellow-800/30 rounded flex items-center justify-center">
+                 <div className="absolute inset-[22%] bg-green-800/50 border-2 border-yellow-800/30 rounded flex items-center justify-center">
                      {/* Center Area */}
                     <div className={cn("absolute inset-0 flex items-center justify-center", isLandscape && "[transform:rotateX(-60deg)_translateZ(-50px)]")}>
                         <div className="bg-black/50 p-2 md:p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
@@ -306,10 +327,10 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                     </div>
                  </div>
 
-                {playerNorth && <div className="row-start-1 col-start-2"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} orientation="top" /></div>}
-                {playerWest && <div className="row-start-2 col-start-1"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} orientation="left"/></div>}
-                {playerEast && <div className="row-start-2 col-start-3"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} orientation="right"/></div>}
-                {playerSouth && <div className="row-start-3 col-start-2"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} orientation="bottom"/></div>}
+                {playerNorth && <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-[14rem] h-[8rem]"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard?.playerId === playerNorth.id ? latestDiscard : null} orientation="top" /></div>}
+                {playerWest && <div className="absolute left-[18%] top-1/2 -translate-y-1/2 w-[8rem] h-[14rem] origin-top-left -rotate-90"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard?.playerId === playerWest.id ? latestDiscard : null} orientation="left"/></div>}
+                {playerEast && <div className="absolute right-[18%] top-1/2 -translate-y-1/2 w-[8rem] h-[14rem] origin-top-right rotate-90"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard?.playerId === playerEast.id ? latestDiscard : null} orientation="right"/></div>}
+                {playerSouth && <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 w-[14rem] h-[8rem]"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard?.playerId === playerSouth.id ? latestDiscard : null} orientation="bottom"/></div>}
                 
 
                 {/* Dice Rolling Overlay */}
