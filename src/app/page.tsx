@@ -208,7 +208,7 @@ export default function Home() {
           <TabsTrigger value="tournament">锦标赛 (Tournament)</TabsTrigger>
         </TabsList>
         <TabsContent value="standard" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {rooms.map((room) => {
               const isWaiting = room.players < room.minPlayers;
               const isBusy = isJoining === room.tier;
@@ -223,13 +223,13 @@ export default function Home() {
                     <CardDescription>{room.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-accent/50 rounded-md">
-                      <div>
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 bg-accent/50 rounded-md">
+                      <div className="text-center sm:text-left">
                         <p className="text-xs text-muted-foreground">奖池</p>
                         <p className="font-bold text-lg text-primary flex items-center gap-1"><Trophy size={16} /> {room.prize.toLocaleString()} $JIN</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground text-right">在线玩家</p>
+                      <div className="text-center sm:text-right">
+                        <p className="text-xs text-muted-foreground">在线玩家</p>
                         <p className="font-bold text-lg flex items-center gap-1">{room.players.toLocaleString()} / {room.minPlayers} <Users size={16} /></p>
                       </div>
                     </div>
@@ -394,4 +394,5 @@ export default function Home() {
       </Tabs>
     </div>
   );
-}
+
+    
