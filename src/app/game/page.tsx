@@ -502,7 +502,10 @@ function GameRoom() {
              setActionPossibilities(chowActions);
         } else {
              setActionPossibilities([]);
-             setActivePlayer(getNextPlayerId(playerId));
+             const nextPlayerId = getNextPlayerId(playerId);
+             if (nextPlayerId !== null) {
+                setActivePlayer(nextPlayerId);
+             }
         }
 
         return updatedPlayers;
@@ -534,15 +537,17 @@ function GameRoom() {
     if (currentPlayer && currentPlayer.isAI) {
         await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000));
 
-        if (currentPlayer.hand.length % 3 === 2) { // Banker's first turn or after a meld
+        // Banker's first turn or after a meld, has an extra tile, so just discards.
+        if (currentPlayer.hand.length % 3 === 2) {
             const discardIndex = Math.floor(Math.random() * currentPlayer.hand.length);
             handleDiscardTile(activePlayer, discardIndex);
             return;
         }
 
+        // Standard turn: draw then discard.
         const wallCopy = [...wall];
         if (wallCopy.length === 0) {
-            handleEndGame(players);
+            handleEndGame(players); // End game if wall is empty
             return;
         }
 
@@ -552,23 +557,25 @@ function GameRoom() {
         const updatedHand = [...currentPlayer.hand, drawnTileFromWall];
         setPlayers(prevPlayers => prevPlayers.map(p => p.id === activePlayer ? { ...p, hand: updatedHand } : p));
         
+        // AI checks for win after drawing
         if (isWinningHand(updatedHand, goldenTile)) {
           handleWin(currentPlayer.id);
           return;
         }
         
-        await new Promise(res => setTimeout(res, 500));
+        await new Promise(res => setTimeout(res, 500)); // AI "thinking" time
         
         const discardIndex = Math.floor(Math.random() * updatedHand.length);
         handleDiscardTile(activePlayer, discardIndex);
     } else if (currentPlayer && !currentPlayer.isAI) {
+        // Human player's turn logic
         if (!drawnTile && currentPlayer.hand.length % 3 !== 2) {
-             setHumanPlayerCanDiscard(false);
+             setHumanPlayerCanDiscard(false); // Must draw before discarding
         } else {
-            setHumanPlayerCanDiscard(true);
+            setHumanPlayerCanDiscard(true); // Can discard now
         }
     }
-  }, [gameState, activePlayer, players, actionPossibilities, wall, drawnTile, handleDiscardTile, handleEndGame, handleWin, goldenTile]);
+  }, [gameState, activePlayer, players, actionPossibilities, wall, drawnTile, handleDiscardTile, handleEndGame, handleWin, goldenTile, handleAction]);
 
   useEffect(() => {
     runGameFlow();
@@ -646,7 +653,7 @@ function GameRoom() {
      if (actionTimer <= 0 && actionPossibilities.some(p => p.playerId === 0)) {
         handleAction('skip', 0);
     }
-  }, [turnTimer, actionTimer, isAiControlled, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard]);
+  }, [turnTimer, actionTimer, isAiControlled, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard, handleAction]);
 
   const initializeGame = useCallback(() => {
     clearTimer(timerRef);
@@ -875,7 +882,7 @@ function GameRoom() {
     }
   };
   
-  const handleAction = async (action: Action | 'skip', playerId: number) => {
+  const handleAction = useCallback(async (action: Action | 'skip', playerId: number) => {
     clearTimer(actionTimerRef);
     const lastDiscarderId = discards.length > 0 ? discards[discards.length - 1].playerId : null;
     if (lastDiscarderId === null) return;
@@ -883,7 +890,10 @@ function GameRoom() {
     setActionPossibilities([]); 
 
     if (action === 'skip') {
-        setActivePlayer(getNextPlayerId(lastDiscarderId));
+        const nextPlayerId = getNextPlayerId(lastDiscarderId);
+        if (nextPlayerId !== null) {
+            setActivePlayer(nextPlayerId);
+        }
         return;
     }
 
@@ -899,7 +909,10 @@ function GameRoom() {
             title: `操作无效 (${action.charAt(0).toUpperCase() + action.slice(1)} Invalid)`,
             description: `您的手牌不满足'${action}'的条件。`,
         });
-        setActivePlayer(getNextPlayerId(lastDiscarderId));
+        const nextPlayerId = getNextPlayerId(lastDiscarderId);
+        if (nextPlayerId !== null) {
+            setActivePlayer(nextPlayerId);
+        }
         return;
     }
 
@@ -949,7 +962,7 @@ function GameRoom() {
     if (playerId === 0) {
         setHumanPlayerCanDiscard(true);
     }
-  };
+  }, [discards, getNextPlayerId, handleWin, playSound, toast]);
 
   useEffect(() => {
     if (audioSrc) {
@@ -1025,7 +1038,7 @@ function GameRoom() {
                                             <li><strong>杠 (Kong):</strong> 可以杠**任何一家**打出的牌来组成杠子（四张相同的牌）。</li>
                                             <li><strong>优先级 (Priority):</strong> 胡牌 &gt; 碰/杠 &gt; 吃。如果多个玩家可以对同一张牌执行操作，高优先级的操作会覆盖低优先级的。</li>
                                             <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌或有玩家弃牌后，如果您的手牌已满足胡牌条件，系统会自动出现“胡牌”按钮。</li>
-                                            <li><strong>持金限制 (Golden Tile Restriction):</strong> 当您手中有“金牌”时，您只能通过**自摸**胡牌，不能吃、碰、杠或胡别人打出的牌。</li>
+                                            <li><strong>持金限制 (Golden Tile Restriction):</strong> 当您手中有“金牌”时，您只能通过**自摸**胡牌，不能胡别人打出的牌，但仍可以吃、碰、杠。</li>
                                         </ul>
                                     </div>
                                     <div>
@@ -1156,14 +1169,14 @@ function GameRoom() {
                              {humanPlayerAction && (
                                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
                                     <div className='flex items-center gap-2'>
-                                        <Progress value={(actionTimer / actionDuration) * 100} className="absolute -top-2 left-0 right-0 w-full h-1 [&>div]:bg-yellow-400" />
+                                        <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-2 left-0 right-0 w-full h-1 [&>div]:bg-yellow-400" />
                                         {humanPlayerAction.actions.win && <Button onClick={() => handleAction('win', 0)} size="sm" variant="destructive" className="w-16 h-10" disabled={humanPlayerHasGolden}>胡</Button>}
-                                        {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm" className="w-16 h-10" disabled={humanPlayerHasGolden}>杠</Button>}
-                                        {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm" className="w-16 h-10" disabled={humanPlayerHasGolden}>碰</Button>}
-                                        {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', 0)} size="sm" className="w-16 h-10" disabled={humanPlayerHasGolden}>吃</Button>}
+                                        {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm" className="w-16 h-10">杠</Button>}
+                                        {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm" className="w-16 h-10">碰</Button>}
+                                        {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', 0)} size="sm" className="w-16 h-10">吃</Button>}
                                         <Button onClick={() => handleAction('skip', 0)} size="sm" variant="secondary" className="w-16 h-10">过 ({actionTimer}s)</Button>
                                     </div>
-                                    {humanPlayerHasGolden && <p className="text-xs text-yellow-400 text-center mt-1">持金只能自摸</p>}
+                                    {humanPlayerHasGolden && <p className="text-xs text-yellow-400 text-center mt-1">持金只能自摸，不可胡牌</p>}
                                 </div>
                             )}
                             <PlayerHand 
