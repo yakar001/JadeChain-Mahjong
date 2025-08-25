@@ -10,9 +10,10 @@ interface PlayerHandProps {
     canInteract: boolean;
     goldenTile: Tile | null;
     selectedTileIndex: number | null;
+    isLandscape?: boolean;
 }
 
-export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selectedTileIndex }: PlayerHandProps) {
+export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selectedTileIndex, isLandscape = false }: PlayerHandProps) {
 
   // Sort hand for better readability
   const sortOrder = ['dots', 'bamboo', 'characters', 'wind', 'dragon'];
@@ -51,6 +52,7 @@ export function PlayerHand({ hand, onTileClick, canInteract, goldenTile, selecte
             value={tile.value as any} 
             isClickable={canInteract}
             isGolden={isGolden(tile)}
+            size={isLandscape ? 'lg' : 'md'}
           />
         </button>
       ))}

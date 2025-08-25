@@ -6,7 +6,7 @@ import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus, Eye } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Crown, Trophy, Bot, Loader2, Minus, Plus, Eye, Smartphone, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -18,6 +18,7 @@ import { getSpeech } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { MahjongTile } from '@/components/game/mahjong-tile';
+import { cn } from '@/lib/utils';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
@@ -125,6 +126,7 @@ function GameRoom() {
   const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
   const [actionPossibilities, setActionPossibilities] = useState<ActionPossibility[]>([]);
   const [actionTimer, setActionTimer] = useState(ACTION_DURATION);
+  const [isLandscape, setIsLandscape] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const actionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -336,7 +338,8 @@ function GameRoom() {
              const canWin = Math.random() < 0.05; // 5% chance to win on any discard
              const canPong = Math.random() < 0.2; // 20% chance
              const canKong = Math.random() < 0.1; // 10% chance
-             const canChow = (p.id === (playerId + 1) % players.length) && Math.random() < 0.3; // 30% from previous player
+             const isPreviousPlayer = (p.id === (playerId + 1) % players.length);
+             const canChow = isPreviousPlayer && Math.random() < 0.3; // 30% from previous player
 
              if (canWin || canPong || canKong || canChow) {
                  potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
@@ -728,7 +731,7 @@ function GameRoom() {
     }
   };
   
-  const handleAction = async (action: Action, playerId: number) => {
+  const handleAction = async (action: Action | 'skip', playerId: number) => {
     clearTimer(actionTimerRef);
     if (activePlayer === null) return;
     
@@ -757,9 +760,11 @@ function GameRoom() {
       'win': '胡牌',
     } as const;
     
-    const soundKey = action as keyof typeof actionSoundMap;
-    if (actionSoundMap[soundKey]) {
-        playSound(actionSoundMap[soundKey]);
+    if (action !== 'skip') {
+        const soundKey = action as keyof typeof actionSoundMap;
+        if (actionSoundMap[soundKey]) {
+            playSound(actionSoundMap[soundKey]);
+        }
     }
     
     setActionPossibilities([]); 
@@ -836,197 +841,232 @@ function GameRoom() {
   const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
   
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div className="lg:col-span-3 space-y-6">
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <h1 className="text-2xl font-bold font-headline text-primary">{`${roomTierMap[roomTier]} (${roomTier} Room)`}</h1>
-           <div className="flex items-center gap-2 text-xl font-bold text-primary border-2 border-primary/50 bg-primary/10 px-3 py-1 rounded-lg">
-                <Trophy />
-                <span>奖池 (Pot): {pot} $JIN</span>
+    <div className={cn("game-container", isLandscape && "landscape", "bg-gray-800 text-white min-h-screen")}>
+      {/* Landscape-specific top/bottom bars */}
+      <div className={cn("landscape-top-bar", isLandscape ? "flex" : "hidden", "absolute top-0 left-0 right-0 p-2 bg-black/30 justify-between items-center z-20")}>
+        <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm">菜单</Button>
+            <div className="p-1 rounded bg-black/50 text-center">
+                <p className="text-yellow-400 font-bold">2840</p>
+                <p className="text-xs">新手福利</p>
             </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline"><BookOpen/> 玩法说明 (Rules)</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>闽南游金麻将 (Minnan Golden Mahjong Rules)</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
-                             <div>
-                                <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
-                                <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
-                            </div>
-                             <div>
-                                <h3 className="font-semibold text-foreground">游戏玩法 (Gameplay)</h3>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li><strong>吃 (Chow):</strong> 只能吃您**上家**（左边的玩家）打出的牌来组成顺子。</li>
-                                    <li><strong>碰 (Pong):</strong> 可以碰**任何一家**打出的牌来组成刻子（三张相同的牌）。</li>
-                                    <li><strong>杠 (Kong):</strong> 可以杠**任何一家**打出的牌来组成杠子（四张相同的牌）。</li>
-                                    <li><strong>优先级 (Priority):</strong> 胡牌 > 碰/杠 > 吃。如果多个玩家可以对同一张牌执行操作，高优先级的操作会覆盖低优先级的。</li>
-                                    <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌或有玩家弃牌后，如果您的手牌已满足胡牌条件，系统会自动出现“胡牌”按钮。</li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-foreground">计分规则 (Scoring)</h3>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                     <li><strong>普通胡牌 (Standard Win)：</strong>赢家获得奖池内所有押金。输家均分损失。</li>
-                                     <li><strong>自摸 (Self-Drawn Win)：</strong>自摸胡牌的赢家，奖金翻倍。</li>
-                                     <li><strong>游金 (Golden Tour Win)：</strong>使用“金牌”作为胡牌的关键张时，称为“游金”。根据打出金牌的时机获得额外翻倍奖励。</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogAction> <ThumbsUp className="mr-2"/> 明白了 (Got it)</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline"><Shuffle />新对局 (New Game)</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>开始新对局吗？ (Start a New Game?)</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {isGameInProgress ? `当前对局仍在进行中。如果现在开始新对局，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN。` : '您确定要开始一个新对局吗？'}
-                        {isGameInProgress ? `(The current game is still in progress. If you start a new game now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN for this round.)` : '(Are you sure you want to start a new game?)'}
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleLeaveGame(true)} className={isGameInProgress ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
-                        确认 (Confirm)
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline"><Undo2 />返回大厅 (Back to Lobby)</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>确认退出吗？ (Confirm Exit?)</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {isGameInProgress ? `当前对局仍在进行中。如果现在退出，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN，并会分配给其他玩家。` : '您确定要返回大厅吗？'}
-                        {isGameInProgress ? `(The current game is still in progress. If you exit now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN, which will be distributed to the other players.)` : '(Are you sure you want to return to the lobby?)'}
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
-                    {isGameInProgress ? (
-                        <AlertDialogAction onClick={() => handleLeaveGame(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                           确认退出 (Confirm Exit)
-                        </AlertDialogAction>
-                    ) : (
-                         <AlertDialogAction asChild>
-                            <Link href="/">确认 (Confirm)</Link>
-                        </AlertDialogAction>
-                    )}
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-          </div>
         </div>
-
-        <Card>
-          <CardContent className="p-2 md:p-4">
-            <GameBoard 
-                players={players} 
-                discards={discards}
-                activePlayerId={activePlayer}
-                wallCount={wall.length}
-                dice={dice}
-                gameState={gameState}
-                bankerId={bankerId}
-                turnTimer={turnTimer}
-                turnDuration={TURN_DURATION}
-                goldenTile={goldenTile}
-                seatingRolls={seatingRolls}
-                onRollForSeating={handleRollForSeating}
-                onRollForBanker={handleRollForBanker}
-                onRollForStart={handleRollDice}
-                onRollForGolden={handleRollForGolden}
-                eastPlayerId={eastPlayerId}
-             />
-          </CardContent>
-        </Card>
-
-        <Separator />
-
-        <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold">您的区域 (Your Area)</h2>
-                </div>
-                 <div className="flex items-center gap-4 flex-wrap justify-center">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
-                        <Label htmlFor="ai-control" className="flex items-center gap-1">
-                            {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
-                            AI托管
-                        </Label>
-                    </div>
-                     <div className="flex items-center space-x-2">
-                        <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
-                        <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
-                    </div>
-                    {gameState === 'playing' && activePlayer === 0 && !drawnTile && !humanPlayerAction && (
-                      <Button onClick={handleDrawTile}>
-                          <Hand className="mr-2 h-4 w-4" />
-                          摸牌 (Draw Tile)
-                      </Button>
-                    )}
-                    {gameState === 'playing' && activePlayer === 0 && drawnTile && (
-                        <Button onClick={() => handleWin()} variant="destructive">
-                            <Trophy className="mr-2 h-4 w-4 text-yellow-300"/>
-                            自摸胡牌 (Win)
-                        </Button>
-                    )}
-                 </div>
+        <div className="flex items-center gap-2">
+             <div className="p-1 rounded bg-black/50 text-center">
+                <p className="text-yellow-400 font-bold">2080</p>
+                <p className="text-xs">社区任务福利</p>
             </div>
-            
-            <div className="relative p-4 bg-background/50 rounded-lg min-h-[12rem] flex items-end justify-center">
-               
-                 {/* Action Buttons Area */}
-                {humanPlayerAction && (
-                    <div className="absolute bottom-4 left-4 z-20 space-y-2">
-                        <div className='w-full mb-1'>
-                            <Progress value={(actionTimer / ACTION_DURATION) * 100} className="h-1 [&>div]:bg-yellow-400" />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            {humanPlayerAction.actions.win && <Button onClick={() => handleWin(0)} size="sm" variant="destructive">胡 (Win)</Button>}
-                            {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', 0)} size="sm">吃 (Chow)</Button>}
-                            {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm">碰 (Pong)</Button>}
-                            {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm">杠 (Kong)</Button>}
-                            <Button onClick={() => handleAction('skip', 0)} size="sm" variant="secondary">跳过 ({actionTimer}s)</Button>
-                        </div>
+            <Button variant="ghost" size="sm">...</Button>
+        </div>
+      </div>
+
+
+      <div className={cn("relative", isLandscape ? 'pt-12 pb-24' : 'p-4')}>
+        <div className={cn("grid gap-6", !isLandscape && "lg:grid-cols-4")}>
+            <div className={cn("space-y-6", !isLandscape && "lg:col-span-3")}>
+                <div className={cn("flex flex-wrap justify-between items-center gap-4", isLandscape && "hidden")}>
+                <h1 className="text-2xl font-bold font-headline text-primary">{`${roomTierMap[roomTier]} (${roomTier} Room)`}</h1>
+                <div className="flex items-center gap-2 text-xl font-bold text-primary border-2 border-primary/50 bg-primary/10 px-3 py-1 rounded-lg">
+                        <Trophy />
+                        <span>奖池 (Pot): {pot} $JIN</span>
                     </div>
-                )}
-                
-                {/* Hand Area */}
-                <PlayerHand 
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Button onClick={() => setIsLandscape(!isLandscape)} variant="outline"><RotateCw /> {isLandscape ? '切换竖屏' : '切换横屏'}</Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline"><BookOpen/> 玩法说明 (Rules)</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>闽南游金麻将 (Minnan Golden Mahjong Rules)</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
+                                    <div>
+                                        <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
+                                        <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-foreground">游戏玩法 (Gameplay)</h3>
+                                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                                            <li><strong>吃 (Chow):</strong> 只能吃您**上家**（左边的玩家）打出的牌来组成顺子。</li>
+                                            <li><strong>碰 (Pong):</strong> 可以碰**任何一家**打出的牌来组成刻子（三张相同的牌）。</li>
+                                            <li><strong>杠 (Kong):</strong> 可以杠**任何一家**打出的牌来组成杠子（四张相同的牌）。</li>
+                                            <li><strong>优先级 (Priority):</strong> 胡牌 > 碰/杠 > 吃。如果多个玩家可以对同一张牌执行操作，高优先级的操作会覆盖低优先级的。</li>
+                                            <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌或有玩家弃牌后，如果您的手牌已满足胡牌条件，系统会自动出现“胡牌”按钮。</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-foreground">计分规则 (Scoring)</h3>
+                                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                                            <li><strong>普通胡牌 (Standard Win)：</strong>赢家获得奖池内所有押金。输家均分损失。</li>
+                                            <li><strong>自摸 (Self-Drawn Win)：</strong>自摸胡牌的赢家，奖金翻倍。</li>
+                                            <li><strong>游金 (Golden Tour Win)：</strong>使用“金牌”作为胡牌的关键张时，称为“游金”。根据打出金牌的时机获得额外翻倍奖励。</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogAction> <ThumbsUp className="mr-2"/> 明白了 (Got it)</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline"><Shuffle />新对局 (New Game)</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>开始新对局吗？ (Start a New Game?)</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {isGameInProgress ? `当前对局仍在进行中。如果现在开始新对局，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN。` : '您确定要开始一个新对局吗？'}
+                                {isGameInProgress ? `(The current game is still in progress. If you start a new game now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN for this round.)` : '(Are you sure you want to start a new game?)'}
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleLeaveGame(true)} className={isGameInProgress ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
+                                确认 (Confirm)
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline"><Undo2 />返回大厅 (Back to Lobby)</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>确认退出吗？ (Confirm Exit?)</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {isGameInProgress ? `当前对局仍在进行中。如果现在退出，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN，并会分配给其他玩家。` : '您确定要返回大厅吗？'}
+                                {isGameInProgress ? `(The current game is still in progress. If you exit now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN, which will be distributed to the other players.)` : '(Are you sure you want to return to the lobby?)'}
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                            {isGameInProgress ? (
+                                <AlertDialogAction onClick={() => handleLeaveGame(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                确认退出 (Confirm Exit)
+                                </AlertDialogAction>
+                            ) : (
+                                <AlertDialogAction asChild>
+                                    <Link href="/">确认 (Confirm)</Link>
+                                </AlertDialogAction>
+                            )}
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+                </div>
+
+                <div className={cn("relative", isLandscape && "h-[calc(100vh-8rem)] flex items-center justify-center")}>
+                    <GameBoard 
+                        players={players} 
+                        discards={discards}
+                        activePlayerId={activePlayer}
+                        wallCount={wall.length}
+                        dice={dice}
+                        gameState={gameState}
+                        bankerId={bankerId}
+                        turnTimer={turnTimer}
+                        turnDuration={TURN_DURATION}
+                        goldenTile={goldenTile}
+                        seatingRolls={seatingRolls}
+                        onRollForSeating={handleRollForSeating}
+                        onRollForBanker={handleRollForBanker}
+                        onRollForStart={handleRollDice}
+                        onRollForGolden={handleRollForGolden}
+                        eastPlayerId={eastPlayerId}
+                        isLandscape={isLandscape}
+                        humanPlayerAction={humanPlayerAction}
+                        onAction={handleAction}
+                        actionTimer={actionTimer}
+                        actionDuration={ACTION_DURATION}
+                    />
+                </div>
+
+                <div className={cn(isLandscape && "hidden")}>
+                    <Separator />
+                    <div className="space-y-4 mt-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-xl font-bold">您的区域 (Your Area)</h2>
+                            </div>
+                            <div className="flex items-center gap-4 flex-wrap justify-center">
+                                <div className="flex items-center space-x-2">
+                                    <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
+                                    <Label htmlFor="ai-control" className="flex items-center gap-1">
+                                        {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
+                                        AI托管
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
+                                    <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
+                                </div>
+                                {gameState === 'playing' && activePlayer === 0 && !drawnTile && !humanPlayerAction && (
+                                <Button onClick={handleDrawTile}>
+                                    <Hand className="mr-2 h-4 w-4" />
+                                    摸牌 (Draw Tile)
+                                </Button>
+                                )}
+                                {gameState === 'playing' && activePlayer === 0 && drawnTile && (
+                                    <Button onClick={() => handleWin()} variant="destructive">
+                                        <Trophy className="mr-2 h-4 w-4 text-yellow-300"/>
+                                        自摸胡牌 (Win)
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="relative p-4 bg-background/50 rounded-lg min-h-[12rem] flex items-end justify-center">
+                            <PlayerHand 
+                                hand={humanPlayer?.hand || []} 
+                                onTileClick={handleSelectOrDiscardTile}
+                                canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
+                                goldenTile={goldenTile}
+                                selectedTileIndex={selectedTileIndex}
+                            />
+                        </div>
+
+                    </div>
+                    <div className="text-xs text-muted-foreground break-all mt-4">
+                        <strong>Shuffle Hash (确保公平):</strong> {shuffleHash}
+                    </div>
+                </div>
+
+            </div>
+            <div className={cn("lg:col-span-1", isLandscape && "hidden")}>
+                <AiTutor />
+            </div>
+      </div>
+
+       {/* Landscape-specific bottom bar with hand and actions */}
+        <div className={cn("landscape-bottom-bar", isLandscape ? "flex" : "hidden", "fixed bottom-0 left-0 right-0 p-2 bg-black/30 items-end justify-between z-20")}>
+            <div className='flex-1'>
+                 {/* Placeholder for player info or other UI */}
+            </div>
+            <div className="flex-grow flex items-end justify-center">
+                 <PlayerHand 
                     hand={humanPlayer?.hand || []} 
                     onTileClick={handleSelectOrDiscardTile}
                     canInteract={!!drawnTile && activePlayer === 0 && !isAiControlled}
                     goldenTile={goldenTile}
                     selectedTileIndex={selectedTileIndex}
+                    isLandscape={isLandscape}
                 />
             </div>
-
+            <div className='flex-1 flex justify-end items-center gap-2'>
+                {/* Right side action buttons */}
+                <div className="flex flex-col gap-2 items-center">
+                    <Button variant="secondary" size="icon" className="rounded-full h-12 w-12">聊</Button>
+                    <Button variant="secondary" size="icon" className="rounded-full h-12 w-12">听</Button>
+                </div>
+            </div>
         </div>
-        <div className="text-xs text-muted-foreground break-all">
-            <strong>Shuffle Hash (确保公平):</strong> {shuffleHash}
-        </div>
-      </div>
-      <div className="lg:col-span-1">
-        <AiTutor />
       </div>
 
        <AlertDialog open={gameState === 'game-over'}>
@@ -1121,6 +1161,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
- 
-
-    

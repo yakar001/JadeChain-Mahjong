@@ -2,16 +2,27 @@
 import { MahjongTile } from './mahjong-tile';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle, Layers, Dices } from 'lucide-react';
+import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle, Layers, Dices, Compass } from 'lucide-react';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
+import { Progress } from '../ui/progress';
 
 type Tile = { suit: string; value: string };
 type Discard = { tile: Tile, playerId: number };
 type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
+type Action = 'pong' | 'kong' | 'chow' | 'win';
+type ActionPossibility = {
+    playerId: number;
+    actions: {
+        win: boolean;
+        pong: boolean;
+        kong: boolean;
+        chow: boolean;
+    }
+} | null;
 
 interface GameBoardProps {
   players: Player[];
@@ -30,6 +41,11 @@ interface GameBoardProps {
   onRollForStart: () => void;
   onRollForGolden: () => void;
   eastPlayerId: number | null;
+  isLandscape: boolean;
+  humanPlayerAction: ActionPossibility;
+  onAction: (action: Action | 'skip', playerId: number) => void;
+  actionTimer: number;
+  actionDuration: number;
 }
 
 const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number }) => {
@@ -125,9 +141,12 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
   );
 };
 
-const DiscardArea = ({ discards }: { discards: Discard[] }) => {
+const DiscardArea = ({ discards, isLandscape }: { discards: Discard[], isLandscape?: boolean }) => {
     return (
-        <div className="w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
+        <div className={cn(
+            "w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded",
+            isLandscape && "justify-center"
+        )}>
             {discards.map((discard, index) => (
                 <MahjongTile key={index} suit={discard.tile.suit} value={discard.tile.value as any} size="sm" />
             ))}
@@ -165,7 +184,7 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     </div>
 );
 
-export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId }: GameBoardProps) {
+export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, isLandscape, humanPlayerAction, onAction, actionTimer, actionDuration }: GameBoardProps) {
     const playerSouth = players.find(p => p.id === 0); // Human
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
@@ -225,24 +244,31 @@ export function GameBoard({ players, discards, activePlayerId, wallCount, dice, 
     }
 
   return (
-    <div className="relative w-full aspect-square max-w-[80vh] mx-auto">
+    <div className={cn("relative w-full aspect-square max-w-[80vh] mx-auto", isLandscape && "w-[80vh] h-[80vh] max-w-none max-h-none")}>
         {/* Player Info Areas */}
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 transform-gpu">
-          {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
-        </div>
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 transform-gpu origin-center -rotate-90">
-            {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
-        </div>
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2 transform-gpu">
-            {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
-        </div>
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 transform-gpu origin-center rotate-90">
-            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
-        </div>
+        {!isLandscape && (
+            <>
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 transform-gpu">
+                {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
+                </div>
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 transform-gpu origin-center -rotate-90">
+                    {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+                </div>
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 transform-gpu">
+                    {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+                </div>
+                <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 transform-gpu origin-center rotate-90">
+                    {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+                </div>
+            </>
+        )}
 
 
-        <div className="absolute inset-[8%]">
-            <div className="aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative flex items-center justify-center">
+        <div className={cn("absolute", isLandscape ? "inset-0" : "inset-[8%]")}>
+            <div className={cn(
+                "aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative flex items-center justify-center",
+                 isLandscape && "bg-green-900/80 border-amber-700/80 [transform-style:preserve-3d] [transform:perspective(1000px)_rotateX(60deg)] w-full h-full"
+            )}>
                 <div className="absolute inset-4 sm:inset-8 md:inset-12 border-2 border-yellow-800/30 rounded" />
                 
                 {/* Walls */}
@@ -260,10 +286,42 @@ export function GameBoard({ players, discards, activePlayerId, wallCount, dice, 
                 </div>
                 
                 {/* Center Area */}
-                <div className="absolute inset-[20%]">
-                    <DiscardArea discards={discards} />
+                <div className={cn("absolute", isLandscape ? "inset-[25%]" : "inset-[20%]")}>
+                    <DiscardArea discards={discards} isLandscape={isLandscape}/>
                 </div>
                 
+                {/* Landscape Center Info */}
+                 {isLandscape && (
+                     <div className="absolute inset-0 flex items-center justify-center [transform:rotateX(-60deg)_translateZ(-50px)]">
+                        <div className="bg-black/50 p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
+                             <h2 className="text-2xl font-bold text-yellow-400 font-headline tracking-widest" style={{textShadow: '0 0 5px #fde047, 0 0 10px #fde047'}}>游金</h2>
+                             <p className="text-xs font-mono uppercase tracking-wider text-yellow-200/80">ya-kar</p>
+                            <div className='flex items-center justify-center gap-4 mt-2'>
+                                <Compass className="w-8 h-8"/>
+                                <div>
+                                    <p className="text-lg font-bold">{wallCount}</p>
+                                    <p className="text-xs">剩余</p>
+                                </div>
+                            </div>
+                        </div>
+                     </div>
+                 )}
+                
+                {/* Action Buttons Area */}
+                {humanPlayerAction && (
+                    <div className="absolute inset-0 flex items-center justify-center z-20">
+                        <div className='bg-black/50 p-2 rounded-lg flex items-center gap-2'>
+                            <Progress value={(actionTimer / actionDuration) * 100} className="absolute -top-2 left-0 right-0 w-full h-1 [&>div]:bg-yellow-400" />
+                            {humanPlayerAction.actions.win && <Button onClick={() => onAction('win', 0)} size="sm" variant="destructive" className="w-16 h-10">胡</Button>}
+                            {humanPlayerAction.actions.kong && <Button onClick={() => onAction('kong', 0)} size="sm" className="w-16 h-10">杠</Button>}
+                            {humanPlayerAction.actions.pong && <Button onClick={() => onAction('pong', 0)} size="sm" className="w-16 h-10">碰</Button>}
+                            {humanPlayerAction.actions.chow && <Button onClick={() => onAction('chow', 0)} size="sm" className="w-16 h-10">吃</Button>}
+                            <Button onClick={() => onAction('skip', 0)} size="sm" variant="secondary" className="w-16 h-10">跳过 ({actionTimer}s)</Button>
+                        </div>
+                    </div>
+                )}
+
+
                 {/* Dice Rolling Overlay */}
                 {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll') || gameState === 'banker-roll-for-golden') && (
                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-20">

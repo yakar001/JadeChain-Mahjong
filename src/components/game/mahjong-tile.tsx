@@ -10,7 +10,7 @@ interface MahjongTileProps {
   suit: TileSuit;
   value: TileValue;
   className?: string;
-  size?: 'md' | 'sm';
+  size?: 'md' | 'sm' | 'lg';
   isClickable?: boolean;
   isGolden?: boolean;
 }
@@ -94,7 +94,9 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
       className={cn(
         'bg-stone-50 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-stone-300 dark:border-stone-400/80 overflow-hidden relative',
         'dark:bg-gradient-to-b from-stone-50 to-stone-200',
-        size === 'md' ? 'w-[6.5vw] h-[9vw] max-w-[65px] max-h-[90px]' : 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
+        size === 'sm' && 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
+        size === 'md' && 'w-[6.5vw] h-[9vw] max-w-[65px] max-h-[90px]',
+        size === 'lg' && 'w-16 h-24',
         isClickable && 'transform transition-transform hover:-translate-y-2 cursor-pointer active:scale-95',
         isGolden && 'shadow-yellow-400/50 shadow-lg border-yellow-500 ring-2 ring-yellow-400',
         className

@@ -103,4 +103,12 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .game-container.landscape {
+    background-color: #0c4a36;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+  
 }
