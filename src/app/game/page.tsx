@@ -25,7 +25,7 @@ type Discard = { tile: Tile; playerId: number };
 type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: Tile[], melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
-type Action = 'pong' | 'kong' | 'chow' | 'skip' | 'win';
+type Action = 'pong' | 'kong' | 'chow' | 'win';
 type ActionPossibility = {
     playerId: number;
     actions: {
@@ -294,20 +294,26 @@ function GameRoom() {
   };
 
 
-  const handleDiscardTile = useCallback(async (playerIndex: number, tileIndex: number) => {
-    if (activePlayer === null) return;
+  const handleDiscardTile = useCallback(async (playerId: number, tileIndex: number) => {
     const updatedPlayers = [...players];
-    const player = updatedPlayers.find(p => p.id === playerIndex);
+    const player = updatedPlayers.find(p => p.id === playerId);
 
     if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
-      console.error("Invalid discard attempt");
-      return;
+      console.error("Invalid discard attempt", {playerId, tileIndex, playerHand: player?.hand});
+      // As a fallback, if index is invalid, discard last tile
+      if (player && player.hand.length > 0) {
+          tileIndex = player.hand.length - 1;
+      } else {
+          // No tiles to discard, maybe game should end?
+          handleEndGame(players);
+          return;
+      }
     }
 
     const tileToDiscard = player.hand[tileIndex];
     
     player.hand.splice(tileIndex, 1);
-    setDiscards(prev => [...prev, { tile: tileToDiscard, playerId: playerIndex }]);
+    setDiscards(prev => [...prev, { tile: tileToDiscard, playerId: playerId }]);
     
     setPlayers(updatedPlayers);
     setDrawnTile(null);
@@ -324,13 +330,13 @@ function GameRoom() {
     // Check for actions from other players
     const potentialActions: ActionPossibility[] = [];
     players.forEach(p => {
-        if (p.id !== playerIndex) {
-             const previousPlayerId = (playerIndex + players.length - 1) % players.length;
+        if (p.id !== playerId) {
+             const previousPlayerId = (playerId + players.length - 1) % players.length;
              // SIMULATION: Check if a player can perform an action.
              const canWin = Math.random() < 0.05; // 5% chance to win on any discard
              const canPong = Math.random() < 0.2; // 20% chance
              const canKong = Math.random() < 0.1; // 10% chance
-             const canChow = (p.id === (playerIndex + 1) % players.length) && Math.random() < 0.3; // 30% from previous player
+             const canChow = (p.id === (playerId + 1) % players.length) && Math.random() < 0.3; // 30% from previous player
 
              if (canWin || canPong || canKong || canChow) {
                  potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
@@ -354,12 +360,12 @@ function GameRoom() {
             setActionPossibilities(potentialActions);
         }
     } else {
-        const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+        const currentPlayerIndexInArray = players.findIndex(p => p.id === playerId);
         const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
         setActivePlayer(nextPlayer.id);
     }
     
-  }, [players, activePlayer, playSound]);
+  }, [players, playSound, handleEndGame]);
 
   // Game flow and AI automation
   useEffect(() => {
@@ -395,7 +401,7 @@ function GameRoom() {
           if (currentPlayer && currentPlayer.isAI && !actionPossibilities.length) {
             await delay(Math.random() * 1000 + 1000); // Simulate 1-2s thinking
 
-            // Banker starts with 14 tiles, so they discard directly.
+            // Banker starts with 14 tiles, so they discard directly on first turn.
             if (currentPlayer.hand.length % 3 === 2) {
                 const discardIndex = Math.floor(Math.random() * currentPlayer.hand.length);
                 handleDiscardTile(activePlayer, discardIndex);
@@ -403,13 +409,15 @@ function GameRoom() {
             }
 
             // Otherwise, draw a tile then discard.
-            if (Math.random() < 0.05) { 
+            // Check for self-drawn win
+            if (Math.random() < 0.05) { // 5% chance for AI to win on its turn
               handleWin(currentPlayer.id);
               return;
             }
 
             const wallCopy = [...wall];
             const drawnTileFromWall = wallCopy.pop();
+
             if (drawnTileFromWall) {
               const updatedPlayers = players.map(p => {
                 if (p.id === activePlayer) {
@@ -427,10 +435,18 @@ function GameRoom() {
               handleDiscardTile(activePlayer, discardIndex);
 
             } else {
+              // Wall is empty, end game in a draw
               handleEndGame(players);
             }
           }
           break;
+        case 'game-over':
+        case 'rolling-seating':
+        case 'rolling-banker':
+        case 'rolling':
+        case 'deal':
+            // No automatic actions needed in these states
+            break;
       }
     };
     
@@ -494,6 +510,7 @@ function GameRoom() {
     setGameState('pre-roll-seating');
     setRoundResult(null);
     setSeatingRolls([]);
+    setActionPossibilities([]);
     const newDeck = createDeck();
     
     const deckString = JSON.stringify(newDeck.sort((a,b) => (a.suit+a.value).localeCompare(b.suit+b.value)));
@@ -715,6 +732,9 @@ function GameRoom() {
     clearTimer(actionTimerRef);
     if (activePlayer === null) return;
     
+    const lastDiscarderId = discards[discards.length-1]?.playerId;
+    if(lastDiscarderId === undefined) return;
+
     // SIMULATION: Check if the action is valid. 50% chance of being invalid for demo purposes.
      if (Math.random() < 0.5 && action !== 'skip') {
         toast({
@@ -724,7 +744,7 @@ function GameRoom() {
         });
         setActionPossibilities([]);
         // After an invalid action, the turn should pass to the next player.
-        const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+        const currentPlayerIndexInArray = players.findIndex(p => p.id === lastDiscarderId);
         const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
         setActivePlayer(nextPlayer.id);
         return;
@@ -734,12 +754,12 @@ function GameRoom() {
       'pong': '碰',
       'kong': '杠',
       'chow': '吃',
-      'skip': '',
       'win': '胡牌',
-    }
+    } as const;
     
-    if (actionSoundMap[action]) {
-        playSound(actionSoundMap[action]);
+    const soundKey = action as keyof typeof actionSoundMap;
+    if (actionSoundMap[soundKey]) {
+        playSound(actionSoundMap[soundKey]);
     }
     
     setActionPossibilities([]); 
@@ -789,7 +809,7 @@ function GameRoom() {
     }
 
     if (action === 'skip') {
-        const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+        const currentPlayerIndexInArray = players.findIndex(p => p.id === lastDiscarderId);
         const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
         setActivePlayer(nextPlayer.id);
     }
@@ -1102,3 +1122,5 @@ export default function GamePage() {
     )
 }
  
+
+    
