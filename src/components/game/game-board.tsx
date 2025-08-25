@@ -7,16 +7,14 @@ import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { Progress } from '../ui/progress';
 
 type Tile = { suit: string; value: string };
 type Discard = { tile: Tile, playerId: number };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; discards: Tile[] };
 type DiceRoll = [number, number];
 
 interface GameBoardProps {
   players: Player[];
-  discards: Discard[];
   activePlayerId: number | null;
   wallCount: number;
   dice: DiceRoll;
@@ -32,6 +30,7 @@ interface GameBoardProps {
   onRollForGolden: () => void;
   eastPlayerId: number | null;
   isLandscape: boolean;
+  latestDiscard: Discard | null;
 }
 
 const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number }) => {
@@ -127,31 +126,20 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
   );
 };
 
-const DiscardArea = ({ discards, isLandscape }: { discards: Discard[], isLandscape?: boolean }) => {
-    const MAX_TILES_PER_ROW = isLandscape ? 12 : 10;
+const DiscardArea = ({ discards, latestDiscard }: { discards: Tile[], latestDiscard: Discard | null }) => {
+    const MAX_TILES_PER_ROW = 8;
+    
     return (
-        <div className={cn(
-            "w-full h-full relative",
-            isLandscape && "flex justify-center items-center"
-        )}>
-            <div className="flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
-                {discards.slice(0, MAX_TILES_PER_ROW * 2).map((discard, index) => (
-                    <div
+        <div className="w-full h-full relative p-1 flex items-center justify-center">
+            <div className="grid grid-cols-8 gap-1">
+                {discards.slice(0, MAX_TILES_PER_ROW * 2).map((tile, index) => (
+                    <MahjongTile 
                         key={index}
-                        className="relative"
-                        style={{
-                            zIndex: Math.floor(index / MAX_TILES_PER_ROW),
-                            marginTop: Math.floor(index / MAX_TILES_PER_ROW) > 0 ? '-0.5rem' : '0',
-                            marginLeft: Math.floor(index / MAX_TILES_PER_ROW) > 0 ? '0.25rem' : '0',
-                        }}
-                    >
-                         <MahjongTile 
-                            suit={discard.tile.suit} 
-                            value={discard.tile.value as any} 
-                            size="sm" 
-                            isLatestDiscard={index === discards.length - 1} 
-                        />
-                    </div>
+                        suit={tile.suit} 
+                        value={tile.value as any} 
+                        size="sm" 
+                        isLatestDiscard={latestDiscard?.tile === tile}
+                    />
                 ))}
             </div>
         </div>
@@ -188,8 +176,9 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     </div>
 );
 
-export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, isLandscape }: GameBoardProps) {
-    const playerSouth = players.find(p => p.id === 0); // Human
+export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, isLandscape, latestDiscard }: GameBoardProps) {
+    // Player positions are fixed: 0 is south (bottom), 1 is east (right), 2 is north (top), 3 is west (left)
+    const playerSouth = players.find(p => p.id === 0);
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
     const playerWest = players.find(p => p.id === 3);
@@ -250,30 +239,25 @@ export function GameBoard({ players, discards, activePlayerId, wallCount, dice, 
   return (
     <div className={cn("relative w-full aspect-square max-w-[80vh] mx-auto", isLandscape && "w-[80vh] h-[80vh] max-w-none max-h-none")}>
         {/* Player Info Areas */}
-        {!isLandscape && (
-            <>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 transform-gpu">
-                {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
-                </div>
-                <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 transform-gpu origin-center -rotate-90">
-                    {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
-                </div>
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 transform-gpu">
-                    {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
-                </div>
-                <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 transform-gpu origin-center rotate-90">
-                    {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
-                </div>
-            </>
-        )}
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 transform-gpu z-20">
+            {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile}/>}
+        </div>
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 transform-gpu origin-center -rotate-90 z-20">
+            {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+        </div>
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 transform-gpu z-20">
+            {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} />}
+        </div>
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 transform-gpu origin-center rotate-90 z-20">
+            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} goldenTile={goldenTile} orientation="vertical" />}
+        </div>
 
 
         <div className={cn("absolute", isLandscape ? "inset-0" : "inset-[8%]")}>
             <div className={cn(
-                "aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative flex items-center justify-center",
+                "aspect-square bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4 relative grid grid-cols-3 grid-rows-3",
                  isLandscape && "bg-green-900/80 border-amber-700/80 [transform-style:preserve-3d] [transform:perspective(1000px)_rotateX(60deg)] w-full h-full"
             )}>
-                <div className="absolute inset-4 sm:inset-8 md:inset-12 border-2 border-yellow-800/30 rounded" />
                 
                 {/* Walls */}
                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-full flex justify-center">
@@ -289,31 +273,35 @@ export function GameBoard({ players, discards, activePlayerId, wallCount, dice, 
                     <WallSegment count={east} orientation="vertical" />
                 </div>
                 
-                {/* Center Area */}
-                <div className={cn("absolute", isLandscape ? "inset-[25%]" : "inset-[20%]")}>
-                    <DiscardArea discards={discards} isLandscape={isLandscape}/>
-                </div>
-                
-                {/* Landscape Center Info */}
-                 {isLandscape && (
-                     <div className="absolute inset-0 flex items-center justify-center [transform:rotateX(-60deg)_translateZ(-50px)]">
-                        <div className="bg-black/50 p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
-                             <h2 className="text-2xl font-bold text-yellow-400 font-headline tracking-widest" style={{textShadow: '0 0 5px #fde047, 0 0 10px #fde047'}}>游金</h2>
-                             <p className="text-xs font-mono uppercase tracking-wider text-yellow-200/80">ya-kar</p>
-                            <div className='flex items-center justify-center gap-4 mt-2'>
-                                <Compass className="w-8 h-8"/>
-                                <div>
-                                    <p className="text-lg font-bold">{wallCount}</p>
-                                    <p className="text-xs">剩余</p>
+                {/* Center Discard Area and Player Discard Areas */}
+                 <div className="row-start-2 col-start-2 bg-green-800/50 border-2 border-yellow-800/30 rounded flex items-center justify-center">
+                     {/* Center Area */}
+                    {isLandscape && (
+                        <div className="absolute inset-0 flex items-center justify-center [transform:rotateX(-60deg)_translateZ(-50px)]">
+                            <div className="bg-black/50 p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
+                                <h2 className="text-2xl font-bold text-yellow-400 font-headline tracking-widest" style={{textShadow: '0 0 5px #fde047, 0 0 10px #fde047'}}>游金</h2>
+                                <p className="text-xs font-mono uppercase tracking-wider text-yellow-200/80">ya-kar</p>
+                                <div className='flex items-center justify-center gap-4 mt-2'>
+                                    <Compass className="w-8 h-8"/>
+                                    <div>
+                                        <p className="text-lg font-bold">{wallCount}</p>
+                                        <p className="text-xs">剩余</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                     </div>
-                 )}
+                    )}
+                 </div>
+
+                {playerNorth && <div className="row-start-1 col-start-2"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} /></div>}
+                {playerWest && <div className="row-start-2 col-start-1"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} /></div>}
+                {playerEast && <div className="row-start-2 col-start-3"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} /></div>}
+                {playerSouth && <div className="row-start-3 col-start-2"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} /></div>}
+                
 
                 {/* Dice Rolling Overlay */}
                 {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll') || gameState === 'banker-roll-for-golden') && (
-                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-20">
+                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-20 col-span-3 row-span-3">
                          {gameState.startsWith('rolling') && <DiceRoller dice={dice} rolling={true} />}
                          {gameState.startsWith('pre-roll') && <DiceRoller dice={[1,1]} rolling={false} />}
                          {gameState === 'banker-roll-for-golden' && <DiceRoller dice={[1,1]} rolling={false} />}
