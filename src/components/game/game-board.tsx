@@ -13,16 +13,6 @@ type Tile = { suit: string; value: string };
 type Discard = { tile: Tile, playerId: number };
 type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; };
 type DiceRoll = [number, number];
-type Action = 'pong' | 'kong' | 'chow' | 'win';
-type ActionPossibility = {
-    playerId: number;
-    actions: {
-        win: boolean;
-        pong: boolean;
-        kong: boolean;
-        chow: boolean;
-    }
-} | null;
 
 interface GameBoardProps {
   players: Player[];
@@ -42,10 +32,6 @@ interface GameBoardProps {
   onRollForGolden: () => void;
   eastPlayerId: number | null;
   isLandscape: boolean;
-  humanPlayerAction: ActionPossibility;
-  onAction: (action: Action | 'skip', playerId: number) => void;
-  actionTimer: number;
-  actionDuration: number;
 }
 
 const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number }) => {
@@ -142,20 +128,32 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
 };
 
 const DiscardArea = ({ discards, isLandscape }: { discards: Discard[], isLandscape?: boolean }) => {
+    const MAX_TILES_PER_ROW = isLandscape ? 12 : 10;
     return (
         <div className={cn(
-            "w-full h-full flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded",
-            isLandscape && "justify-center"
+            "w-full h-full relative",
+            isLandscape && "flex justify-center items-center"
         )}>
-            {discards.map((discard, index) => (
-                <MahjongTile 
-                    key={index} 
-                    suit={discard.tile.suit} 
-                    value={discard.tile.value as any} 
-                    size="sm" 
-                    isLatestDiscard={index === discards.length - 1} 
-                />
-            ))}
+            <div className="flex flex-wrap items-start justify-start content-start gap-1 p-2 bg-black/10 rounded">
+                {discards.slice(0, MAX_TILES_PER_ROW * 2).map((discard, index) => (
+                    <div
+                        key={index}
+                        className="relative"
+                        style={{
+                            zIndex: Math.floor(index / MAX_TILES_PER_ROW),
+                            marginTop: Math.floor(index / MAX_TILES_PER_ROW) > 0 ? '-0.5rem' : '0',
+                            marginLeft: Math.floor(index / MAX_TILES_PER_ROW) > 0 ? '0.25rem' : '0',
+                        }}
+                    >
+                         <MahjongTile 
+                            suit={discard.tile.suit} 
+                            value={discard.tile.value as any} 
+                            size="sm" 
+                            isLatestDiscard={index === discards.length - 1} 
+                        />
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
@@ -190,7 +188,7 @@ const WallSegment = ({ count, orientation }: { count: number; orientation: 'hori
     </div>
 );
 
-export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, isLandscape, humanPlayerAction, onAction, actionTimer, actionDuration }: GameBoardProps) {
+export function GameBoard({ players, discards, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, isLandscape }: GameBoardProps) {
     const playerSouth = players.find(p => p.id === 0); // Human
     const playerEast = players.find(p => p.id === 1);
     const playerNorth = players.find(p => p.id === 2);
@@ -312,21 +310,6 @@ export function GameBoard({ players, discards, activePlayerId, wallCount, dice, 
                         </div>
                      </div>
                  )}
-                
-                {/* Action Buttons Area */}
-                {humanPlayerAction && (
-                    <div className="absolute inset-0 flex items-center justify-center z-20">
-                        <div className='bg-black/50 p-2 rounded-lg flex items-center gap-2'>
-                            <Progress value={(actionTimer / actionDuration) * 100} className="absolute -top-2 left-0 right-0 w-full h-1 [&>div]:bg-yellow-400" />
-                            {humanPlayerAction.actions.win && <Button onClick={() => onAction('win', 0)} size="sm" variant="destructive" className="w-16 h-10">胡</Button>}
-                            {humanPlayerAction.actions.kong && <Button onClick={() => onAction('kong', 0)} size="sm" className="w-16 h-10">杠</Button>}
-                            {humanPlayerAction.actions.pong && <Button onClick={() => onAction('pong', 0)} size="sm" className="w-16 h-10">碰</Button>}
-                            {humanPlayerAction.actions.chow && <Button onClick={() => onAction('chow', 0)} size="sm" className="w-16 h-10">吃</Button>}
-                            <Button onClick={() => onAction('skip', 0)} size="sm" variant="secondary" className="w-16 h-10">跳过 ({actionTimer}s)</Button>
-                        </div>
-                    </div>
-                )}
-
 
                 {/* Dice Rolling Overlay */}
                 {(gameState.startsWith('rolling') || gameState.startsWith('pre-roll') || gameState === 'banker-roll-for-golden') && (
