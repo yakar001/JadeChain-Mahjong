@@ -98,6 +98,76 @@ const getTileName = (tile: Tile): string => {
     return honorMap[tile.value] || '';
 }
 
+// SIMULATED WINNING HAND CHECK
+// This is a simplified check and does not cover all complex mahjong hands.
+// It checks for the basic "4 melds and 1 pair" structure.
+const isWinningHand = (hand: Tile[]): boolean => {
+    if (hand.length % 3 !== 2) return false; // Must be 14, 11, 8, 5, or 2 tiles
+
+    const tileToKey = (tile: Tile) => `${tile.suit}-${tile.value}`;
+    const counts: Record<string, number> = {};
+    for (const tile of hand) {
+        const key = tileToKey(tile);
+        counts[key] = (counts[key] || 0) + 1;
+    }
+
+    // Recursive function to check for melds
+    function canFormMelds(currentCounts: Record<string, number>): boolean {
+        let isEmpty = true;
+        for (const key in currentCounts) {
+            if (currentCounts[key] > 0) {
+                isEmpty = false;
+                break;
+            }
+        }
+        if (isEmpty) return true; // All tiles have been formed into melds
+
+        const firstTileKey = Object.keys(currentCounts).find(k => currentCounts[k] > 0);
+        if (!firstTileKey) return true;
+        
+        const [suit, value] = firstTileKey.split('-');
+
+        // Try to form a triplet (Pong)
+        if (currentCounts[firstTileKey] >= 3) {
+            const nextCounts = { ...currentCounts };
+            nextCounts[firstTileKey] -= 3;
+            if (canFormMelds(nextCounts)) return true;
+        }
+
+        // Try to form a sequence (Chow)
+        if (!['wind', 'dragon'].includes(suit)) {
+            const v = parseInt(value, 10);
+            if (v <= 7) {
+                const key2 = `${suit}-${v + 1}`;
+                const key3 = `${suit}-${v + 2}`;
+                if (currentCounts[key2] > 0 && currentCounts[key3] > 0) {
+                    const nextCounts = { ...currentCounts };
+                    nextCounts[firstTileKey] -= 1;
+                    nextCounts[key2] -= 1;
+                    nextCounts[key3] -= 1;
+                    if (canFormMelds(nextCounts)) return true;
+                }
+            }
+        }
+
+        return false; // Cannot form a meld with the current first tile
+    }
+
+    // Iterate through all possible pairs
+    for (const pairKey in counts) {
+        if (counts[pairKey] >= 2) {
+            const countsWithoutPair = { ...counts };
+            countsWithoutPair[pairKey] -= 2;
+            if (canFormMelds(countsWithoutPair)) {
+                return true; // Found a valid combination of 4 melds and 1 pair
+            }
+        }
+    }
+
+    return false; // No valid winning hand found
+};
+
+
 function GameRoom() {
   const searchParams = useSearchParams();
   const roomTier = searchParams.get('tier') || 'Novice';
@@ -200,9 +270,8 @@ function GameRoom() {
     const winner = players.find(p => p.id === id);
     if (!winner) return;
     
-    // SIMULATION: Check if the hand is actually a winning hand.
-    // In a real game, this would involve complex logic. Here, we'll use a 70% chance of success.
-    if (Math.random() < 0.3) {
+    // STRICT WINNING HAND VALIDATION
+    if (!isWinningHand(winner.hand)) {
          toast({
             variant: "destructive",
             title: "诈胡! (False Win!)",
@@ -295,11 +364,11 @@ function GameRoom() {
     }
   };
 
-  const getNextPlayerId = (currentPlayerId: number) => {
+  const getNextPlayerId = useCallback((currentPlayerId: number) => {
       const currentPlayerIndex = players.findIndex(p => p.id === currentPlayerId);
-      if (currentPlayerIndex === -1) return null;
+      if (currentPlayerIndex === -1 || players.length === 0) return null;
       return players[(currentPlayerIndex + 1) % players.length].id;
-  };
+  }, [players]);
 
   const handleDiscardTile = useCallback(async (playerId: number, tileIndex: number) => {
     const updatedPlayers = [...players];
@@ -310,7 +379,7 @@ function GameRoom() {
       if (player && player.hand.length > 0) {
           tileIndex = player.hand.length - 1;
       } else {
-          handleEndGame(players);
+          // Can't discard, maybe end game?
           return;
       }
     }
@@ -318,6 +387,8 @@ function GameRoom() {
     const tileToDiscard = player.hand[tileIndex];
     
     player.hand.splice(tileIndex, 1);
+    // Sort hand after discard for consistency
+    // player.hand.sort(sortTiles); 
     setDiscards(prev => [...prev, { tile: tileToDiscard, playerId: playerId }]);
     setPlayers(updatedPlayers);
     setDrawnTile(null);
@@ -338,7 +409,7 @@ function GameRoom() {
              const isNextPlayer = p.id === getNextPlayerId(playerId);
              
              // SIMULATION: Check if a player can perform an action.
-             const canWin = Math.random() < 0.05; // 5% chance to win on any discard
+             const canWin = Math.random() < 0.05 && isWinningHand([...p.hand, tileToDiscard]); // 5% chance to win on any discard if hand is valid
              const canPong = Math.random() < 0.2; // 20% chance
              const canKong = Math.random() < 0.1; // 10% chance
              const canChow = isNextPlayer && Math.random() < 0.3; // 30% from next player
@@ -363,18 +434,15 @@ function GameRoom() {
              setActionPossibilities(chowActions);
         } else {
              setActionPossibilities([]);
-             const nextPlayerId = getNextPlayerId(playerId);
-             setActivePlayer(nextPlayerId);
+             setActivePlayer(getNextPlayerId(playerId));
         }
     } else {
-        const nextPlayerId = getNextPlayerId(playerId);
-        setActivePlayer(nextPlayerId);
+        setActivePlayer(getNextPlayerId(playerId));
     }
     
-  }, [players, playSound, handleEndGame]);
+  }, [players, playSound, getNextPlayerId]);
 
-  // Game flow and AI automation
-  useEffect(() => {
+  const runGameFlow = useCallback(async () => {
     if (gameState !== 'playing') return;
 
     const currentPlayer = players.find(p => p.id === activePlayer);
@@ -401,52 +469,58 @@ function GameRoom() {
     }
 
     if (currentPlayer && currentPlayer.isAI && activePlayer !== null) {
-      const runAiTurn = async () => {
-          await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000)); // Simulate 1-2s thinking
+        await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000)); // Simulate 1-2s thinking
 
-          // Banker starts with 14 tiles, so they discard directly on first turn.
-          if (currentPlayer.hand.length % 3 === 2) {
-              const discardIndex = Math.floor(Math.random() * currentPlayer.hand.length);
-              handleDiscardTile(activePlayer, discardIndex);
-              return;
-          }
-
-          // Otherwise, draw a tile then discard.
-          const wallCopy = [...wall];
-          if (wallCopy.length === 0) {
-              handleEndGame(players); // Wall is empty, end game in a draw
-              return;
-          }
-
-          const drawnTileFromWall = wallCopy.pop()!;
-          const updatedHand = [...currentPlayer.hand, drawnTileFromWall];
-          
-          // Check for self-drawn win
-          if (Math.random() < 0.05) { // 5% chance for AI to win on its turn
-            handleWin(currentPlayer.id);
+        // Banker starts with 14 tiles, so they discard directly on first turn.
+        if (currentPlayer.hand.length % 3 === 2) {
+            const discardIndex = Math.floor(Math.random() * currentPlayer.hand.length);
+            handleDiscardTile(activePlayer, discardIndex);
             return;
-          }
-          
-          const updatedPlayers = players.map(p => p.id === activePlayer ? { ...p, hand: updatedHand } : p);
-          setWall(wallCopy);
-          setPlayers(updatedPlayers);
-          
-          await new Promise(res => setTimeout(res, 500)); // Pause after drawing
-          
-          const discardIndex = Math.floor(Math.random() * updatedHand.length);
-          handleDiscardTile(activePlayer, discardIndex);
-      };
-      
-      runAiTurn();
+        }
+
+        // Otherwise, draw a tile then discard.
+        const wallCopy = [...wall];
+        if (wallCopy.length === 0) {
+            handleEndGame(players); // Wall is empty, end game in a draw
+            return;
+        }
+
+        const drawnTileFromWall = wallCopy.pop()!;
+        let updatedHand = [...currentPlayer.hand, drawnTileFromWall];
+        
+        // Check for self-drawn win
+        if (isWinningHand(updatedHand)) {
+          handleWin(currentPlayer.id);
+          return;
+        }
+        
+        setWall(wallCopy);
+        setPlayers(prevPlayers => prevPlayers.map(p => p.id === activePlayer ? { ...p, hand: updatedHand } : p));
+        
+        await new Promise(res => setTimeout(res, 500)); // Pause after drawing
+        
+        const discardIndex = Math.floor(Math.random() * updatedHand.length);
+        // This state update can be tricky, we need to make sure handleDiscardTile has the latest players state
+        setPlayers(currentPlayers => {
+            handleDiscardTile(activePlayer, discardIndex);
+            // handleDiscardTile will set the next player, so we just return the state it will produce
+            // This is complex, a better state management might be needed (e.g., useReducer)
+            return currentPlayers; 
+        });
+
     } else if (currentPlayer && !currentPlayer.isAI && activePlayer === 0) {
         // It's human player's turn, if they don't have a drawn tile, they must draw.
         if (!drawnTile && currentPlayer.hand.length % 3 !== 2) {
              setHumanPlayerCanDiscard(false); // Can't discard before drawing
         }
     }
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, activePlayer, players, actionPossibilities]);
+  }, [gameState, activePlayer, players, actionPossibilities, wall, drawnTile]);
+
+  // Game flow and AI automation
+  useEffect(() => {
+    runGameFlow();
+  }, [runGameFlow]);
 
   // Other useEffects for setup and timers
   useEffect(() => {
@@ -734,7 +808,16 @@ function GameRoom() {
       setDrawnTile(tile);
 
       const updatedPlayers = [...players];
-      updatedPlayers[0].hand.push(tile);
+      const player = updatedPlayers.find(p => p.id === 0);
+      if (player) {
+          const newHand = [...player.hand, tile];
+          player.hand = newHand;
+          // Check for self-drawn win
+          if (isWinningHand(newHand)) {
+            // Can optionally show a win button here instead of auto-winning
+          }
+      }
+
       setPlayers(updatedPlayers);
       setHumanPlayerCanDiscard(true); // Player has drawn, can now discard.
     }
@@ -758,8 +841,7 @@ function GameRoom() {
     if (lastDiscarderId === null) return;
     
     if (action === 'skip') {
-        const nextPlayerId = getNextPlayerId(lastDiscarderId);
-        setActivePlayer(nextPlayerId);
+        setActivePlayer(getNextPlayerId(lastDiscarderId));
         return;
     }
 
@@ -776,8 +858,7 @@ function GameRoom() {
             description: `您的手牌不满足'${action}'的条件。`,
         });
         // After an invalid action, the turn should pass to the next player.
-        const nextPlayerId = getNextPlayerId(lastDiscarderId);
-        setActivePlayer(nextPlayerId);
+        setActivePlayer(getNextPlayerId(lastDiscarderId));
         return;
     }
 
