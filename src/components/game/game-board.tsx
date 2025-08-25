@@ -82,7 +82,7 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
         {player.melds.length > 0 && player.melds.map((meld, i) => (
           <div key={i} className="flex gap-px">
              {meld.tiles.map((tile, j) => {
-                const isConcealed = meld.concealed && (j === 1 || j === 2);
+                const isConcealed = meld.concealed && (j === 0 || j === 3);
                 return <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" isFaceDown={isConcealed} />
             })}
           </div>
@@ -130,20 +130,28 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
   );
 };
 
-const DiscardArea = ({ discards, latestDiscard }: { discards: Tile[], latestDiscard: Discard | null }) => {
+const DiscardArea = ({ discards, latestDiscard, orientation = 'bottom' }: { discards: Tile[], latestDiscard: Discard | null, orientation?: 'top' | 'bottom' | 'left' | 'right' }) => {
     const MAX_TILES_PER_ROW = 8;
     
+    const rotationClasses = {
+        top: 'rotate-180',
+        bottom: 'rotate-0',
+        left: 'rotate-90',
+        right: '-rotate-90'
+    }
+
     return (
         <div className="w-full h-full relative p-1 flex items-center justify-center">
             <div className="grid grid-cols-8 gap-1">
                 {discards.slice(0, MAX_TILES_PER_ROW * 2).map((tile, index) => (
-                    <MahjongTile 
-                        key={index}
-                        suit={tile.suit} 
-                        value={tile.value as any} 
-                        size="sm" 
-                        isLatestDiscard={latestDiscard?.tile === tile}
-                    />
+                    <div key={index} className={cn(rotationClasses[orientation])}>
+                        <MahjongTile 
+                            suit={tile.suit} 
+                            value={tile.value as any} 
+                            size="sm" 
+                            isLatestDiscard={latestDiscard?.tile === tile && latestDiscard?.playerId === discards[index].playerId}
+                        />
+                    </div>
                 ))}
             </div>
         </div>
@@ -187,17 +195,15 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     const playerNorth = players.find(p => p.id === 2);
     const playerWest = players.find(p => p.id === 3);
     
-    // Total tiles = 136. Each side has 17 pairs (34 tiles).
     const tilesPerSide = 34;
-    const initialWallCount = 136 - 52; // After dealing
+    const initialWallCount = 136 - 53; // After dealing 13 to each + 1 to banker
     
     const getWallCounts = () => {
         let counts = { east: tilesPerSide, south: tilesPerSide, west: tilesPerSide, north: tilesPerSide };
-        if (gameState === 'pre-roll' || gameState === 'pre-roll-seating' || gameState === 'rolling-seating' || wallCount === 0) return counts;
+        if (gameState === 'pre-roll' || gameState === 'pre-roll-seating' || gameState === 'rolling-seating' || wallCount === 0 || wallCount > initialWallCount) return counts;
 
         let tilesToRemove = (initialWallCount - wallCount);
         
-        // Banker determines start. 0:S, 1:E, 2:N, 3:W
         const sideOrder: Array<keyof typeof counts> = ['east', 'south', 'west', 'north'];
         let startIndex = (bankerId !== null ? (bankerId + 1) % 4 : 0);
         
@@ -212,7 +218,6 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 counts[side] -= tilesToRemove;
                 tilesToRemove = 0;
             }
-            // Move to next player (counter-clockwise)
              startIndex = (startIndex + 1);
         }
         
@@ -280,27 +285,31 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
                 {/* Center Discard Area and Player Discard Areas */}
                  <div className="row-start-2 col-start-2 bg-green-800/50 border-2 border-yellow-800/30 rounded flex items-center justify-center">
                      {/* Center Area */}
-                    {isLandscape && (
-                        <div className="absolute inset-0 flex items-center justify-center [transform:rotateX(-60deg)_translateZ(-50px)]">
-                            <div className="bg-black/50 p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
-                                <h2 className="text-2xl font-bold text-yellow-400 font-headline tracking-widest" style={{textShadow: '0 0 5px #fde047, 0 0 10px #fde047'}}>游金</h2>
-                                <p className="text-xs font-mono uppercase tracking-wider text-yellow-200/80">ya-kar</p>
-                                <div className='flex items-center justify-center gap-4 mt-2'>
-                                    <Compass className="w-8 h-8"/>
-                                    <div>
-                                        <p className="text-lg font-bold">{wallCount}</p>
-                                        <p className="text-xs">剩余</p>
-                                    </div>
+                    <div className={cn("absolute inset-0 flex items-center justify-center", isLandscape && "[transform:rotateX(-60deg)_translateZ(-50px)]")}>
+                        <div className="bg-black/50 p-2 md:p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
+                            {isLandscape ? (
+                                <>
+                                    <h2 className="text-2xl font-bold text-yellow-400 font-headline tracking-widest" style={{textShadow: '0 0 5px #fde047, 0 0 10px #fde047'}}>游金</h2>
+                                    <p className="text-xs font-mono uppercase tracking-wider text-yellow-200/80">ya-kar</p>
+                                </>
+                            ) : (
+                                <h2 className="text-sm font-bold text-yellow-400 font-headline tracking-widest">牌墙</h2>
+                            )}
+                            <div className='flex items-center justify-center gap-2 md:gap-4 mt-2'>
+                                <Layers className="w-4 h-4 md:w-8 md:h-8"/>
+                                <div>
+                                    <p className="text-base md:text-lg font-bold">{wallCount}</p>
+                                    <p className="text-xs">剩余</p>
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
                  </div>
 
-                {playerNorth && <div className="row-start-1 col-start-2"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} /></div>}
-                {playerWest && <div className="row-start-2 col-start-1"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} /></div>}
-                {playerEast && <div className="row-start-2 col-start-3"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} /></div>}
-                {playerSouth && <div className="row-start-3 col-start-2"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} /></div>}
+                {playerNorth && <div className="row-start-1 col-start-2"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} orientation="top" /></div>}
+                {playerWest && <div className="row-start-2 col-start-1"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} orientation="left"/></div>}
+                {playerEast && <div className="row-start-2 col-start-3"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} orientation="right"/></div>}
+                {playerSouth && <div className="row-start-3 col-start-2"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} orientation="bottom"/></div>}
                 
 
                 {/* Dice Rolling Overlay */}
