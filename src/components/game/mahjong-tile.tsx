@@ -14,6 +14,7 @@ interface MahjongTileProps {
   isClickable?: boolean;
   isGolden?: boolean;
   isLatestDiscard?: boolean;
+  isFaceDown?: boolean;
 }
 
 // SVG Components for Tiles
@@ -88,7 +89,21 @@ const TilePattern = ({ suit, value }: { suit: TileSuit, value: TileValue }) => {
     return null;
 }
 
-export function MahjongTile({ suit, value, className, size = 'md', isClickable = false, isGolden = false, isLatestDiscard = false }: MahjongTileProps) {
+export function MahjongTile({ suit, value, className, size = 'md', isClickable = false, isGolden = false, isLatestDiscard = false, isFaceDown = false }: MahjongTileProps) {
+
+  if (isFaceDown) {
+    return (
+       <div
+          className={cn(
+            'bg-green-700 rounded-md shadow-md flex items-center justify-center select-none border-b-4 border-green-900 overflow-hidden relative',
+            size === 'sm' && 'w-[2.5vw] h-[3.5vw] min-w-[24px] min-h-[34px]',
+            size === 'md' && 'w-[6.5vw] h-[9vw] max-w-[65px] max-h-[90px]',
+            size === 'lg' && 'w-16 h-24',
+            className
+          )}
+        />
+    )
+  }
 
   return (
     <div

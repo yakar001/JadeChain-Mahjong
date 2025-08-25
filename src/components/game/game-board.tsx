@@ -10,7 +10,8 @@ import { Button } from '../ui/button';
 
 type Tile = { suit: string; value: string };
 type Discard = { tile: Tile, playerId: number };
-type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Tile[][]; balance: number; hasLocation: boolean | null; isEast?: boolean; discards: Tile[] };
+type Meld = { type: 'pong' | 'kong' | 'chow'; tiles: Tile[], concealed?: boolean };
+type Player = { id: number; name: string; avatar: string; hand: Tile[]; melds: Meld[]; balance: number; hasLocation: boolean | null; isEast?: boolean; discards: Tile[] };
 type DiceRoll = [number, number];
 
 interface GameBoardProps {
@@ -80,7 +81,10 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, golde
       <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
         {player.melds.length > 0 && player.melds.map((meld, i) => (
           <div key={i} className="flex gap-px">
-            {meld.map((tile, j) => <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" />)}
+             {meld.tiles.map((tile, j) => {
+                const isConcealed = meld.concealed && (j === 1 || j === 2);
+                return <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" isFaceDown={isConcealed} />
+            })}
           </div>
         ))}
       </div>
