@@ -512,6 +512,88 @@ function GameRoom() {
     });
   }, [playSound, getNextPlayerId, goldenTile]);
 
+  const handleAction = useCallback(async (action: Action | 'skip', playerId: number) => {
+    clearTimer(actionTimerRef);
+    const lastDiscarderId = discards.length > 0 ? discards[discards.length - 1].playerId : null;
+    if (lastDiscarderId === null) return;
+    
+    setActionPossibilities([]); 
+
+    if (action === 'skip') {
+        const nextPlayerId = getNextPlayerId(lastDiscarderId);
+        if (nextPlayerId !== null) {
+            setActivePlayer(nextPlayerId);
+        }
+        return;
+    }
+
+    if (action === 'win') {
+        handleWin(playerId);
+        return;
+    }
+
+    // SIMULATION: Check if the action is valid. 50% chance of being invalid for demo purposes.
+     if (Math.random() < 0.5) {
+        toast({
+            variant: "destructive",
+            title: `操作无效 (${action.charAt(0).toUpperCase() + action.slice(1)} Invalid)`,
+            description: `您的手牌不满足'${action}'的条件。`,
+        });
+        const nextPlayerId = getNextPlayerId(lastDiscarderId);
+        if (nextPlayerId !== null) {
+            setActivePlayer(nextPlayerId);
+        }
+        return;
+    }
+
+    const actionSoundMap = { 'pong': '碰', 'kong': '杠', 'chow': '吃' } as const;
+    const soundKey = action as keyof typeof actionSoundMap;
+    if (actionSoundMap[soundKey]) {
+        playSound(actionSoundMap[soundKey]);
+    }
+    
+    toast({
+        title: `执行操作 (${action})`,
+        description: `您选择了 ${action}。正在模拟匹配手牌...`,
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setPlayers(currentPlayers => {
+        const updatedPlayers = [...currentPlayers];
+        const actionPlayer = updatedPlayers.find(p => p.id === playerId);
+        const lastDiscard = discards[discards.length-1]?.tile;
+        if(actionPlayer && lastDiscard) {
+            let tilesToMeld = [lastDiscard];
+            let foundCount = 0;
+            const newHand = actionPlayer.hand.filter(tile => {
+                if (tile.value === lastDiscard.value && tile.suit === lastDiscard.suit && foundCount < (action === 'chow' ? 1 : 2)) {
+                    tilesToMeld.push(tile);
+                    foundCount++;
+                    return false;
+                }
+                return true;
+            });
+
+            if (foundCount >= 1) { // A real game needs more checks
+                actionPlayer.hand = newHand;
+                actionPlayer.melds.push(tilesToMeld);
+            }
+        }
+        return updatedPlayers;
+    });
+
+    toast({
+        title: `匹配成功`,
+        description: `已为您组成牌组。请打出一张牌。`,
+    });
+
+    setActivePlayer(playerId);
+    if (playerId === 0) {
+        setHumanPlayerCanDiscard(true);
+    }
+  }, [discards, getNextPlayerId, handleWin, playSound, toast]);
+
   const runGameFlow = useCallback(async () => {
     if (gameState !== 'playing' || activePlayer === null) return;
     
@@ -882,88 +964,6 @@ function GameRoom() {
     }
   };
   
-  const handleAction = useCallback(async (action: Action | 'skip', playerId: number) => {
-    clearTimer(actionTimerRef);
-    const lastDiscarderId = discards.length > 0 ? discards[discards.length - 1].playerId : null;
-    if (lastDiscarderId === null) return;
-    
-    setActionPossibilities([]); 
-
-    if (action === 'skip') {
-        const nextPlayerId = getNextPlayerId(lastDiscarderId);
-        if (nextPlayerId !== null) {
-            setActivePlayer(nextPlayerId);
-        }
-        return;
-    }
-
-    if (action === 'win') {
-        handleWin(playerId);
-        return;
-    }
-
-    // SIMULATION: Check if the action is valid. 50% chance of being invalid for demo purposes.
-     if (Math.random() < 0.5) {
-        toast({
-            variant: "destructive",
-            title: `操作无效 (${action.charAt(0).toUpperCase() + action.slice(1)} Invalid)`,
-            description: `您的手牌不满足'${action}'的条件。`,
-        });
-        const nextPlayerId = getNextPlayerId(lastDiscarderId);
-        if (nextPlayerId !== null) {
-            setActivePlayer(nextPlayerId);
-        }
-        return;
-    }
-
-    const actionSoundMap = { 'pong': '碰', 'kong': '杠', 'chow': '吃' } as const;
-    const soundKey = action as keyof typeof actionSoundMap;
-    if (actionSoundMap[soundKey]) {
-        playSound(actionSoundMap[soundKey]);
-    }
-    
-    toast({
-        title: `执行操作 (${action})`,
-        description: `您选择了 ${action}。正在模拟匹配手牌...`,
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setPlayers(currentPlayers => {
-        const updatedPlayers = [...currentPlayers];
-        const actionPlayer = updatedPlayers.find(p => p.id === playerId);
-        const lastDiscard = discards[discards.length-1]?.tile;
-        if(actionPlayer && lastDiscard) {
-            let tilesToMeld = [lastDiscard];
-            let foundCount = 0;
-            const newHand = actionPlayer.hand.filter(tile => {
-                if (tile.value === lastDiscard.value && tile.suit === lastDiscard.suit && foundCount < (action === 'chow' ? 1 : 2)) {
-                    tilesToMeld.push(tile);
-                    foundCount++;
-                    return false;
-                }
-                return true;
-            });
-
-            if (foundCount >= 1) { // A real game needs more checks
-                actionPlayer.hand = newHand;
-                actionPlayer.melds.push(tilesToMeld);
-            }
-        }
-        return updatedPlayers;
-    });
-
-    toast({
-        title: `匹配成功`,
-        description: `已为您组成牌组。请打出一张牌。`,
-    });
-
-    setActivePlayer(playerId);
-    if (playerId === 0) {
-        setHumanPlayerCanDiscard(true);
-    }
-  }, [discards, getNextPlayerId, handleWin, playSound, toast]);
-
   useEffect(() => {
     if (audioSrc) {
       const audio = new Audio(audioSrc);
@@ -1317,3 +1317,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
