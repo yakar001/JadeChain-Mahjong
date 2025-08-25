@@ -338,7 +338,7 @@ function GameRoom() {
              const canWin = Math.random() < 0.05; // 5% chance to win on any discard
              const canPong = Math.random() < 0.2; // 20% chance
              const canKong = Math.random() < 0.1; // 10% chance
-             const isPreviousPlayer = (p.id === (playerId + 1) % players.length);
+             const isPreviousPlayer = p.id === ((playerId + 1) % players.length);
              const canChow = isPreviousPlayer && Math.random() < 0.3; // 30% from previous player
 
              if (canWin || canPong || canKong || canChow) {
@@ -460,7 +460,7 @@ function GameRoom() {
 
   // Timer for player's turn
   useEffect(() => {
-    if (gameState === 'playing' && activePlayer === 0 && drawnTile) {
+    if (gameState === 'playing' && activePlayer !== null) {
       setTurnTimer(TURN_DURATION); 
       timerRef.current = setInterval(() => {
         setTurnTimer(prev => prev - 1);
@@ -470,7 +470,7 @@ function GameRoom() {
     } else {
         clearTimer(timerRef);
     }
-  }, [gameState, activePlayer, drawnTile]);
+  }, [gameState, activePlayer]);
 
    // Timer for player's action (Chow, Pong, Kong)
     useEffect(() => {
@@ -488,22 +488,29 @@ function GameRoom() {
 
   // Handle auto-actions on timer expiration
   useEffect(() => {
-    if (turnTimer <= 0 && activePlayer === 0 && drawnTile) {
-      toast({ title: "时间到 (Time's Up!)", description: "自动为您打出最右边的牌。(Automatically discarding rightmost tile.)" });
-      handleDiscardTile(0, players[0].hand.length - 1);
-      return;
+     if (turnTimer <= 0 && activePlayer !== null) {
+        const currentPlayer = players.find(p => p.id === activePlayer);
+        // AI player auto-discard
+        if (currentPlayer?.isAI) {
+            // If AI is in a state where it has a drawn tile (unlikely but a safeguard)
+            if (currentPlayer.hand.length % 3 === 2) {
+                handleDiscardTile(activePlayer, currentPlayer.hand.length - 1);
+            } else {
+                 // If AI needs to draw, this is more complex. For now, we skip turn.
+                 const currentPlayerIndexInArray = players.findIndex(p => p.id === activePlayer);
+                 const nextPlayer = players[(currentPlayerIndexInArray + 1) % players.length];
+                 setActivePlayer(nextPlayer.id);
+            }
+        }
+        // Human player auto-discard ONLY if AI controlled
+        else if (activePlayer === 0 && isAiControlled && drawnTile) {
+            toast({ title: "时间到 (Time's Up!)", description: "AI托管为您打出最右边的牌。(AI automatically discarding rightmost tile.)" });
+            handleDiscardTile(0, players[0].hand.length - 1);
+        }
     }
      if (actionTimer <= 0 && actionPossibilities.length > 0) {
         handleAction('skip', 0);
         return;
-    }
-
-    if (isAiControlled && activePlayer === 0 && drawnTile) {
-      const aiThinkTime = Math.random() * 1000 + 500;
-      const timeout = setTimeout(() => {
-        handleDiscardTile(0, players[0].hand.length - 1);
-      }, aiThinkTime);
-      return () => clearTimeout(timeout);
     }
   }, [turnTimer, actionTimer, isAiControlled, actionPossibilities, activePlayer, drawnTile, players, handleDiscardTile, toast]);
 
@@ -700,10 +707,6 @@ function GameRoom() {
         setGameState('playing');
         
         setActivePlayer(bankerId);
-
-        if (bankerId === 0) { 
-            setDrawnTile(players.find(p => p.id === 0)!.hand.slice(-1)[0]);
-        }
         
     }, 5500); 
   }

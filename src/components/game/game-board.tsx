@@ -88,7 +88,7 @@ const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number 
 
 
 const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, goldenTile, orientation = 'horizontal' }: { player: Player; isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number, goldenTile: Tile | null, orientation?: 'horizontal' | 'vertical' }) => {
-  const showTimer = isActive && player.id === 0;
+  const showTimer = isActive;
 
   return (
     <div className={cn('flex items-center gap-2 z-10', orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
@@ -148,7 +148,13 @@ const DiscardArea = ({ discards, isLandscape }: { discards: Discard[], isLandsca
             isLandscape && "justify-center"
         )}>
             {discards.map((discard, index) => (
-                <MahjongTile key={index} suit={discard.tile.suit} value={discard.tile.value as any} size="sm" />
+                <MahjongTile 
+                    key={index} 
+                    suit={discard.tile.suit} 
+                    value={discard.tile.value as any} 
+                    size="sm" 
+                    isLatestDiscard={index === discards.length - 1} 
+                />
             ))}
         </div>
     );
