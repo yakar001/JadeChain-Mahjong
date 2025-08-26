@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Loader2, Coins, MapPin, AlertTriangle, Layers, Dices } from 'lucide-react';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Button } from '@/components/ui/button';
 
 type Tile = { suit: string; value: string };
 type Discard = { tile: Tile, playerId: number };
@@ -119,22 +120,25 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration }: { p
   );
 };
 
-const DiscardArea = ({ discards, latestDiscard, playerId }: { discards: Tile[], latestDiscard: Discard | null, playerId: number }) => {
+const DiscardArea = ({ discards, latestDiscard, playerId, orientation }: { discards: Tile[], latestDiscard: Discard | null, playerId: number, orientation: 'N' | 'S' | 'E' | 'W' }) => {
+    const rotationClasses: Record<string, string> = {
+        'S': 'rotate-0',
+        'W': 'rotate-90',
+        'N': 'rotate-180',
+        'E': '-rotate-90',
+    };
     return (
-        <div className="relative grid grid-cols-6 gap-1 p-1 w-[12rem] h-[8.5rem] bg-black/20 rounded">
-            {discards.map((tile, index) => {
-                const isLatest = latestDiscard?.tile === tile && latestDiscard?.playerId === playerId;
-                return (
-                    <div key={index} className="relative">
-                        <MahjongTile 
-                            suit={tile.suit} 
-                            value={tile.value as any} 
-                            size="sm"
-                            isLatestDiscard={isLatest}
-                        />
-                    </div>
-                );
-            })}
+         <div className="relative w-[19rem] h-[5rem] bg-black/20 rounded grid grid-cols-8 grid-rows-3 gap-1 p-1">
+            {discards.map((tile, index) => (
+                <div key={index} className={cn("relative", rotationClasses[orientation])}>
+                    <MahjongTile 
+                        suit={tile.suit} 
+                        value={tile.value as any} 
+                        size="sm"
+                        isLatestDiscard={latestDiscard?.tile === tile && latestDiscard?.playerId === playerId}
+                    />
+                </div>
+            ))}
         </div>
     );
 }
@@ -201,21 +205,21 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
         </div>
         
         {/* Player Areas */}
-        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-            {playerSouth && <DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} playerId={playerSouth.id} />}
+        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
             {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
+            {playerSouth && <DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} playerId={playerSouth.id} orientation="S"/>}
         </div>
-         <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-2">
-            {playerNorth && <DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} playerId={playerNorth.id} />}
+         <div className="absolute -top-1 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-2">
             {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
+             {playerNorth && <DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} playerId={playerNorth.id} orientation="N"/>}
         </div>
-         <div className="absolute -left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
-            {playerWest && <DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} playerId={playerWest.id} />}
+         <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-2 -translate-x-1/2" style={{ transform: 'translateX(-50%) translateY(-50%) rotate(90deg)' }}>
+             {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
+             {playerWest && <DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} playerId={playerWest.id} orientation="W" />}
         </div>
-        <div className="absolute -right-4 top-1/2 -translate-y-1/2 flex flex-row-reverse items-center gap-2">
+        <div className="absolute -right-16 top-1/2 -translate-y-1/2 flex flex-row-reverse items-center gap-2 translate-x-1/2" style={{ transform: 'translateX(50%) translateY(-50%) rotate(-90deg)' }}>
             {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
-            {playerEast && <DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} playerId={playerEast.id} />}
+            {playerEast && <DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} playerId={playerEast.id} orientation="E" />}
         </div>
         
         {goldenTile && (
