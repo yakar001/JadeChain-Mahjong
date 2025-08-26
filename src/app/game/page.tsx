@@ -558,30 +558,25 @@ function GameRoom() {
      if (playerId === 0 && !humanPlayerCanDiscard) return;
 
     let tileToDiscard: Tile | null = null;
-
-    setPlayers(currentPlayers => {
-        const player = currentPlayers.find(p => p.id === playerId);
-        if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
-            console.error("Invalid discard attempt", {playerId, tileIndex, playerHand: player?.hand});
-            if (player && player.hand.length > 0) {
-                tileIndex = player.hand.length - 1;
-            } else {
-                return currentPlayers;
-            }
+    
+    const player = players.find(p => p.id === playerId);
+    if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
+        console.error("Invalid discard attempt", {playerId, tileIndex, playerHand: player?.hand});
+        if (player && player.hand.length > 0) {
+            tileIndex = player.hand.length - 1; // Default to last tile if index is invalid
+        } else {
+            return; // No tiles to discard
         }
+    }
         
-        const newHand = [...player.hand];
-        [tileToDiscard] = newHand.splice(tileIndex, 1);
+    const newHand = [...player.hand];
+    [tileToDiscard] = newHand.splice(tileIndex, 1);
 
-        const updatedPlayers = currentPlayers.map(p =>
-             p.id === playerId ? { ...p, hand: newHand, discards: [...p.discards, tileToDiscard!] } : p
-        );
-
-        return updatedPlayers;
-    });
-
-    if (!tileToDiscard) return;
-        
+    const updatedPlayers = players.map(p =>
+         p.id === playerId ? { ...p, hand: newHand, discards: [...p.discards, tileToDiscard!] } : p
+    );
+    
+    setPlayers(updatedPlayers);
     setLatestDiscard({ tile: tileToDiscard, playerId: playerId });
     setSelectedTileIndex(null);
     
@@ -592,12 +587,11 @@ function GameRoom() {
     clearTimer(timerRef);
 
     const tileName = getTileName(tileToDiscard);
-    playSound(tileName);
+    await playSound(tileName);
     
     setTimeout(() => {
         const potentialActions: ActionPossibility[] = [];
-        const updatedPlayers = players; // Use the current state of players
-
+        // Important: use a fresh reference to players from state if possible, or use the `updatedPlayers` from this scope
         updatedPlayers.forEach(p => {
             if (p.id !== playerId) {
                 const isNextPlayer = p.id === getNextPlayerId(playerId);
@@ -643,9 +637,7 @@ function GameRoom() {
   }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard, advanceTurn, players]);
 
   const runGameFlow = useCallback(async () => {
-    if (gameState !== 'playing' || activePlayer === null) {
-      return;
-    }
+    if (gameState !== 'playing' || activePlayer === null) return;
     
     const currentPlayer = players.find(p => p.id === activePlayer);
     if (!currentPlayer) return;
@@ -679,13 +671,14 @@ function GameRoom() {
             return;
         }
 
-        const wallCopy = [...wall];
+        let wallCopy = [...wall];
         if (wallCopy.length <= 14) { // End game if wall is nearly empty
             handleEndGame(players);
             return;
         }
 
         const drawnTileFromWall = wallCopy.pop()!;
+        setWall(wallCopy);
         
         // AI checks for win after drawing
         const newHand = [...currentPlayer.hand, drawnTileFromWall];
@@ -694,21 +687,19 @@ function GameRoom() {
             return;
         }
 
-        // Update hand with drawn tile, then discard in the callback to ensure atomicity
         setPlayers(prevPlayers => {
             const updatedPlayers = prevPlayers.map(p => 
                 p.id === activePlayer ? { ...p, hand: newHand } : p
             );
+            // DISCARD LOGIC MUST BE HERE to prevent race conditions
+            setTimeout(() => {
+                handleDiscardTile(activePlayer, Math.floor(Math.random() * newHand.length));
+            }, 500);
             return updatedPlayers;
         });
 
-        setWall(wallCopy);
-
-        setTimeout(() => {
-            handleDiscardTile(activePlayer, Math.floor(Math.random() * newHand.length));
-        }, 500);
-
-    } else { // Human player's turn
+    } else if (activePlayer === 0) { // Human player's turn
+        // Do nothing automatically, wait for user interaction
         if (currentPlayer.hand.length % 3 !== 2) {
              setHumanPlayerCanDiscard(false); // Can't discard, must draw
         } else {
@@ -716,6 +707,7 @@ function GameRoom() {
         }
     }
   }, [gameState, activePlayer, players, actionPossibilities, wall, handleDiscardTile, handleEndGame, handleWin, goldenTile, handleAction]);
+
 
   useEffect(() => {
     runGameFlow();
@@ -725,31 +717,27 @@ function GameRoom() {
     const runGameSetupFlow = async () => {
       const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
       const isOurTurn = (playerId: number | null) => players.find(p => p.id === playerId)?.isAI;
-      switch (gameState) {
-        case 'pre-roll-seating':
-          if (players.length > 0) {
-            await delay(1000);
-            handleRollForSeating();
-          }
-          break;
-        case 'pre-roll-banker':
+      if (gameState === 'pre-roll-seating' && players.length > 0) {
+          await delay(1000);
+          handleRollForSeating();
+      }
+      else if (gameState === 'pre-roll-banker') {
           if (isOurTurn(eastPlayerId)) {
             await delay(1500);
             handleRollForBanker();
           }
-          break;
-        case 'pre-roll':
+      }
+      else if (gameState === 'pre-roll') {
           if (isOurTurn(bankerId)) {
             await delay(1500);
             handleRollDice();
           }
-          break;
-        case 'banker-roll-for-golden':
+      }
+      else if (gameState === 'banker-roll-for-golden') {
            if (isOurTurn(bankerId)) {
             await delay(1500);
             handleRollForGolden();
           }
-          break;
       }
     };
     runGameSetupFlow();
@@ -796,7 +784,7 @@ function GameRoom() {
      if (actionTimer <= 0 && actionPossibilities.some(p => p.playerId === 0)) {
         handleAction('skip', 0);
     }
-  }, [turnTimer, actionTimer, isAiControlled, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard, handleAction]);
+  }, [turnTimer, actionTimer, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard, handleAction]);
 
   const initializeGame = useCallback(() => {
     clearTimer(timerRef);
@@ -1353,3 +1341,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
