@@ -261,7 +261,7 @@ function GameRoom() {
   const [eastPlayerId, setEastPlayerId] = useState<number | null>(null);
   const [shuffleHash, setShuffleHash] = useState('');
   const [isMuted, setIsMuted] = useState(false);
-  const [isAiControlled, setIsAiControlled] = useState(false);
+  const [isAiControlled, setIsAiControlled] = useState(isAiControlled);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [pot, setPot] = useState(0);
@@ -476,7 +476,7 @@ function GameRoom() {
     const actionPlayer = players.find(p => p.id === playerId);
     if (!actionPlayer) return;
     
-    // Concealed Kong (An Kang)
+    // Concealed Kong (An Kong)
     if (action === 'kong' && concealedKongCandidate) {
         playSound('杠');
         toast({ title: `执行操作 (杠)`, description: `您选择了暗杠。` });
@@ -674,8 +674,7 @@ function GameRoom() {
         
         // Banker starts with 14 tiles, so they discard directly.
         if (currentPlayer.hand.length % 3 === 2) {
-            const discardIndex = Math.floor(Math.random() * currentPlayer.hand.length);
-            handleDiscardTile(activePlayer, discardIndex);
+            await handleDiscardTile(activePlayer, Math.floor(Math.random() * currentPlayer.hand.length));
             return;
         }
 
@@ -688,19 +687,25 @@ function GameRoom() {
         const drawnTileFromWall = wallCopy.pop()!;
         setWall(wallCopy);
         
-        const updatedHand = [...currentPlayer.hand, drawnTileFromWall];
-        
-        if (isWinningHand(updatedHand, goldenTile)) {
+        // AI checks for win after drawing
+        const newHand = [...currentPlayer.hand, drawnTileFromWall];
+        if (isWinningHand(newHand, goldenTile)) {
             handleWin(currentPlayer.id);
             return;
         }
 
-        setPlayers(prevPlayers => prevPlayers.map(p => p.id === activePlayer ? { ...p, hand: updatedHand } : p));
-        
-        await new Promise(res => setTimeout(res, 500));
-        
-        const discardIndex = Math.floor(Math.random() * updatedHand.length);
-        handleDiscardTile(activePlayer, discardIndex);
+        // Update hand with drawn tile, then discard in the callback to ensure atomicity
+        setPlayers(prevPlayers => {
+            const updatedPlayers = prevPlayers.map(p => 
+                p.id === activePlayer ? { ...p, hand: newHand } : p
+            );
+            // Discarding logic is now inside the state update callback
+            setTimeout(() => {
+                const discardIndex = Math.floor(Math.random() * newHand.length);
+                handleDiscardTile(activePlayer, discardIndex);
+            }, 500);
+            return updatedPlayers;
+        });
 
     } else { // Human player's turn
         if (currentPlayer.hand.length % 3 !== 2) {
@@ -1071,7 +1076,7 @@ function GameRoom() {
                             </DropdownMenuItem>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem><BookOpen className="mr-2"/> 玩法说明</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}><BookOpen className="mr-2"/> 玩法说明</DropdownMenuItem>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -1110,9 +1115,9 @@ function GameRoom() {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
-                            <AlertDialog>
+                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem><Shuffle className="mr-2"/> 新对局</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Shuffle className="mr-2"/> 新对局</DropdownMenuItem>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -1131,9 +1136,9 @@ function GameRoom() {
                                 </AlertDialogContent>
                             </AlertDialog>
                             <DropdownMenuSeparator />
-                            <AlertDialog>
+                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem><Undo2 className="mr-2"/> 返回大厅</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Undo2 className="mr-2"/> 返回大厅</DropdownMenuItem>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -1348,5 +1353,7 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
 
     
