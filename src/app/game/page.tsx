@@ -274,18 +274,24 @@ function GameRoom() {
   const actionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [humanPlayerCanDiscard, setHumanPlayerCanDiscard] = useState(false);
   const [concealedKongCandidate, setConcealedKongCandidate] = useState<Tile | null>(null);
+  const [audioCache, setAudioCache] = useState(new Map<string, string>());
 
   const playSound = useCallback(async (text: string) => {
     if (isMuted) return;
+    if (audioCache.has(text)) {
+        setAudioSrc(audioCache.get(text)!);
+        return;
+    }
     try {
         const response = await getSpeech(text);
         if(response.media) {
+            setAudioCache(prevCache => new Map(prevCache).set(text, response.media));
             setAudioSrc(response.media);
         }
     } catch (error) {
         console.error(`Error playing sound for "${text}":`, error);
     }
-  }, [isMuted]);
+  }, [isMuted, audioCache]);
 
   const clearTimer = (timerToClearRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
     if (timerToClearRef.current) {
