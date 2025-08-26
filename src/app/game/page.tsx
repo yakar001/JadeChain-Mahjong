@@ -349,6 +349,13 @@ function GameRoom() {
       return players[(currentPlayerIndex + 1) % players.length].id;
   }, [players]);
 
+  const advanceTurn = useCallback((lastPlayerId: number) => {
+      const nextPlayerId = getNextPlayerId(lastPlayerId);
+      if (nextPlayerId !== null) {
+          setActivePlayer(nextPlayerId);
+      }
+  }, [getNextPlayerId]);
+
   const handleWin = useCallback((winnerId?: number) => {
     const id = winnerId !== undefined ? winnerId : activePlayer;
     if (id === null) return;
@@ -447,10 +454,7 @@ function GameRoom() {
         const lastDiscarderId = latestDiscard?.playerId;
         setActionPossibilities([]); 
         if (lastDiscarderId !== undefined) {
-             const nextPlayerId = getNextPlayerId(lastDiscarderId);
-             if (nextPlayerId !== null) {
-                setActivePlayer(nextPlayerId);
-             }
+             advanceTurn(lastDiscarderId);
         }
         return;
     }
@@ -461,9 +465,8 @@ function GameRoom() {
     setActionPossibilities([]); 
 
     if (action === 'skip') {
-        const nextPlayerId = lastDiscarderId !== undefined ? getNextPlayerId(lastDiscarderId) : null;
-        if (nextPlayerId !== null) {
-            setActivePlayer(nextPlayerId);
+        if (lastDiscarderId !== undefined) {
+          advanceTurn(lastDiscarderId);
         }
         return;
     }
@@ -547,102 +550,100 @@ function GameRoom() {
     if (playerId === 0) {
         setHumanPlayerCanDiscard(true);
     }
-  }, [latestDiscard, getNextPlayerId, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities]);
+  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn]);
 
 
   const handleDiscardTile = useCallback(async (playerId: number, tileIndex: number) => {
      if (activePlayer !== playerId) return;
      if (playerId === 0 && !humanPlayerCanDiscard) return;
 
+    let tileToDiscard: Tile | null = null;
+
     setPlayers(currentPlayers => {
-        let player: Player | undefined;
-        let tileToDiscard: Tile;
-        const updatedPlayers = currentPlayers.map(p => {
-             if (p.id === playerId) {
-                player = p;
-                if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
-                    console.error("Invalid discard attempt", {playerId, tileIndex, playerHand: player?.hand});
-                    if (player && player.hand.length > 0) {
-                        tileIndex = player.hand.length - 1;
-                    } else {
-                        return p;
-                    }
-                }
-                const newHand = [...p.hand];
-                [tileToDiscard] = newHand.splice(tileIndex, 1);
-                return { ...p, hand: newHand, discards: [...p.discards, tileToDiscard] };
-             }
-             return p;
-        });
-
-        if (!player || !tileToDiscard) return currentPlayers;
-
-        setLatestDiscard({ tile: tileToDiscard, playerId: playerId });
-        
-        setSelectedTileIndex(null);
-        
-        if (playerId === 0) {
-            setHumanPlayerCanDiscard(false);
-            setConcealedKongCandidate(null);
-        }
-        clearTimer(timerRef);
-
-        const tileName = getTileName(tileToDiscard);
-        playSound(tileName);
-        
-        setTimeout(() => {
-            const potentialActions: ActionPossibility[] = [];
-            updatedPlayers.forEach(p => {
-                if (p.id !== playerId) {
-                    const isNextPlayer = p.id === getNextPlayerId(playerId);
-                    const tileCountInHand = p.hand.filter(t => t.suit === tileToDiscard.suit && t.value === tileToDiscard.value).length;
-                    
-                    const playerHasGolden = p.hand.some(t => t.suit === goldenTile?.suit && t.value === goldenTile?.value);
-
-                    const canWin = !playerHasGolden && isWinningHand([...p.hand, tileToDiscard], goldenTile);
-                    const canPong = tileCountInHand >= 2;
-                    const canKong = tileCountInHand >= 3;
-
-                    let canChow = false;
-                    if (isNextPlayer && !['wind', 'dragon'].includes(tileToDiscard.suit)) {
-                        const v = parseInt(tileToDiscard.value);
-                        const hasNum = (val: number) => p.hand.some(t => t.suit === tileToDiscard.suit && parseInt(t.value) === val);
-                        if ((hasNum(v-2) && hasNum(v-1)) || (hasNum(v-1) && hasNum(v+1)) || (hasNum(v+1) && hasNum(v+2))) {
-                            canChow = true;
-                        }
-                    }
-
-                    if (canWin || canPong || canKong || canChow) {
-                        potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
-                    }
-                }
-            });
-
-            const winActions = potentialActions.filter(p => p.actions.win);
-            const pongKongActions = potentialActions.filter(p => p.actions.pong || p.actions.kong);
-            const chowActions = potentialActions.filter(p => p.actions.chow);
-
-            if (winActions.length > 0) {
-                setActionPossibilities(winActions);
-            } else if (pongKongActions.length > 0) {
-                setActionPossibilities(pongKongActions);
-            } else if (chowActions.length > 0) {
-                setActionPossibilities(chowActions);
+        const player = currentPlayers.find(p => p.id === playerId);
+        if (!player || tileIndex < 0 || tileIndex >= player.hand.length) {
+            console.error("Invalid discard attempt", {playerId, tileIndex, playerHand: player?.hand});
+            if (player && player.hand.length > 0) {
+                tileIndex = player.hand.length - 1;
             } else {
-                setActionPossibilities([]);
-                const nextPlayerId = getNextPlayerId(playerId);
-                if (nextPlayerId !== null) {
-                    setActivePlayer(nextPlayerId);
-                }
+                return currentPlayers;
             }
-        }, 500);
+        }
+        
+        const newHand = [...player.hand];
+        [tileToDiscard] = newHand.splice(tileIndex, 1);
+
+        const updatedPlayers = currentPlayers.map(p =>
+             p.id === playerId ? { ...p, hand: newHand, discards: [...p.discards, tileToDiscard!] } : p
+        );
 
         return updatedPlayers;
     });
-  }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard]);
+
+    if (!tileToDiscard) return;
+        
+    setLatestDiscard({ tile: tileToDiscard, playerId: playerId });
+    setSelectedTileIndex(null);
+    
+    if (playerId === 0) {
+        setHumanPlayerCanDiscard(false);
+        setConcealedKongCandidate(null);
+    }
+    clearTimer(timerRef);
+
+    const tileName = getTileName(tileToDiscard);
+    playSound(tileName);
+    
+    setTimeout(() => {
+        const potentialActions: ActionPossibility[] = [];
+        const updatedPlayers = players; // Use the current state of players
+
+        updatedPlayers.forEach(p => {
+            if (p.id !== playerId) {
+                const isNextPlayer = p.id === getNextPlayerId(playerId);
+                const tileCountInHand = p.hand.filter(t => t.suit === tileToDiscard!.suit && t.value === tileToDiscard!.value).length;
+                
+                const playerHasGolden = p.hand.some(t => t.suit === goldenTile?.suit && t.value === goldenTile?.value);
+
+                const canWin = !playerHasGolden && isWinningHand([...p.hand, tileToDiscard!], goldenTile);
+                const canPong = tileCountInHand >= 2;
+                const canKong = tileCountInHand >= 3;
+
+                let canChow = false;
+                if (isNextPlayer && !['wind', 'dragon'].includes(tileToDiscard!.suit)) {
+                    const v = parseInt(tileToDiscard!.value);
+                    const hasNum = (val: number) => p.hand.some(t => t.suit === tileToDiscard!.suit && parseInt(t.value) === val);
+                    if ((hasNum(v-2) && hasNum(v-1)) || (hasNum(v-1) && hasNum(v+1)) || (hasNum(v+1) && hasNum(v+2))) {
+                        canChow = true;
+                    }
+                }
+
+                if (canWin || canPong || canKong || canChow) {
+                    potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
+                }
+            }
+        });
+
+        const winActions = potentialActions.filter(p => p.actions.win);
+        const pongKongActions = potentialActions.filter(p => p.actions.pong || p.actions.kong);
+        const chowActions = potentialActions.filter(p => p.actions.chow);
+
+        if (winActions.length > 0) {
+            setActionPossibilities(winActions);
+        } else if (pongKongActions.length > 0) {
+            setActionPossibilities(pongKongActions);
+        } else if (chowActions.length > 0) {
+            setActionPossibilities(chowActions);
+        } else {
+            setActionPossibilities([]);
+            advanceTurn(playerId);
+        }
+    }, 500);
+
+  }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard, advanceTurn, players]);
 
   const runGameFlow = useCallback(async () => {
-    if (gameState !== 'playing' || activePlayer === null || actionPossibilities.length > 0) {
+    if (gameState !== 'playing' || activePlayer === null) {
       return;
     }
     
@@ -669,7 +670,7 @@ function GameRoom() {
     }
 
     // AI's own turn (draw and discard)
-    if (currentPlayer.isAI) {
+    if (currentPlayer.isAI && actionPossibilities.length === 0) {
         await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000));
         
         // Banker starts with 14 tiles, so they discard directly.
@@ -685,7 +686,6 @@ function GameRoom() {
         }
 
         const drawnTileFromWall = wallCopy.pop()!;
-        setWall(wallCopy);
         
         // AI checks for win after drawing
         const newHand = [...currentPlayer.hand, drawnTileFromWall];
@@ -699,13 +699,14 @@ function GameRoom() {
             const updatedPlayers = prevPlayers.map(p => 
                 p.id === activePlayer ? { ...p, hand: newHand } : p
             );
-            // Discarding logic is now inside the state update callback
-            setTimeout(() => {
-                const discardIndex = Math.floor(Math.random() * newHand.length);
-                handleDiscardTile(activePlayer, discardIndex);
-            }, 500);
             return updatedPlayers;
         });
+
+        setWall(wallCopy);
+
+        setTimeout(() => {
+            handleDiscardTile(activePlayer, Math.floor(Math.random() * newHand.length));
+        }, 500);
 
     } else { // Human player's turn
         if (currentPlayer.hand.length % 3 !== 2) {
@@ -717,9 +718,8 @@ function GameRoom() {
   }, [gameState, activePlayer, players, actionPossibilities, wall, handleDiscardTile, handleEndGame, handleWin, goldenTile, handleAction]);
 
   useEffect(() => {
-    if (actionPossibilities.length > 0) return;
     runGameFlow();
-  }, [activePlayer, actionPossibilities, runGameFlow]);
+  }, [activePlayer, runGameFlow]);
 
   useEffect(() => {
     const runGameSetupFlow = async () => {
@@ -1353,9 +1353,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
-
-    
-
-    
