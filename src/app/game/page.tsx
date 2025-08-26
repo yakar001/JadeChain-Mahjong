@@ -716,8 +716,10 @@ function GameRoom() {
       const isOurTurn = (playerId: number | null) => players.find(p => p.id === playerId)?.isAI;
       switch (gameState) {
         case 'pre-roll-seating':
-          await delay(1000);
-          handleRollForSeating();
+          if (players.length > 0) {
+            await delay(1000);
+            handleRollForSeating();
+          }
           break;
         case 'pre-roll-banker':
           if (isOurTurn(eastPlayerId)) {
