@@ -261,7 +261,7 @@ function GameRoom() {
   const [eastPlayerId, setEastPlayerId] = useState<number | null>(null);
   const [shuffleHash, setShuffleHash] = useState('');
   const [isMuted, setIsMuted] = useState(false);
-  const [isAiControlled, setIsAiControlled] = useState(isAiControlled);
+  const [isAiControlled, setIsAiControlled] = useState(false);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [pot, setPot] = useState(0);
@@ -1353,6 +1353,8 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
 
     
 
