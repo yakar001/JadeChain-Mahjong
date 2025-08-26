@@ -633,7 +633,7 @@ function GameRoom() {
 
         return updatedPlayers;
     });
-  }, [playSound, getNextPlayerId, goldenTile, players, activePlayer, humanPlayerCanDiscard]);
+  }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard]);
 
   const runGameFlow = useCallback(async () => {
     if (gameState !== 'playing' || activePlayer === null || actionPossibilities.length > 0) {
@@ -883,6 +883,11 @@ function GameRoom() {
         playerRolls.sort((a, b) => b.total - a.total);
 
         const windNames = ['(东)', '(南)', '(西)', '(北)'];
+        
+        if (playerRolls.length === 0) {
+            console.error("Attempted to roll for seating with no players.");
+            return; // Guard against empty player array
+        }
         
         const newEastPlayer = playerRolls[0].player;
         setEastPlayerId(newEastPlayer.id);
