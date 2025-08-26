@@ -1069,16 +1069,94 @@ function GameRoom() {
                              <DropdownMenuItem onClick={() => setIsLandscape(!isLandscape)}>
                                 <RotateCw className="mr-2" /> {isLandscape ? '切换竖屏' : '切换横屏'}
                             </DropdownMenuItem>
-                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem><BookOpen className="mr-2"/> 玩法说明</DropdownMenuItem>
-                            </AlertDialogTrigger>
-                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem><Shuffle className="mr-2"/> 新对局</DropdownMenuItem>
-                            </AlertDialogTrigger>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem><BookOpen className="mr-2"/> 玩法说明</DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>闽南游金麻将 (Minnan Golden Mahjong Rules)</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
+                                            <div>
+                                                <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
+                                                <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-foreground">游戏玩法 (Gameplay)</h3>
+                                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                                    <li><strong>吃 (Chow):</strong> 只能吃您**上家**（左边的玩家）打出的牌来组成顺子。</li>
+                                                    <li><strong>碰 (Pong):</strong> 可以碰**任何一家**打出的牌来组成刻子（三张相同的牌）。</li>
+                                                    <li><strong>杠 (Kong):</strong> 可以杠**任何一家**打出的牌来组成杠子（四张相同的牌）。</li>
+                                                    <li><strong>优先级 (Priority):</strong> 胡牌 &gt; 碰/杠 &gt; 吃。如果多个玩家可以对同一张牌执行操作，高优先级的操作会覆盖低优先级的。</li>
+                                                    <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌或有玩家弃牌后，如果您的手牌已满足胡牌条件，系统会自动出现“胡牌”按钮。</li>
+                                                    <li><strong>持金限制 (Golden Tile Restriction):</strong> 当您手中有“金牌”时，您只能通过**自摸**胡牌，不能胡别人打出的牌，但仍可以吃、碰、杠。</li>
+                                                </ul>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-foreground">计分规则 (Scoring)</h3>
+                                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                                    <li><strong>普通胡牌 (Standard Win)：</strong>赢家获得奖池内所有押金。输家均分损失。</li>
+                                                    <li><strong>自摸 (Self-Drawn Win)：</strong>自摸胡牌的赢家，奖金翻倍。</li>
+                                                    <li><strong>游金 (Golden Tour Win)：</strong>当您听牌且手持金牌时，若自摸了一张能胡的牌，您可以选择不胡，而是打出另一张牌进入“游金”状态。在此状态下，您之后摸到的**任何牌**都能胡，奖励翻倍（一游）。</li>
+                                                    <li><strong>双游 (Double Tour Win)：</strong>在“一游”状态下，如果您摸到了真正的金牌并选择打出，则进入“双游”状态，奖励在“一游”基础上再次翻倍。</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogAction> <ThumbsUp className="mr-2"/> 明白了 (Got it)</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem><Shuffle className="mr-2"/> 新对局</DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>开始新对局吗？ (Start a New Game?)</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {isGameInProgress ? `当前对局仍在进行中。如果现在开始新对局，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN。` : '您确定要开始一个新对局吗？'}
+                                        {isGameInProgress ? `(The current game is still in progress. If you start a new game now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN for this round.)` : '(Are you sure you want to start a new game?)'}
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleLeaveGame(true)} className={isGameInProgress ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
+                                        确认 (Confirm)
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                             <DropdownMenuSeparator />
-                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem><Undo2 className="mr-2"/> 返回大厅</DropdownMenuItem>
-                            </AlertDialogTrigger>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem><Undo2 className="mr-2"/> 返回大厅</DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>确认退出吗？ (Confirm Exit?)</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {isGameInProgress ? `当前对局仍在进行中。如果现在退出，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN，并会分配给其他玩家。` : '您确定要返回大厅吗？'}
+                                        {isGameInProgress ? `(The current game is still in progress. If you exit now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN, which will be distributed to the other players.)` : '(Are you sure you want to return to the lobby?)'}
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
+                                    {isGameInProgress ? (
+                                        <AlertDialogAction onClick={() => handleLeaveGame(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        确认退出 (Confirm Exit)
+                                        </AlertDialogAction>
+                                    ) : (
+                                        <AlertDialogAction asChild>
+                                            <Link href="/">确认 (Confirm)</Link>
+                                        </AlertDialogAction>
+                                    )}
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -1176,83 +1254,6 @@ function GameRoom() {
                 <AiTutor />
             </div>
       </div>
-
-       <AlertDialog>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>闽南游金麻将 (Minnan Golden Mahjong Rules)</AlertDialogTitle>
-            <AlertDialogDescription>
-                <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
-                    <div>
-                        <h3 className="font-semibold text-foreground">核心特点 (Core Feature)</h3>
-                        <p>开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-foreground">游戏玩法 (Gameplay)</h3>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li><strong>吃 (Chow):</strong> 只能吃您**上家**（左边的玩家）打出的牌来组成顺子。</li>
-                            <li><strong>碰 (Pong):</strong> 可以碰**任何一家**打出的牌来组成刻子（三张相同的牌）。</li>
-                            <li><strong>杠 (Kong):</strong> 可以杠**任何一家**打出的牌来组成杠子（四张相同的牌）。</li>
-                            <li><strong>优先级 (Priority):</strong> 胡牌 &gt; 碰/杠 &gt; 吃。如果多个玩家可以对同一张牌执行操作，高优先级的操作会覆盖低优先级的。</li>
-                            <li><strong>胡牌提示 (Winning Prompt)：</strong>当您摸牌或有玩家弃牌后，如果您的手牌已满足胡牌条件，系统会自动出现“胡牌”按钮。</li>
-                            <li><strong>持金限制 (Golden Tile Restriction):</strong> 当您手中有“金牌”时，您只能通过**自摸**胡牌，不能胡别人打出的牌，但仍可以吃、碰、杠。</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-foreground">计分规则 (Scoring)</h3>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li><strong>普通胡牌 (Standard Win)：</strong>赢家获得奖池内所有押金。输家均分损失。</li>
-                            <li><strong>自摸 (Self-Drawn Win)：</strong>自摸胡牌的赢家，奖金翻倍。</li>
-                            <li><strong>游金 (Golden Tour Win)：</strong>当您听牌且手持金牌时，若自摸了一张能胡的牌，您可以选择不胡，而是打出另一张牌进入“游金”状态。在此状态下，您之后摸到的**任何牌**都能胡，奖励翻倍（一游）。</li>
-                            <li><strong>双游 (Double Tour Win)：</strong>在“一游”状态下，如果您摸到了真正的金牌并选择打出，则进入“双游”状态，奖励在“一游”基础上再次翻倍。</li>
-                        </ul>
-                    </div>
-                </div>
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogAction> <ThumbsUp className="mr-2"/> 明白了 (Got it)</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>开始新对局吗？ (Start a New Game?)</AlertDialogTitle>
-            <AlertDialogDescription>
-                {isGameInProgress ? `当前对局仍在进行中。如果现在开始新对局，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN。` : '您确定要开始一个新对局吗？'}
-                {isGameInProgress ? `(The current game is still in progress. If you start a new game now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN for this round.)` : '(Are you sure you want to start a new game?)'}
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleLeaveGame(true)} className={isGameInProgress ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}>
-                确认 (Confirm)
-            </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>确认退出吗？ (Confirm Exit?)</AlertDialogTitle>
-            <AlertDialogDescription>
-                {isGameInProgress ? `当前对局仍在进行中。如果现在退出，您将输掉本局的入场费 ${STAKE_AMOUNT} $JIN，并会分配给其他玩家。` : '您确定要返回大厅吗？'}
-                {isGameInProgress ? `(The current game is still in progress. If you exit now, you will forfeit your entry fee of ${STAKE_AMOUNT} $JIN, which will be distributed to the other players.)` : '(Are you sure you want to return to the lobby?)'}
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel>取消 (Cancel)</AlertDialogCancel>
-            {isGameInProgress ? (
-                <AlertDialogAction onClick={() => handleLeaveGame(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                确认退出 (Confirm Exit)
-                </AlertDialogAction>
-            ) : (
-                <AlertDialogAction asChild>
-                    <Link href="/">确认 (Confirm)</Link>
-                </AlertDialogAction>
-            )}
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       </div>
 
        <AlertDialog open={gameState === 'game-over'}>
