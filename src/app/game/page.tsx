@@ -275,6 +275,7 @@ function GameRoom() {
   const [humanPlayerCanDiscard, setHumanPlayerCanDiscard] = useState(false);
   const [concealedKongCandidate, setConcealedKongCandidate] = useState<Tile | null>(null);
   const [audioCache, setAudioCache] = useState(new Map<string, string>());
+  const [isProcessingTurn, setIsProcessingTurn] = useState(false);
 
   const playSound = useCallback(async (text: string) => {
     if (isMuted) return;
@@ -353,6 +354,7 @@ function GameRoom() {
       const nextPlayerId = getNextPlayerId(lastPlayerId);
       if (nextPlayerId !== null) {
           setActivePlayer(nextPlayerId);
+          setIsProcessingTurn(false);
       }
   }, [getNextPlayerId]);
 
@@ -500,8 +502,9 @@ function GameRoom() {
         // Player must draw a tile from the end of the wall after a kong, then discard.
         // For simplicity, we'll let them draw on their next turn. This is a slight deviation.
         if (playerId === 0) {
-            setHumanPlayerCanDiscard(true); // Player must discard after kong
+            setHumanPlayerCanDiscard(true);
         }
+        setIsProcessingTurn(false);
         return;
     }
 
@@ -550,6 +553,7 @@ function GameRoom() {
     if (playerId === 0) {
         setHumanPlayerCanDiscard(true);
     }
+    setIsProcessingTurn(false);
   }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn]);
 
 
@@ -637,14 +641,15 @@ function GameRoom() {
   }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard, advanceTurn, players]);
 
   const runGameFlow = useCallback(async () => {
-    if (gameState !== 'playing' || activePlayer === null) return;
-    
+    if (gameState !== 'playing' || activePlayer === null || isProcessingTurn) return;
+
     const currentPlayer = players.find(p => p.id === activePlayer);
     if (!currentPlayer) return;
 
     // AI Action on another's discard
     const aiActionTaker = actionPossibilities.find(p => players.find(pl => pl.id === p.playerId)?.isAI);
     if (aiActionTaker) {
+        setIsProcessingTurn(true);
         setTimeout(() => {
             const availableActions: Action[] = [];
             if(aiActionTaker.actions.win) availableActions.push('win');
@@ -663,6 +668,7 @@ function GameRoom() {
 
     // AI's own turn (draw and discard)
     if (currentPlayer.isAI && actionPossibilities.length === 0) {
+        setIsProcessingTurn(true);
         await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000));
         
         // Banker starts with 14 tiles, so they discard directly.
@@ -678,35 +684,47 @@ function GameRoom() {
         }
 
         const drawnTileFromWall = wallCopy.pop()!;
-        setWall(wallCopy);
         
-        // AI checks for win after drawing
-        const newHand = [...currentPlayer.hand, drawnTileFromWall];
-        if (isWinningHand(newHand, goldenTile)) {
-            handleWin(currentPlayer.id);
-            return;
-        }
-
         setPlayers(prevPlayers => {
             const updatedPlayers = prevPlayers.map(p => 
-                p.id === activePlayer ? { ...p, hand: newHand } : p
+                p.id === activePlayer ? { ...p, hand: [...p.hand, drawnTileFromWall] } : p
             );
-            // DISCARD LOGIC MUST BE HERE to prevent race conditions
-            setTimeout(() => {
-                handleDiscardTile(activePlayer, Math.floor(Math.random() * newHand.length));
-            }, 500);
+            
+            const aiPlayerWithNewTile = updatedPlayers.find(p => p.id === activePlayer)!;
+
+            if (isWinningHand(aiPlayerWithNewTile.hand, goldenTile)) {
+                setTimeout(() => handleWin(activePlayer), 500);
+            } else {
+                setTimeout(() => {
+                    handleDiscardTile(activePlayer, Math.floor(Math.random() * aiPlayerWithNewTile.hand.length));
+                }, 500);
+            }
+            
             return updatedPlayers;
         });
 
-    } else if (activePlayer === 0) { // Human player's turn
-        // Do nothing automatically, wait for user interaction
+        setWall(wallCopy);
+
+    } else if (activePlayer === 0 && !isAiControlled) { // Human player's turn
         if (currentPlayer.hand.length % 3 !== 2) {
              setHumanPlayerCanDiscard(false); // Can't discard, must draw
         } else {
              setHumanPlayerCanDiscard(true); // Can discard
         }
+    } else if (activePlayer === 0 && isAiControlled) { // AI controlled human player
+        setIsProcessingTurn(true);
+        await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000));
+        
+        if (currentPlayer.hand.length % 3 !== 2) {
+            handleDrawTile(); // This will set humanPlayerCanDiscard to true
+            setTimeout(() => {
+                handleDiscardTile(0, currentPlayer.hand.length); // Draw and discard
+            }, 1000)
+        } else {
+             handleDiscardTile(0, Math.floor(Math.random() * currentPlayer.hand.length));
+        }
     }
-  }, [gameState, activePlayer, players, actionPossibilities, wall, handleDiscardTile, handleEndGame, handleWin, goldenTile, handleAction]);
+  }, [gameState, activePlayer, players, actionPossibilities, wall, handleDiscardTile, handleEndGame, handleWin, goldenTile, handleAction, isProcessingTurn, isAiControlled, handleDrawTile]);
 
 
   useEffect(() => {
@@ -775,16 +793,16 @@ function GameRoom() {
         const currentPlayer = players.find(p => p.id === activePlayer);
         if (!currentPlayer) return;
 
-        if (activePlayer === 0 && humanPlayerCanDiscard) {
+        if (activePlayer === 0 && !isAiControlled) {
             toast({ title: "时间到 (Time's Up!)", description: "系统已为您开启AI托管并打出最右边的牌。(AI activated and discarded rightmost tile.)" });
             setIsAiControlled(true);
-            handleDiscardTile(0, players[0].hand.length - 1);
+            // The runGameFlow effect will handle the AI-controlled discard
         }
     }
      if (actionTimer <= 0 && actionPossibilities.some(p => p.playerId === 0)) {
         handleAction('skip', 0);
     }
-  }, [turnTimer, actionTimer, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard, handleAction]);
+  }, [turnTimer, actionTimer, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard, handleAction, isAiControlled]);
 
   const initializeGame = useCallback(() => {
     clearTimer(timerRef);
@@ -795,6 +813,8 @@ function GameRoom() {
     setActionPossibilities([]);
     setHumanPlayerCanDiscard(false);
     setLatestDiscard(null);
+    setIsProcessingTurn(false);
+
     const newDeck = createDeck();
     
     const deckString = JSON.stringify(newDeck.sort((a,b) => (a.suit+a.value).localeCompare(b.suit+b.value)));
@@ -986,7 +1006,7 @@ function GameRoom() {
     }, 5500); 
   }
 
-  const handleDrawTile = () => {
+  const handleDrawTile = useCallback(() => {
     if (wall.length > 14 && activePlayer === 0 && !humanPlayerCanDiscard) {
       const newWall = [...wall];
       const tile = newWall.pop()!;
@@ -1014,12 +1034,13 @@ function GameRoom() {
 
       setHumanPlayerCanDiscard(true);
     }
-  };
+  }, [wall, activePlayer, humanPlayerCanDiscard, players]);
 
   const handleSelectOrDiscardTile = (tileIndex: number) => {
     if (activePlayer !== 0 || !humanPlayerCanDiscard || isAiControlled) return;
 
     if (selectedTileIndex === tileIndex) {
+      setIsProcessingTurn(true);
       handleDiscardTile(0, tileIndex);
     } else {
       setSelectedTileIndex(tileIndex);
@@ -1196,7 +1217,7 @@ function GameRoom() {
                                     <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
                                 </div>
                                 {gameState === 'playing' && activePlayer === 0 && !humanPlayerCanDiscard && !humanPlayerAction && (
-                                <Button onClick={handleDrawTile}>
+                                <Button onClick={handleDrawTile} disabled={isProcessingTurn}>
                                     <Hand className="mr-2 h-4 w-4" />
                                     摸牌 (Draw Tile)
                                 </Button>
@@ -1341,5 +1362,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
