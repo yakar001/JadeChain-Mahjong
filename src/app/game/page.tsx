@@ -402,6 +402,86 @@ function GameRoom() {
 
   }, [players, activePlayer, pot, handleEndGame, toast, playSound, goldenTile, latestDiscard]);
 
+  const initializeGame = useCallback(() => {
+    clearTimer(timerRef);
+    clearTimer(actionTimerRef);
+    setGameState('pre-roll-seating');
+    setRoundResult(null);
+    setSeatingRolls([]);
+    setActionPossibilities([]);
+    setHumanPlayerCanDiscard(false);
+    setLatestDiscard(null);
+    setIsProcessingTurn(false);
+
+    const newDeck = createDeck();
+    
+    const deckString = JSON.stringify(newDeck.sort((a,b) => (a.suit+a.value).localeCompare(b.suit+b.value)));
+    const seed = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.createHash('sha256').update(deckString + seed).digest('hex');
+    setShuffleHash(hash);
+    
+    const shuffled = shuffleDeck(newDeck);
+    
+    setWall(shuffled);
+    setGoldenTile(null);
+
+    const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null, discards: [] };
+    
+    const initialPlayers: Player[] = [humanPlayer];
+    
+    if(roomTier === 'Free' && initialPlayers.length < 4) {
+      const aiPlayersNeeded = 4 - initialPlayers.length;
+      for(let i=1; i<=aiPlayersNeeded; i++) {
+        initialPlayers.push({
+          id: i,
+          name: `AI 玩家 ${i}`,
+          avatar: `https://placehold.co/40x40.png`,
+          isAI: true,
+          hand: [],
+          melds: [],
+          balance: INITIAL_BALANCE,
+          hasLocation: Math.random() > 0.5,
+          discards: [],
+        })
+      }
+    } else if (initialPlayers.length < 4) {
+       const playersNeeded = 4 - initialPlayers.length;
+       for(let i=1; i<=playersNeeded; i++) {
+        initialPlayers.push({
+          id: i,
+          name: `玩家 ${i+1}`,
+          avatar: `https://placehold.co/40x40.png`,
+          isAI: false,
+          hand: [],
+          melds: [],
+          balance: INITIAL_BALANCE,
+          hasLocation: Math.random() > 0.5,
+          discards: [],
+        })
+      }
+    }
+    
+    setPlayers(initialPlayers);
+    setPot(0);
+    setActivePlayer(null);
+    setBankerId(null);
+    setEastPlayerId(null);
+    setSelectedTileIndex(null);
+    setIsAiControlled(false);
+
+    const requestLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                () => setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: true } : p)),
+                () => setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p))
+            );
+        } else {
+            setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
+        }
+    };
+    requestLocation();
+  }, [roomTier]);
+
   const handleLeaveGame = (andStartNew = false) => {
     const leaver = players.find(p => p.id === 0);
     const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
@@ -640,6 +720,36 @@ function GameRoom() {
 
   }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard, advanceTurn, players]);
 
+  const handleDrawTile = useCallback(() => {
+    if (wall.length > 14 && activePlayer === 0 && !humanPlayerCanDiscard) {
+      const newWall = [...wall];
+      const tile = newWall.pop()!;
+      setWall(newWall);
+      
+      const newHand = [...players.find(p => p.id === 0)!.hand, tile];
+
+      // Check for concealed Kong
+      const counts: Record<string, number> = {};
+      for(const t of newHand) {
+          const key = `${t.suit}-${t.value}`;
+          counts[key] = (counts[key] || 0) + 1;
+      }
+      const kongCandidateKey = Object.keys(counts).find(key => counts[key] === 4);
+      if(kongCandidateKey) {
+          const [suit, value] = kongCandidateKey.split('-');
+          setConcealedKongCandidate({ suit, value });
+      } else {
+          setConcealedKongCandidate(null);
+      }
+
+      setPlayers(currentPlayers => 
+        currentPlayers.map(p => p.id === 0 ? { ...p, hand: newHand } : p)
+      );
+
+      setHumanPlayerCanDiscard(true);
+    }
+  }, [wall, activePlayer, humanPlayerCanDiscard, players]);
+
   const runGameFlow = useCallback(async () => {
     if (gameState !== 'playing' || activePlayer === null || isProcessingTurn) return;
 
@@ -804,87 +914,6 @@ function GameRoom() {
     }
   }, [turnTimer, actionTimer, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard, handleAction, isAiControlled]);
 
-  const initializeGame = useCallback(() => {
-    clearTimer(timerRef);
-    clearTimer(actionTimerRef);
-    setGameState('pre-roll-seating');
-    setRoundResult(null);
-    setSeatingRolls([]);
-    setActionPossibilities([]);
-    setHumanPlayerCanDiscard(false);
-    setLatestDiscard(null);
-    setIsProcessingTurn(false);
-
-    const newDeck = createDeck();
-    
-    const deckString = JSON.stringify(newDeck.sort((a,b) => (a.suit+a.value).localeCompare(b.suit+b.value)));
-    const seed = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.createHash('sha256').update(deckString + seed).digest('hex');
-    setShuffleHash(hash);
-    
-    const shuffled = shuffleDeck(newDeck);
-    
-    setWall(shuffled);
-    setGoldenTile(null);
-
-    const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null, discards: [] };
-    
-    const initialPlayers: Player[] = [humanPlayer];
-    
-    if(roomTier === 'Free' && initialPlayers.length < 4) {
-      const aiPlayersNeeded = 4 - initialPlayers.length;
-      for(let i=1; i<=aiPlayersNeeded; i++) {
-        initialPlayers.push({
-          id: i,
-          name: `AI 玩家 ${i}`,
-          avatar: `https://placehold.co/40x40.png`,
-          isAI: true,
-          hand: [],
-          melds: [],
-          balance: INITIAL_BALANCE,
-          hasLocation: Math.random() > 0.5,
-          discards: [],
-        })
-      }
-    } else if (initialPlayers.length < 4) {
-       const playersNeeded = 4 - initialPlayers.length;
-       for(let i=1; i<=playersNeeded; i++) {
-        initialPlayers.push({
-          id: i,
-          name: `玩家 ${i+1}`,
-          avatar: `https://placehold.co/40x40.png`,
-          isAI: false,
-          hand: [],
-          melds: [],
-          balance: INITIAL_BALANCE,
-          hasLocation: Math.random() > 0.5,
-          discards: [],
-        })
-      }
-    }
-    
-    setPlayers(initialPlayers);
-    setPot(0);
-    setActivePlayer(null);
-    setBankerId(null);
-    setEastPlayerId(null);
-    setSelectedTileIndex(null);
-    setIsAiControlled(false);
-
-    const requestLocation = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                () => setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: true } : p)),
-                () => setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p))
-            );
-        } else {
-            setPlayers(prev => prev.map(p => p.id === 0 ? { ...p, hasLocation: false } : p));
-        }
-    };
-    requestLocation();
-  }, [roomTier]);
-  
-
   useEffect(() => {
     initializeGame();
   }, [initializeGame]);
@@ -1005,36 +1034,6 @@ function GameRoom() {
         
     }, 5500); 
   }
-
-  const handleDrawTile = useCallback(() => {
-    if (wall.length > 14 && activePlayer === 0 && !humanPlayerCanDiscard) {
-      const newWall = [...wall];
-      const tile = newWall.pop()!;
-      setWall(newWall);
-      
-      const newHand = [...players.find(p => p.id === 0)!.hand, tile];
-
-      // Check for concealed Kong
-      const counts: Record<string, number> = {};
-      for(const t of newHand) {
-          const key = `${t.suit}-${t.value}`;
-          counts[key] = (counts[key] || 0) + 1;
-      }
-      const kongCandidateKey = Object.keys(counts).find(key => counts[key] === 4);
-      if(kongCandidateKey) {
-          const [suit, value] = kongCandidateKey.split('-');
-          setConcealedKongCandidate({ suit, value });
-      } else {
-          setConcealedKongCandidate(null);
-      }
-
-      setPlayers(currentPlayers => 
-        currentPlayers.map(p => p.id === 0 ? { ...p, hand: newHand } : p)
-      );
-
-      setHumanPlayerCanDiscard(true);
-    }
-  }, [wall, activePlayer, humanPlayerCanDiscard, players]);
 
   const handleSelectOrDiscardTile = (tileIndex: number) => {
     if (activePlayer !== 0 || !humanPlayerCanDiscard || isAiControlled) return;
@@ -1362,3 +1361,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
