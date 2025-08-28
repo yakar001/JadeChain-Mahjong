@@ -53,7 +53,7 @@ const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B']; // East, South, West, North, Red, Green, White
 const INITIAL_BALANCE = 100;
 const TURN_DURATION = 60; // 60 seconds per turn
-const ACTION_DURATION = 5; // 5 seconds to decide on an action
+const ACTION_DURATION = 15; // 15 seconds to decide on an action
 
 // A correct deck has 136 tiles (4 of each).
 const createDeck = (): Tile[] => {
@@ -709,8 +709,9 @@ function GameRoom() {
             const isNextPlayer = p.id === getNextPlayerId(playerId);
             const tileCountInHand = p.hand.filter(t => t.suit === tileToDiscard!.suit && t.value === tileToDiscard!.value).length;
             
-            const playerHasGolden = p.hand.some(t => t.suit === goldenTile?.suit && t.value === goldenTile?.value);
+            const playerHasGolden = p.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
 
+            // CRITICAL FIX: Player with golden tile cannot win on a discard.
             const canWin = !playerHasGolden && isWinningHand([...p.hand, tileToDiscard!], goldenTile);
             const canPong = tileCountInHand >= 2;
             const canKong = tileCountInHand >= 3;
@@ -780,7 +781,11 @@ function GameRoom() {
         
         // Banker starts with 14 tiles, so they discard directly.
         if (currentPlayer.hand.length % 3 === 2) {
-            await handleDiscardTile(activePlayer, Math.floor(Math.random() * currentPlayer.hand.length));
+            if (isWinningHand(currentPlayer.hand, goldenTile)) {
+                setTimeout(() => handleWin(activePlayer), 500);
+            } else {
+                await handleDiscardTile(activePlayer, Math.floor(Math.random() * currentPlayer.hand.length));
+            }
             return;
         }
 
@@ -1051,7 +1056,7 @@ function GameRoom() {
   }, [audioSrc]);
 
   const humanPlayer = players.find(p => p.id === 0);
-  const humanPlayerHasGolden = humanPlayer?.hand.some(t => t.suit === goldenTile?.suit && t.value === goldenTile?.value);
+  const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
   const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
   
   const roomTierMap: Record<string, string> = {
