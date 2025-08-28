@@ -636,6 +636,35 @@ function GameRoom() {
     setIsProcessingTurn(false);
   }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn]);
 
+  const handleDrawTile = useCallback(() => {
+    if (wall.length > 14 && activePlayer === 0 && !humanPlayerCanDiscard) {
+      const newWall = [...wall];
+      const tile = newWall.pop()!;
+      setWall(newWall);
+      
+      const newHand = [...players.find(p => p.id === 0)!.hand, tile];
+
+      // Check for concealed Kong
+      const counts: Record<string, number> = {};
+      for(const t of newHand) {
+          const key = `${t.suit}-${t.value}`;
+          counts[key] = (counts[key] || 0) + 1;
+      }
+      const kongCandidateKey = Object.keys(counts).find(key => counts[key] === 4);
+      if(kongCandidateKey) {
+          const [suit, value] = kongCandidateKey.split('-');
+          setConcealedKongCandidate({ suit, value });
+      } else {
+          setConcealedKongCandidate(null);
+      }
+
+      setPlayers(currentPlayers => 
+        currentPlayers.map(p => p.id === 0 ? { ...p, hand: newHand } : p)
+      );
+
+      setHumanPlayerCanDiscard(true);
+    }
+  }, [wall, activePlayer, humanPlayerCanDiscard, players]);
 
   const handleDiscardTile = useCallback(async (playerId: number, tileIndex: number) => {
      if (activePlayer !== playerId) return;
@@ -673,82 +702,50 @@ function GameRoom() {
     const tileName = getTileName(tileToDiscard);
     await playSound(tileName);
     
-    setTimeout(() => {
-        const potentialActions: ActionPossibility[] = [];
-        // Important: use a fresh reference to players from state if possible, or use the `updatedPlayers` from this scope
-        updatedPlayers.forEach(p => {
-            if (p.id !== playerId) {
-                const isNextPlayer = p.id === getNextPlayerId(playerId);
-                const tileCountInHand = p.hand.filter(t => t.suit === tileToDiscard!.suit && t.value === tileToDiscard!.value).length;
-                
-                const playerHasGolden = p.hand.some(t => t.suit === goldenTile?.suit && t.value === goldenTile?.value);
+    const potentialActions: ActionPossibility[] = [];
+    // Important: use a fresh reference to players from state if possible, or use the `updatedPlayers` from this scope
+    updatedPlayers.forEach(p => {
+        if (p.id !== playerId) {
+            const isNextPlayer = p.id === getNextPlayerId(playerId);
+            const tileCountInHand = p.hand.filter(t => t.suit === tileToDiscard!.suit && t.value === tileToDiscard!.value).length;
+            
+            const playerHasGolden = p.hand.some(t => t.suit === goldenTile?.suit && t.value === goldenTile?.value);
 
-                const canWin = !playerHasGolden && isWinningHand([...p.hand, tileToDiscard!], goldenTile);
-                const canPong = tileCountInHand >= 2;
-                const canKong = tileCountInHand >= 3;
+            const canWin = !playerHasGolden && isWinningHand([...p.hand, tileToDiscard!], goldenTile);
+            const canPong = tileCountInHand >= 2;
+            const canKong = tileCountInHand >= 3;
 
-                let canChow = false;
-                if (isNextPlayer && !['wind', 'dragon'].includes(tileToDiscard!.suit)) {
-                    const v = parseInt(tileToDiscard!.value);
-                    const hasNum = (val: number) => p.hand.some(t => t.suit === tileToDiscard!.suit && parseInt(t.value) === val);
-                    if ((hasNum(v-2) && hasNum(v-1)) || (hasNum(v-1) && hasNum(v+1)) || (hasNum(v+1) && hasNum(v+2))) {
-                        canChow = true;
-                    }
-                }
-
-                if (canWin || canPong || canKong || canChow) {
-                    potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
+            let canChow = false;
+            if (isNextPlayer && !['wind', 'dragon'].includes(tileToDiscard!.suit)) {
+                const v = parseInt(tileToDiscard!.value);
+                const hasNum = (val: number) => p.hand.some(t => t.suit === tileToDiscard!.suit && parseInt(t.value) === val);
+                if ((hasNum(v-2) && hasNum(v-1)) || (hasNum(v-1) && hasNum(v+1)) || (hasNum(v+1) && hasNum(v+2))) {
+                    canChow = true;
                 }
             }
-        });
 
-        const winActions = potentialActions.filter(p => p.actions.win);
-        const pongKongActions = potentialActions.filter(p => p.actions.pong || p.actions.kong);
-        const chowActions = potentialActions.filter(p => p.actions.chow);
-
-        if (winActions.length > 0) {
-            setActionPossibilities(winActions);
-        } else if (pongKongActions.length > 0) {
-            setActionPossibilities(pongKongActions);
-        } else if (chowActions.length > 0) {
-            setActionPossibilities(chowActions);
-        } else {
-            setActionPossibilities([]);
-            advanceTurn(playerId);
+            if (canWin || canPong || canKong || canChow) {
+                potentialActions.push({ playerId: p.id, actions: { win: canWin, pong: canPong, kong: canKong, chow: canChow } });
+            }
         }
-    }, 500);
+    });
+
+    const winActions = potentialActions.filter(p => p.actions.win);
+    const pongKongActions = potentialActions.filter(p => p.actions.pong || p.actions.kong);
+    const chowActions = potentialActions.filter(p => p.actions.chow);
+
+    if (winActions.length > 0) {
+        setActionPossibilities(winActions);
+    } else if (pongKongActions.length > 0) {
+        setActionPossibilities(pongKongActions);
+    } else if (chowActions.length > 0) {
+        setActionPossibilities(chowActions);
+    } else {
+        setActionPossibilities([]);
+        advanceTurn(playerId);
+    }
 
   }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard, advanceTurn, players]);
-
-  const handleDrawTile = useCallback(() => {
-    if (wall.length > 14 && activePlayer === 0 && !humanPlayerCanDiscard) {
-      const newWall = [...wall];
-      const tile = newWall.pop()!;
-      setWall(newWall);
-      
-      const newHand = [...players.find(p => p.id === 0)!.hand, tile];
-
-      // Check for concealed Kong
-      const counts: Record<string, number> = {};
-      for(const t of newHand) {
-          const key = `${t.suit}-${t.value}`;
-          counts[key] = (counts[key] || 0) + 1;
-      }
-      const kongCandidateKey = Object.keys(counts).find(key => counts[key] === 4);
-      if(kongCandidateKey) {
-          const [suit, value] = kongCandidateKey.split('-');
-          setConcealedKongCandidate({ suit, value });
-      } else {
-          setConcealedKongCandidate(null);
-      }
-
-      setPlayers(currentPlayers => 
-        currentPlayers.map(p => p.id === 0 ? { ...p, hand: newHand } : p)
-      );
-
-      setHumanPlayerCanDiscard(true);
-    }
-  }, [wall, activePlayer, humanPlayerCanDiscard, players]);
 
   const runGameFlow = useCallback(async () => {
     if (gameState !== 'playing' || activePlayer === null || isProcessingTurn) return;
@@ -1242,7 +1239,7 @@ function GameRoom() {
                                         {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm" className="w-16 h-10">杠</Button>}
                                         {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm" className="w-16 h-10">碰</Button>}
                                         {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', 0)} size="sm" className="w-16 h-10">吃</Button>}
-                                        <Button onClick={() => handleAction('skip', 0)} size="sm" variant="secondary" className="w-16 h-10">过 ({actionTimer}s)</Button>
+                                        <Button onClick={() => handleAction('skip', 0)} size="sm" variant="secondary" className="w-16 h-10">过 ({actionTimer}s)</Button>}
                                     </div>
                                     {humanPlayerHasGolden && humanPlayerAction.actions.win && <p className="text-xs text-yellow-400 text-center mt-1">持金只能自摸，不可胡牌</p>}
                                 </div>
