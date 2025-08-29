@@ -44,6 +44,7 @@ type RoundResult = {
     biggestWinner: Player | null;
     tableFee: number;
     leaver?: Player;
+    isDraw?: boolean;
     finalHands: Player[];
 } | null;
 
@@ -54,6 +55,7 @@ const honors = ['E', 'S', 'W', 'N', 'R', 'G', 'B']; // East, South, West, North,
 const INITIAL_BALANCE = 100;
 const TURN_DURATION = 60; // 60 seconds per turn
 const ACTION_DURATION = 15; // 15 seconds to decide on an action
+const MIN_WALL_TILES_FOR_DRAW = 9;
 
 // A correct deck has 136 tiles (4 of each).
 const createDeck = (): Tile[] => {
@@ -302,47 +304,65 @@ function GameRoom() {
   }
     
   // Function to end the game and calculate results
-  const handleEndGame = useCallback((finalPlayers: Player[]) => {
+  const handleEndGame = useCallback((finalPlayers: Player[], isDraw: boolean = false) => {
     clearTimer(timerRef);
     clearTimer(actionTimerRef);
-    let totalWinnings = 0;
-    const winners = finalPlayers.filter(p => p.balance > INITIAL_BALANCE).map(p => {
-        const netWin = p.balance - INITIAL_BALANCE;
-        totalWinnings += netWin;
-        return { player: p, netWin };
-    });
-
-    const losers = finalPlayers.filter(p => p.balance < INITIAL_BALANCE).map(p => {
-        const netLoss = INITIAL_BALANCE - p.balance;
-        return { player: p, netLoss };
-    });
-
-    // Distribute pot proportionally
-    let biggestWinner: Player | null = null;
-    let maxWin = 0;
-
-    const winnersWithDistribution = winners.map(w => {
-        const share = totalWinnings > 0 ? (w.netWin / totalWinnings) * pot : 0;
-        if(w.netWin > maxWin) {
-            maxWin = w.netWin;
-            biggestWinner = w.player;
-        }
-        return { ...w, potShare: share };
-    });
     
-    const tableFee = STAKE_AMOUNT; // The fee is the initial stake amount
-    
-    setRoundResult({
-        winners: winnersWithDistribution.map(w => ({ player: w.player, netWin: w.potShare })),
-        losers,
-        biggestWinner,
-        tableFee,
-        finalHands: finalPlayers
-    });
+    if (isDraw) {
+      playSound("流局");
+       toast({
+          title: '流局 (Draw Game)',
+          description: '牌墙已打完，本局平局。(The wall is empty. This round is a draw.)',
+      });
+      setRoundResult({
+          winners: [],
+          losers: [],
+          biggestWinner: null,
+          tableFee: 0,
+          isDraw: true,
+          finalHands: finalPlayers,
+      });
+
+    } else {
+        let totalWinnings = 0;
+        const winners = finalPlayers.filter(p => p.balance > INITIAL_BALANCE).map(p => {
+            const netWin = p.balance - INITIAL_BALANCE;
+            totalWinnings += netWin;
+            return { player: p, netWin };
+        });
+
+        const losers = finalPlayers.filter(p => p.balance < INITIAL_BALANCE).map(p => {
+            const netLoss = INITIAL_BALANCE - p.balance;
+            return { player: p, netLoss };
+        });
+
+        // Distribute pot proportionally
+        let biggestWinner: Player | null = null;
+        let maxWin = 0;
+
+        const winnersWithDistribution = winners.map(w => {
+            const share = totalWinnings > 0 ? (w.netWin / totalWinnings) * pot : 0;
+            if(w.netWin > maxWin) {
+                maxWin = w.netWin;
+                biggestWinner = w.player;
+            }
+            return { ...w, potShare: share };
+        });
+        
+        const tableFee = STAKE_AMOUNT; // The fee is the initial stake amount
+        
+        setRoundResult({
+            winners: winnersWithDistribution.map(w => ({ player: w.player, netWin: w.potShare })),
+            losers,
+            biggestWinner,
+            tableFee,
+            finalHands: finalPlayers
+        });
+    }
     
     setGameState('game-over');
     
-  }, [pot, STAKE_AMOUNT]);
+  }, [pot, STAKE_AMOUNT, playSound, toast]);
 
   const getNextPlayerId = useCallback((currentPlayerId: number) => {
       const currentPlayerIndex = players.findIndex(p => p.id === currentPlayerId);
@@ -635,9 +655,13 @@ function GameRoom() {
     }
     setIsProcessingTurn(false);
   }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn]);
-
+  
   const handleDrawTile = useCallback(() => {
-    if (wall.length > 14 && activePlayer === 0 && !humanPlayerCanDiscard) {
+    if (wall.length <= MIN_WALL_TILES_FOR_DRAW) {
+      handleEndGame(players, true); // True for a draw game
+      return;
+    }
+    if (activePlayer === 0 && !humanPlayerCanDiscard) {
       const newWall = [...wall];
       const tile = newWall.pop()!;
       setWall(newWall);
@@ -664,7 +688,7 @@ function GameRoom() {
 
       setHumanPlayerCanDiscard(true);
     }
-  }, [wall, activePlayer, humanPlayerCanDiscard, players]);
+  }, [wall, activePlayer, humanPlayerCanDiscard, players, handleEndGame]);
 
   const handleDiscardTile = useCallback(async (playerId: number, tileIndex: number) => {
      if (activePlayer !== playerId) return;
@@ -778,7 +802,7 @@ function GameRoom() {
     if (currentPlayer.isAI && actionPossibilities.length === 0) {
         setIsProcessingTurn(true);
         await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000));
-        
+
         // Banker starts with 14 tiles, so they discard directly.
         if (currentPlayer.hand.length % 3 === 2) {
             if (isWinningHand(currentPlayer.hand, goldenTile)) {
@@ -789,13 +813,14 @@ function GameRoom() {
             return;
         }
 
-        let wallCopy = [...wall];
-        if (wallCopy.length <= 14) { // End game if wall is nearly empty
-            handleEndGame(players);
+        if (wall.length <= MIN_WALL_TILES_FOR_DRAW) {
+            handleEndGame(players, true); // True for a draw game
             return;
         }
-
+        
+        let wallCopy = [...wall];
         const drawnTileFromWall = wallCopy.pop()!;
+        setWall(wallCopy);
         
         setPlayers(prevPlayers => {
             const updatedPlayers = prevPlayers.map(p => 
@@ -814,8 +839,6 @@ function GameRoom() {
             
             return updatedPlayers;
         });
-
-        setWall(wallCopy);
 
     } else if (activePlayer === 0 && !isAiControlled) { // Human player's turn
         if (currentPlayer.hand.length % 3 !== 2) {
@@ -1280,7 +1303,7 @@ function GameRoom() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {roundResult?.leaver ? `${roundResult.leaver.name} 已退出对局。` : ''}
-              对局结算详情如下：
+              {roundResult?.isDraw ? `牌墙已打完，本局平局。所有入场费已退还。` : '对局结算详情如下：'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="my-4 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
@@ -1302,44 +1325,46 @@ function GameRoom() {
 
             <Separator />
 
-            <div>
-                 <h3 className="font-semibold mb-2 text-base">输赢结算 (Payouts)</h3>
-                <div className="space-y-3">
-                    {roundResult?.winners.map(({ player, netWin }) => (
-                        <div key={player.id} className="flex justify-between items-center">
-                            <span className="font-semibold">{player.name}</span>
-                            <div className="flex items-center gap-2 text-green-400">
-                                <Plus size={16}/>
-                                <span>{netWin.toFixed(2)} $JIN</span>
-                                {roundResult.leaver && <span className="text-xs text-muted-foreground">(from leaver)</span>}
+             {!roundResult?.isDraw && (
+                 <div>
+                    <h3 className="font-semibold mb-2 text-base">输赢结算 (Payouts)</h3>
+                    <div className="space-y-3">
+                        {roundResult?.winners.map(({ player, netWin }) => (
+                            <div key={player.id} className="flex justify-between items-center">
+                                <span className="font-semibold">{player.name}</span>
+                                <div className="flex items-center gap-2 text-green-400">
+                                    <Plus size={16}/>
+                                    <span>{netWin.toFixed(2)} $JIN</span>
+                                    {roundResult.leaver && <span className="text-xs text-muted-foreground">(from leaver)</span>}
+                                </div>
+                            </div>
+                        ))}
+                        {roundResult?.losers.map(({ player, netLoss }) => (
+                            <div key={player.id} className="flex justify-between items-center">
+                                <span className="font-semibold">{player.name}</span>
+                                <div className="flex items-center gap-2 text-red-400">
+                                    <Minus size={16}/>
+                                    <span>{netLoss.toFixed(2)} $JIN</span>
+                                </div>
+                            </div>
+                        ))}
+                        <Separator />
+                        {roundResult?.biggestWinner && (
+                            <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                <span>大赢家台费 (Biggest Winner Fee)</span>
+                                <div className="flex items-center gap-2">
+                                    <Minus size={12}/>
+                                    <span>{roundResult.tableFee.toFixed(2)} $JIN (to Burn Pool)</span>
+                                </div>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center font-bold text-base pt-2 border-t">
+                                <span>总奖池 (Total Pot)</span>
+                                <span>{pot} $JIN</span>
                             </div>
                         </div>
-                    ))}
-                    {roundResult?.losers.map(({ player, netLoss }) => (
-                        <div key={player.id} className="flex justify-between items-center">
-                            <span className="font-semibold">{player.name}</span>
-                            <div className="flex items-center gap-2 text-red-400">
-                                <Minus size={16}/>
-                                <span>{netLoss.toFixed(2)} $JIN</span>
-                            </div>
-                        </div>
-                    ))}
-                    <Separator />
-                    {roundResult?.biggestWinner && (
-                        <div className="flex justify-between items-center text-xs text-muted-foreground">
-                            <span>大赢家台费 (Biggest Winner Fee)</span>
-                            <div className="flex items-center gap-2">
-                                <Minus size={12}/>
-                                <span>{roundResult.tableFee.toFixed(2)} $JIN (to Burn Pool)</span>
-                            </div>
-                        </div>
-                    )}
-                    <div className="flex justify-between items-center font-bold text-base pt-2 border-t">
-                            <span>总奖池 (Total Pot)</span>
-                            <span>{pot} $JIN</span>
-                        </div>
-                    </div>
-            </div>
+                </div>
+             )}
           </div>
           <AlertDialogFooter>
             <AlertDialogAction onClick={initializeGame}>
