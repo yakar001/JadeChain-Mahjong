@@ -3,50 +3,58 @@
 
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from "@/components/ui/button";
-import { Coins, BarChart, Trophy, Gamepad2, ShieldCheck, ArrowRight, Clock, Plus, Minus } from 'lucide-react';
+import { Coins, BarChart, Trophy, Gamepad2, ShieldCheck, ArrowRight, Clock, Plus, Minus, Maximize } from 'lucide-react';
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 // In production, this data will be fetched from a backend service.
 const ownedNfts: { name: string, image: string, 'data-ai-hint': string }[] = [];
 const matchHistory: { id: number, room: string, result: number, date: string }[] = [];
-const kycLevel = 1; // This should also be fetched from user data
+const kycLevel = 1;
+
+const StatCard = ({ icon, value, label }: { icon: React.ReactNode, value: string | number, label: string }) => (
+    <Card className="bg-accent/50 text-center p-4">
+        <div className="text-primary mb-2">{icon}</div>
+        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
+    </Card>
+)
 
 export default function ProfilePage() {
     const { toast } = useToast();
 
   return (
     <div>
-      <Card className="mb-8">
-        <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6">
-          <Avatar className="h-24 w-24">
+      <Card className="mb-8 overflow-hidden">
+        <div className="h-24 bg-gradient-to-r from-primary/20 to-secondary/20" />
+        <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6 -mt-12">
+          <Avatar className="h-24 w-24 border-4 border-background">
             <AvatarImage src="https://placehold.co/100x100.png" data-ai-hint="wise master" />
             <AvatarFallback>P</AvatarFallback>
           </Avatar>
           <div className="text-center sm:text-left">
             <h1 className="text-2xl font-bold font-headline">PlayerOne</h1>
-            <p className="text-muted-foreground">0x1234...abcd</p>
-            <div className="flex items-center justify-center sm:justify-start gap-4 mt-2 text-xl font-bold">
+            <p className="text-muted-foreground font-mono text-sm">0x1234...abcd</p>
+          </div>
+           <div className="sm:ml-auto flex flex-col md:flex-row items-center gap-4">
+             <div className="flex items-center gap-4 text-xl font-bold">
               <div className="flex items-center gap-2 text-primary">
-                <Coins /> 1,234 $JIN
+                <Coins /> 1,234 <span className="text-sm font-light">$JIN</span>
               </div>
               <div className="flex items-center gap-2 text-yellow-300">
-                <Coins /> 567 $GMD
+                <Coins /> 567 <span className="text-sm font-light">$GMD</span>
               </div>
             </div>
-          </div>
-           <div className="sm:ml-auto flex flex-col items-center gap-2">
-             <div className="flex items-center gap-2 p-3 bg-accent/50 rounded-lg">
+             <div className="flex items-center gap-2 p-2 pr-4 bg-accent/50 rounded-lg">
                 <ShieldCheck className="w-8 h-8 text-green-500" />
                 <div>
-                    <span className="text-sm text-muted-foreground">KYC 等级 (KYC Level)</span>
-                    <p className="font-bold text-lg">Level {kycLevel}</p>
+                    <span className="text-sm text-muted-foreground">KYC 等级</span>
+                    <p className="font-bold">Level {kycLevel}</p>
                 </div>
-                 <Button variant="ghost" size="icon" asChild>
+                 <Button variant="ghost" size="icon" asChild className="-mr-2">
                     <Link href="/kyc">
                         <ArrowRight />
                     </Link>
@@ -57,44 +65,27 @@ export default function ProfilePage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <Card className="lg:col-span-1">
-            <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <BarChart />
-                玩家统计 (Player Stats)
-            </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="flex items-center justify-between text-center">
-                    <div>
-                        <p className="text-2xl font-bold flex items-center justify-center gap-2"><Gamepad2 className="text-muted-foreground"/> 0</p>
-                        <p className="text-sm text-muted-foreground">总场次</p>
-                    </div>
-                     <div>
-                        <p className="text-2xl font-bold flex items-center justify-center gap-2"><Trophy className="text-primary"/> 0</p>
-                        <p className="text-sm text-muted-foreground">胜利次数</p>
-                    </div>
-                     <div>
-                        <p className="text-2xl font-bold">0%</p>
-                        <p className="text-sm text-muted-foreground">胜率</p>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+        <div className="lg:col-span-1 grid grid-cols-2 lg:grid-cols-1 gap-4">
+            <StatCard icon={<Gamepad2 size={28} />} value={0} label="总场次" />
+            <StatCard icon={<Trophy size={28} />} value="0%" label="胜率" />
+            <StatCard icon={<Plus size={28} />} value={0} label="总胡牌" />
+            <StatCard icon={<Maximize size={28} />} value="N/A" label="最大番型" />
+        </div>
          <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Clock />
                     牌局历史 (Match History)
                 </CardTitle>
+                <CardDescription>最近10场对局记录</CardDescription>
             </CardHeader>
             <CardContent>
                  <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>房间 (Room)</TableHead>
+                            <TableHead>房间</TableHead>
                             <TableHead className="text-right">输赢 ($JIN)</TableHead>
-                            <TableHead className="text-right">时间 (Time)</TableHead>
+                            <TableHead className="text-right">时间</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -113,8 +104,8 @@ export default function ProfilePage() {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={3} className="text-center text-muted-foreground">
-                                    暂无牌局历史 (No match history)
+                                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                    暂无牌局历史
                                 </TableCell>
                             </TableRow>
                         )}
@@ -125,7 +116,7 @@ export default function ProfilePage() {
       </div>
       
       <div>
-        <h2 className="text-2xl font-bold font-headline mb-4">NFT Key Collection (NFT 密钥收藏)</h2>
+        <h2 className="text-2xl font-bold font-headline mb-4">NFT Key 收藏馆</h2>
         {ownedNfts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {ownedNfts.map((nft, index) => (
@@ -145,10 +136,10 @@ export default function ProfilePage() {
             ))}
             </div>
         ) : (
-            <Card>
+            <Card className="bg-card/50">
                 <CardContent className="p-8 text-center text-muted-foreground">
-                    <p>您还没有收藏任何 NFT 密钥。</p>
-                    <p>(You don't own any NFT Keys yet.)</p>
+                    <p>您的收藏馆还是空的。</p>
+                    <Button variant="link" asChild className="mt-2"><Link href="/marketplace">前往市场探索</Link></Button>
                 </CardContent>
             </Card>
         )}

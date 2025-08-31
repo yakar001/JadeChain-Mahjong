@@ -2,120 +2,97 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Trophy, Feather, Sword, Crown, Diamond, Calendar, Clock, BarChart, Star, ShieldCheck, Loader2 } from "lucide-react";
+import { Users, Trophy, Feather, Sword, Crown, Diamond, Star, ShieldCheck, Loader2, ArrowRight } from "lucide-react";
 import type { ReactElement } from "react";
-import Image from "next/image";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/context/wallet-context";
 
-// Simulate a user's KYC level
 const userKycLevel = 1; 
 
 const initialRooms = [
   { 
     tier: "Free", 
-    tierDisplay: "免费体验娱乐场 (Free Play)",
+    tierDisplay: "免费体验娱乐场",
+    subTitle: "Free Play",
     fee: 0, 
     prize: 0, 
     players: 4,
     minPlayers: 4,
     icon: <Star className="text-yellow-400" />,
-    description: "无需费用，尽情娱乐",
+    description: "无需费用，尽情娱乐。体验核心玩法，磨练麻将技巧。",
     kycRequired: 0,
   },
   { 
     tier: "Novice", 
-    tierDisplay: "新手场 (Novice)",
+    tierDisplay: "新手场",
+    subTitle: "Novice",
     fee: 10, 
     prize: 38, 
     players: 3, 
     minPlayers: 4,
     icon: <Feather className="text-green-400" />,
-    description: "轻松入门，熟悉规则",
+    description: "轻松入门，熟悉规则。小额入场，赢取您的第一桶金。",
     kycRequired: 0,
   },
   { 
     tier: "Adept", 
-    tierDisplay: "进阶场 (Adept)",
+    tierDisplay: "进阶场",
+    subTitle: "Adept",
     fee: 50, 
     prize: 190, 
     players: 4,
     minPlayers: 4,
     icon: <Sword className="text-blue-400" />,
-    description: "磨炼技巧，初显锋芒",
+    description: "磨炼技巧，初显锋芒。挑战更强的对手，赢取更高奖励。",
     kycRequired: 0,
    },
   { 
     tier: "Expert", 
-    tierDisplay: "高手场 (Expert)",
+    tierDisplay: "高手场",
+    subTitle: "Expert",
     fee: 200, 
     prize: 760, 
     players: 1,
     minPlayers: 4,
     icon: <Crown className="text-purple-400" />,
-    description: "高手过招，一较高下",
+    description: "高手过招，一较高下。需要通过一级KYC认证方可进入。",
     kycRequired: 1,
   },
   { 
     tier: "Master", 
-    tierDisplay: "大师场 (Master)",
+    tierDisplay: "大师场",
+    subTitle: "Master",
     fee: 1000, 
     prize: 3800, 
     players: 4,
     minPlayers: 4,
     icon: <Diamond className="text-yellow-400" />,
-    description: "巅峰对决，问鼎雀神",
+    description: "巅峰对决，问鼎雀神。通往传奇的最终战场。",
     kycRequired: 2,
   },
 ];
 
-const rankTiers = [
-    { name: "青铜 (Bronze)", color: "text-amber-700" },
-    { name: "白银 (Silver)", color: "text-gray-400" },
-    { name: "黄金 (Gold)", color: "text-yellow-500" },
-    { name: "铂金 (Platinum)", color: "text-cyan-400" },
-    { name: "钻石 (Diamond)", color: "text-violet-400" },
-    { name: "雀圣 (Mahjong Saint)", color: "text-red-500" },
-];
 
-const tournaments = [
-  {
-    name: "泉金杯周赛 #23",
-    status: "报名中",
-    prizePool: 100000,
-    entryFee: 500,
-    players: 88,
-    maxPlayers: 128,
-    startTime: "今天 20:00",
-    statusColor: "bg-green-500",
-  },
-  {
-    name: "金龙争霸赛",
-    status: "进行中",
-    prizePool: 500000,
-    entryFee: 2000,
-    players: 64,
-    maxPlayers: 64,
-    startTime: "已开始",
-    statusColor: "bg-blue-500",
-  },
-    {
-    name: "新手选拔赛",
-    status: "已结束",
-    prizePool: 10000,
-    entryFee: 100,
-    players: 256,
-    maxPlayers: 256,
-    startTime: "昨天 18:00",
-    statusColor: "bg-gray-500",
-  }
-];
+const LobbySection = ({ title, description, children, link, linkText }: { title: string, description: string, children: React.ReactNode, link?: string, linkText?: string }) => (
+    <div className="mb-12">
+        <div className="flex items-center justify-between mb-4">
+            <div>
+                <h2 className="text-2xl font-bold font-headline text-primary">{title}</h2>
+                <p className="text-muted-foreground">{description}</p>
+            </div>
+            {link && linkText && (
+                <Button variant="ghost" asChild>
+                    <Link href={link}>{linkText} <ArrowRight className="ml-2" /></Link>
+                </Button>
+            )}
+        </div>
+        {children}
+    </div>
+);
+
 
 export default function Home() {
   const { toast } = useToast();
@@ -128,14 +105,11 @@ export default function Home() {
     const interval = setInterval(() => {
       setRooms(currentRooms => 
         currentRooms.map(room => {
-          // Only update if the room is not full
           if (room.players < room.minPlayers) {
-            // Randomly decide to add a player or not
             const change = Math.random() > 0.6 ? 1 : 0;
             const newPlayers = Math.min(room.players + change, room.minPlayers);
             return { ...room, players: newPlayers };
           }
-          // If the room is full, randomly decide if someone leaves
           if (room.players === room.minPlayers) {
              const change = Math.random() > 0.9 ? -1 : 0;
              const newPlayers = Math.max(0, room.players + change);
@@ -144,7 +118,7 @@ export default function Home() {
           return room;
         })
       );
-    }, 3000); // Update every 3 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, []);
@@ -152,30 +126,27 @@ export default function Home() {
   const handleJoinRoom = async (room: typeof rooms[0]) => {
     if (isJoining) return;
 
-    // 1. Check Wallet Connection (skip for free rooms)
     if (room.fee > 0 && !walletAddress) {
         toast({
             variant: "destructive",
-            title: "钱包未连接 (Wallet Not Connected)",
+            title: "钱包未连接",
             description: "请先连接您的钱包再加入对局。",
         });
         return;
     }
 
-    // 2. Check KYC Level
     if (room.kycRequired > userKycLevel) {
       toast({
         variant: "destructive",
-        title: "KYC 等级不足 (KYC Level Too Low)",
-        description: `进入 ${room.tierDisplay} 需要 KYC 等级 ${room.kycRequired}。请先提升您的 KYC 等级。`,
+        title: "KYC 等级不足",
+        description: `进入 ${room.tierDisplay} 需要 KYC 等级 ${room.kycRequired}。`,
       });
       return;
     }
     
-    // 3. Check if room is full
      if (room.players < room.minPlayers) {
       toast({
-        title: "正在等待更多玩家 (Waiting for More Players)",
+        title: "正在等待更多玩家",
         description: `房间 ${room.tierDisplay} 需要 ${room.minPlayers} 名玩家才能开始。`,
       });
       return;
@@ -183,215 +154,88 @@ export default function Home() {
     
     setIsJoining(room.tier);
 
-    // 4. Deduct tokens (skip for free rooms)
     let paymentSuccess = true;
     if (room.fee > 0) {
         paymentSuccess = await deductTokens(room.fee);
     }
 
     if (paymentSuccess) {
-      // 5. Navigate to game room
       router.push(`/game?tier=${room.tier}&fee=${room.fee}`);
     } else {
-      // Error toast is handled within deductTokens
       setIsJoining(null);
     }
   };
 
   return (
     <div>
-      <h1 className="text-3xl font-bold font-headline text-primary mb-6">游戏大厅 (Game Lobby)</h1>
-      <Tabs defaultValue="standard">
-        <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
-          <TabsTrigger value="standard">标准场 (Standard)</TabsTrigger>
-          <TabsTrigger value="ranked">排位赛 (Ranked)</TabsTrigger>
-          <TabsTrigger value="tournament">锦标赛 (Tournament)</TabsTrigger>
-        </TabsList>
-        <TabsContent value="standard" className="mt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold font-headline text-primary tracking-wider">欢迎来到泉金麻将</h1>
+        <p className="text-lg text-muted-foreground mt-2">在这里，传统与未来交汇</p>
+      </div>
+      
+      <LobbySection title="自由对局" description="选择您的战场，开始对局">
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms.map((room) => {
               const isWaiting = room.players < room.minPlayers;
               const isBusy = isJoining === room.tier;
 
               return (
-                <Card key={room.tier} className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300">
+                <Card key={room.tier} className="flex flex-col border-primary/20 hover:border-primary/50 transition-all duration-300 bg-card/50 hover:bg-card/80 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{room.tierDisplay}</span>
-                      {room.icon}
-                    </CardTitle>
-                    <CardDescription>{room.description}</CardDescription>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-xl font-headline">{room.tierDisplay}</CardTitle>
+                        {room.icon}
+                    </div>
+                    <CardDescription>{room.subTitle}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow space-y-4">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 bg-accent/50 rounded-md">
-                      <div className="text-center sm:text-left">
-                        <p className="text-xs text-muted-foreground">奖池</p>
-                        <p className="font-bold text-lg text-primary flex items-center gap-1"><Trophy size={16} /> {room.prize.toLocaleString()} $JIN</p>
+                     <p className="text-sm text-muted-foreground h-10">{room.description}</p>
+                    <div className="flex items-center justify-between p-3 bg-accent/50 rounded-md">
+                      <div>
+                        <p className="text-xs text-muted-foreground">入场费</p>
+                        <p className="font-bold text-lg text-primary">{room.fee.toLocaleString()} $JIN</p>
                       </div>
-                      <div className="text-center sm:text-right">
+                      <div className="text-right">
                         <p className="text-xs text-muted-foreground">在线玩家</p>
-                        <p className="font-bold text-lg flex items-center gap-1">{room.players.toLocaleString()} / {room.minPlayers} <Users size={16} /></p>
+                        <p className="font-bold text-lg">{room.players.toLocaleString()} / {room.minPlayers}</p>
                       </div>
                     </div>
-                    {room.kycRequired > 0 && (
-                      <div className="flex items-center justify-center gap-2 text-sm text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-1 rounded-md">
+                     {room.kycRequired > 0 && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-yellow-400">
                           <ShieldCheck size={16} />
                           <span>需要 KYC 等级 {room.kycRequired}</span>
                       </div>
                     )}
                   </CardContent>
-                  <CardFooter className="flex-col items-stretch">
-                    <p className="text-sm text-center text-muted-foreground mb-2">
-                      入场费: <span className="font-bold text-primary">{room.fee} $JIN</span>
-                    </p>
+                  <CardFooter>
                     <Button 
                       className="w-full" 
                       onClick={() => handleJoinRoom(room)} 
                       disabled={isBusy || isWaiting}
                     >
-                      {isBusy ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          正在加入...
-                        </>
-                      ) : isWaiting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          等待玩家...
-                        </>
-                      ) : (
-                        "加入对局 (Join Game)"
-                      )}
+                      {isBusy ? <Loader2 className="animate-spin" /> : isWaiting ? "等待玩家..." : "加入对局"}
                     </Button>
                   </CardFooter>
                 </Card>
             )})}
           </div>
-        </TabsContent>
-        <TabsContent value="ranked" className="mt-6">
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                            <span>S1: 潜龙赛季 (Season of the Hidden Dragon)</span>
-                             <Badge variant="secondary" className="flex items-center gap-1">
-                                <Calendar size={14} />
-                                25天后结束
-                            </Badge>
-                        </CardTitle>
-                        <CardDescription>参与排位对局，提升段位，赢取赛季专属奖励。</CardDescription>
-                    </CardHeader>
-                     <CardContent>
-                       <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-accent/50 rounded-lg">
-                           <div className="flex-shrink-0">
-                                <Star className="w-20 h-20 text-yellow-500" fill="currentColor"/>
-                           </div>
-                           <div className="flex-grow w-full">
-                                <div className="flex justify-between items-center mb-1">
-                                    <h3 className="text-xl font-bold text-yellow-500">黄金 III (Gold III)</h3>
-                                    <p className="font-semibold">1,250 / 1,500 RP</p>
-                                </div>
-                               <Progress value={(1250/1500)*100} className="h-3"/>
-                               <p className="text-xs text-muted-foreground mt-1 text-right">还差 250 RP 即可晋级 黄金 II</p>
-                           </div>
-                       </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button size="lg" className="w-full sm:w-auto ml-auto" onClick={() => toast({ title: "开始匹配排位赛", description: "正在为您寻找旗鼓相当的对手..." })}>
-                            <Sword className="mr-2" />
-                            开始排位赛 (Start Ranked Match)
-                        </Button>
-                    </CardFooter>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Trophy /> 赛季奖励 (Season Rewards)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                        <div className="flex flex-col items-center gap-2 p-2 border rounded-md bg-accent/50">
-                             <p className="text-sm font-bold text-yellow-500">黄金</p>
-                             <Image src="https://placehold.co/200x200.png" data-ai-hint="gold glowing lines" alt="Gold Reward" width={80} height={80} className="rounded" />
-                             <p className="text-xs text-muted-foreground">金脉碎片 x10</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-2 p-2 border rounded-md bg-accent/50">
-                             <p className="text-sm font-bold text-cyan-400">铂金</p>
-                             <Image src="https://placehold.co/200x200.png" data-ai-hint="glowing platinum chest" alt="Platinum Reward" width={80} height={80} className="rounded" />
-                             <p className="text-xs text-muted-foreground">赛季限定头像框</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-2 p-2 border rounded-md bg-accent/50">
-                             <p className="text-sm font-bold text-violet-400">钻石</p>
-                             <Image src="https://placehold.co/200x200.png" data-ai-hint="glowing diamond key" alt="Diamond Reward" width={80} height={80} className="rounded" />
-                             <p className="text-xs text-muted-foreground">限量版 金鼎 NFT</p>
-                        </div>
-                         <div className="flex flex-col items-center gap-2 p-2 border rounded-md bg-accent/50">
-                             <p className="text-sm font-bold text-red-500">雀圣</p>
-                             <Image src="https://placehold.co/200x200.png" data-ai-hint="glowing dragon avatar" alt="Saint Reward" width={80} height={80} className="rounded" />
-                             <p className="text-xs text-muted-foreground">专属动态头像</p>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="space-y-6">
-                <Card>
-                    <CardHeader>
-                       <CardTitle className="flex items-center gap-2"><BarChart /> 段位列表 (Rank Tiers)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                       <ul className="space-y-4">
-                           {rankTiers.map(tier => (
-                               <li key={tier.name} className="flex items-center gap-3">
-                                   <Star className={`w-6 h-6 flex-shrink-0 ${tier.color}`} fill="currentColor" />
-                                   <span className="font-semibold">{tier.name}</span>
-                               </li>
-                           ))}
-                       </ul>
-                    </CardContent>
-                </Card>
-            </div>
-           </div>
-        </TabsContent>
-        <TabsContent value="tournament" className="mt-6">
-          <div className="space-y-6">
-            {tournaments.map((t, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                    <CardTitle>{t.name}</CardTitle>
-                    <Badge className={t.statusColor}>{t.status}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center sm:text-left">
-                  <div>
-                    <p className="text-sm text-muted-foreground">总奖池</p>
-                    <p className="text-lg font-bold text-primary flex items-center justify-center sm:justify-start gap-1"><Trophy size={16} /> {t.prizePool.toLocaleString()} $JIN</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">报名费</p>
-                    <p className="text-lg font-bold">{t.entryFee.toLocaleString()} $JIN</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">参赛人数</p>
-                    <p className="text-lg font-bold flex items-center justify-center sm:justify-start gap-1"><Users size={16} /> {t.players}/{t.maxPlayers}</p>
-                  </div>
-                   <div>
-                    <p className="text-sm text-muted-foreground">开始时间</p>
-                    <p className="text-lg font-bold flex items-center justify-center sm:justify-start gap-1"><Clock size={16} /> {t.startTime}</p>
-                  </div>
-                </CardContent>
-                 <CardFooter className="flex justify-end">
-                  <Button 
-                    disabled={t.status !== '报名中'}
-                    onClick={() => toast({ title: "报名成功!", description: `您已成功报名 ${t.name}。`})}
-                  >
-                    {t.status === '报名中' ? '报名参赛 (Register)' : t.status === '进行中' ? '查看对局 (View Match)' : '查看结果 (View Results)'}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+      </LobbySection>
+
+       <LobbySection title="赛事中心" description="参与锦标赛，赢取巨额奖池" link="/tournaments" linkText="查看所有赛事">
+            <Card className="p-6 bg-gradient-to-br from-primary/20 to-card">
+                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-center md:text-left">
+                         <p className="text-sm text-muted-foreground">即将开始</p>
+                         <h3 className="text-2xl font-bold font-headline">泉金杯周赛 #24</h3>
+                         <div className="flex items-center justify-center md:justify-start gap-4 mt-2 text-lg">
+                             <div className="flex items-center gap-2"><Trophy /> 100,000 $JIN</div>
+                             <div className="flex items-center gap-2"><Users /> 88/128</div>
+                         </div>
+                    </div>
+                    <Button size="lg" className="bg-primary/90 hover:bg-primary">立即报名</Button>
+                 </div>
+            </Card>
+       </LobbySection>
     </div>
   );
 }

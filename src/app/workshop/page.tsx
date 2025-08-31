@@ -9,6 +9,7 @@ import { ArrowDown, ArrowRight, Hammer, Zap, Coins, Package, RefreshCw } from 'l
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 // In production, this data will be fetched from the user's wallet and smart contracts.
 const ownedKeys: { id: number, name: string, level: number, energy: number, energyMax: number, image: string, 'data-ai-hint': string }[] = [];
@@ -50,9 +51,8 @@ export default function WorkshopPage() {
 
     const handleUpgrade = () => {
         if (canUpgrade) {
-            // Placeholder for smart contract interaction
             toast({
-                title: "升级成功 (Upgrade Successful)",
+                title: "升级成功",
                 description: `您已成功将 ${recipe.fromCount}x ${recipe.fromName} 升级为 1x ${recipe.toName}!`
             });
         }
@@ -60,9 +60,8 @@ export default function WorkshopPage() {
 
     const handleSynthesize = () => {
         if (canSynthesize) {
-            // Placeholder for smart contract interaction
             toast({
-                title: "合成成功 (Synthesis Successful)",
+                title: "合成成功",
                 description: `您已成功合成了 1x ${synthesizeRecipe.toName}!`
             });
         }
@@ -71,28 +70,36 @@ export default function WorkshopPage() {
     const handleRefill = () => {
         if (selectedKey && selectedKey.energy < selectedKey.energyMax) {
             const cost = (selectedKey.energyMax - selectedKey.energy) * 0.5;
-            // Placeholder for smart contract interaction
             toast({
-                title: "能量补充成功 (Energy Refilled)",
+                title: "能量补充成功",
                 description: `您已花费 ${cost.toFixed(2)} $JIN 为 ${selectedKey.name} 补充了能量。`
             });
         }
     };
+    
+    const EmptyState = ({ title, description, buttonText, buttonLink }: { title: string, description: string, buttonText: string, buttonLink: string }) => (
+         <div className="text-center text-muted-foreground p-8">
+            <p className="mb-2">{title}</p>
+            <p className="text-sm mb-4">{description}</p>
+            <Button variant="outline" asChild><Link href={buttonLink}>{buttonText}</Link></Button>
+        </div>
+    );
+
 
     return (
     <div>
-      <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Hammer /> NFT 工坊 (NFT Workshop)</h1>
+      <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Hammer /> NFT 工坊</h1>
       <Tabs defaultValue="upgrade">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upgrade"><RefreshCw /> 升级密钥</TabsTrigger>
-          <TabsTrigger value="synthesize"><Package /> 合成密钥</TabsTrigger>
-          <TabsTrigger value="energy"><Zap /> 补充能量</TabsTrigger>
+          <TabsTrigger value="upgrade"><RefreshCw className="mr-2"/> 升级密钥</TabsTrigger>
+          <TabsTrigger value="synthesize"><Package className="mr-2"/> 合成密钥</TabsTrigger>
+          <TabsTrigger value="energy"><Zap className="mr-2"/> 补充能量</TabsTrigger>
         </TabsList>
         
         <TabsContent value="upgrade">
             <Card>
                 <CardHeader>
-                    <CardTitle>升级您的 NFT 密钥</CardTitle>
+                    <CardTitle>升级 NFT 密钥</CardTitle>
                     <CardDescription>合并低级密钥并支付费用，以获取更高权重的强大密钥。</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -111,15 +118,14 @@ export default function WorkshopPage() {
                    </div>
 
                     {recipe && (
-                        <div className="grid md:grid-cols-3 gap-6 items-center">
-                            {/* Materials Required */}
+                        <div className="grid md:grid-cols-3 gap-6 items-center pt-4">
                             <div className="flex flex-col items-center gap-2">
                                 <p className="font-bold">需求材料</p>
                                 <Card className="p-4 w-full text-sm space-y-2 bg-accent/50">
                                     <div>
                                         <div className="flex justify-between">
                                            <span>{recipe.fromCount}x {recipe.fromName}</span>
-                                           <span className={userKeysOfRequiredLevel >= recipe.fromCount ? 'text-green-400' : 'text-red-400'}>({userKeysOfRequiredLevel} owned)</span>
+                                           <span className={userKeysOfRequiredLevel >= recipe.fromCount ? 'text-green-400' : 'text-red-400'}>({userKeysOfRequiredLevel} / {recipe.fromCount})</span>
                                         </div>
                                     </div>
                                     {recipe.shards.map(shard => {
@@ -127,7 +133,7 @@ export default function WorkshopPage() {
                                         return (
                                             <div key={shard.name} className="flex justify-between">
                                                 <span>{shard.count}x {shard.name}</span>
-                                                <span className={owned >= shard.count ? 'text-green-400' : 'text-red-400'}>({owned} owned)</span>
+                                                <span className={owned >= shard.count ? 'text-green-400' : 'text-red-400'}>({owned} / {shard.count})</span>
                                             </div>
                                         )
                                     })}
@@ -135,15 +141,13 @@ export default function WorkshopPage() {
                                 </Card>
                             </div>
                             
-                            {/* Arrow */}
                             <div className="flex justify-center items-center">
                                 <ArrowRight size={48} className="text-primary animate-pulse hidden md:block" />
                                 <ArrowDown size={48} className="text-primary animate-pulse md:hidden" />
                             </div>
                             
-                            {/* Result */}
                             <div className="flex flex-col items-center gap-2">
-                                <p className="font-bold">结果</p>
+                                <p className="font-bold">获得</p>
                                 <div className="w-40">
                                     <Image src={recipe.toImage} alt={recipe.toName} width={400} height={500} className="rounded-lg border" data-ai-hint={recipe.toDataAiHint}/>
                                     <p className="text-center mt-1 font-semibold">1x {recipe.toName}</p>
@@ -155,7 +159,7 @@ export default function WorkshopPage() {
                 <CardFooter>
                     <Button className="w-full md:w-auto ml-auto" disabled={!canUpgrade} onClick={handleUpgrade}>
                         <RefreshCw className="mr-2" />
-                        升级至 Level {targetUpgradeLevel}
+                        升级
                     </Button>
                 </CardFooter>
             </Card>
@@ -165,11 +169,10 @@ export default function WorkshopPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>合成 NFT 密钥</CardTitle>
-                    <CardDescription>合并碎片以创建一个新的 Level 1 NFT 密钥。</CardDescription>
+                    <CardDescription>合并游戏内获得的碎片以铸造一个新的 Level 1 NFT 密钥。</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid md:grid-cols-3 gap-6 items-center">
-                        {/* Materials Required */}
                         <div className="flex flex-col items-center gap-2">
                             <p className="font-bold">需求材料</p>
                             <Card className="p-4 w-full text-sm space-y-2 bg-accent/50">
@@ -178,7 +181,7 @@ export default function WorkshopPage() {
                                     return (
                                         <div key={shard.name} className="flex justify-between">
                                             <span>{shard.count}x {shard.name}</span>
-                                            <span className={owned >= shard.count ? 'text-green-400' : 'text-red-400'}>({owned} owned)</span>
+                                            <span className={owned >= shard.count ? 'text-green-400' : 'text-red-400'}>({owned} / {shard.count})</span>
                                         </div>
                                     )
                                 })}
@@ -186,15 +189,13 @@ export default function WorkshopPage() {
                             </Card>
                         </div>
                         
-                        {/* Arrow */}
                         <div className="flex justify-center items-center">
                              <ArrowRight size={48} className="text-primary animate-pulse hidden md:block" />
                              <ArrowDown size={48} className="text-primary animate-pulse md:hidden" />
                         </div>
                         
-                        {/* Result */}
                         <div className="flex flex-col items-center gap-2">
-                            <p className="font-bold">结果</p>
+                            <p className="font-bold">获得</p>
                             <div className="w-40">
                                 <Image src={synthesizeRecipe.toImage} alt={synthesizeRecipe.toName} width={400} height={500} className="rounded-lg border" data-ai-hint={synthesizeRecipe.toDataAiHint}/>
                                 <p className="text-center mt-1 font-semibold">1x {synthesizeRecipe.toName}</p>
@@ -215,41 +216,50 @@ export default function WorkshopPage() {
             <Card>
                  <CardHeader>
                     <CardTitle>补充能量</CardTitle>
-                    <CardDescription>使用 $JIN 为您的 NFT 密钥补充能量。能量是质押所必需的，并会影响您的奖励。</CardDescription>
+                    <CardDescription>为您的 NFT 密钥补充能量。能量是在质押中赚取奖励的必需品。</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
-                        <label className="text-sm font-medium">选择 NFT 密钥</label>
-                        <Select onValueChange={(val) => setSelectedKeyId(Number(val))} defaultValue={selectedKeyId?.toString()}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="选择一个密钥..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {ownedKeys.map(key => (
-                                    <SelectItem key={key.id} value={key.id.toString()}>{key.name} (Lv. {key.level})</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {selectedKey ? (
-                        <div className='space-y-4'>
-                            <div className="flex items-center gap-4">
-                                <Image src={selectedKey.image} alt={selectedKey.name} width={80} height={100} className="rounded-md border" data-ai-hint={selectedKey['data-ai-hint']} />
-                                <div className="w-full">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <p className="font-semibold flex items-center gap-1"><Zap size={14} /> 能量 (Energy)</p>
-                                        <p>{selectedKey.energy} / {selectedKey.energyMax}</p>
-                                    </div>
-                                    <Progress value={(selectedKey.energy / selectedKey.energyMax) * 100} />
-                                </div>
+                    {ownedKeys.length > 0 ? (
+                        <>
+                            <div>
+                                <label className="text-sm font-medium">选择 NFT 密钥</label>
+                                <Select onValueChange={(val) => setSelectedKeyId(Number(val))} defaultValue={selectedKeyId?.toString()}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="选择一个密钥..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {ownedKeys.map(key => (
+                                            <SelectItem key={key.id} value={key.id.toString()}>{key.name} (Lv. {key.level})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
-                            <p className="text-sm text-center text-muted-foreground">
-                                充满所需费用: <span className="text-primary font-bold">{(selectedKey.energyMax - selectedKey.energy) * 0.5} $JIN</span> (0.5 $JIN / 能量点)
-                            </p>
-                        </div>
+
+                            {selectedKey && (
+                                <div className='space-y-4'>
+                                    <div className="flex items-center gap-4">
+                                        <Image src={selectedKey.image} alt={selectedKey.name} width={80} height={100} className="rounded-md border" data-ai-hint={selectedKey['data-ai-hint']} />
+                                        <div className="w-full">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <p className="font-semibold flex items-center gap-1"><Zap size={14} /> 能量 (Energy)</p>
+                                                <p>{selectedKey.energy} / {selectedKey.energyMax}</p>
+                                            </div>
+                                            <Progress value={(selectedKey.energy / selectedKey.energyMax) * 100} />
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-center text-muted-foreground">
+                                        充满所需费用: <span className="text-primary font-bold">{(selectedKey.energyMax - selectedKey.energy) * 0.5} $JIN</span>
+                                    </p>
+                                </div>
+                            )}
+                        </>
                     ) : (
-                        <p className="text-center text-muted-foreground pt-4">请先选择一个您拥有的 NFT 密钥。</p>
+                        <EmptyState 
+                            title="您还没有任何密钥"
+                            description="获取密钥以开始"
+                            buttonText="前往市场"
+                            buttonLink="/marketplace"
+                        />
                     )}
                 </CardContent>
                  <CardFooter>

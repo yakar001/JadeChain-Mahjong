@@ -11,8 +11,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Literata', 'serif'],
-        headline: ['Literata', 'serif'],
+        body: ['var(--font-noto-serif)', 'serif'],
+        headline: ['var(--font-noto-serif)', 'serif'],
         code: ['monospace'],
       },
       colors: {

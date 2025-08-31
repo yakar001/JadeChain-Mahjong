@@ -3,6 +3,13 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { MainLayout } from '@/components/layout/main-layout';
 import { WalletProvider } from '@/context/wallet-context';
+import { Noto_Serif_SC } from 'next/font/google';
+
+const notoSerif = Noto_Serif_SC({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-noto-serif',
+});
 
 export const metadata: Metadata = {
   title: 'QuanJin Mahjong',
@@ -16,12 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
+      <body className={`${notoSerif.variable} font-body antialiased`}>
         <WalletProvider>
           <MainLayout>{children}</MainLayout>
         </WalletProvider>

@@ -5,9 +5,10 @@ import { useState } from 'react';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Coins, Zap, Clock } from "lucide-react";
+import { Shield, Coins, Zap, Clock, PackagePlus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 // In production, this data will be fetched from the user's wallet and smart contracts.
 const initialStakedKeys: any[] = [];
@@ -22,7 +23,7 @@ export default function StakingPage() {
         // This is a placeholder. Real logic would involve a smart contract transaction.
         setUnstakedKeys(unstakedKeys.filter(k => k.id !== keyToStake.id));
         setStakedKeys([...stakedKeys, { ...keyToStake, pendingGMD: 0 }]);
-        toast({ title: "质押成功 (NFT Staked)", description: `${keyToStake.name} 已成功质押。` });
+        toast({ title: "质押成功", description: `${keyToStake.name} 已成功质押。` });
     };
 
     const handleUnstake = (keyToUnstake: typeof stakedKeys[0]) => {
@@ -30,43 +31,57 @@ export default function StakingPage() {
         setStakedKeys(stakedKeys.filter(k => k.id !== keyToUnstake.id));
         const { pendingGMD, ...unstakedVersion } = keyToUnstake;
         setUnstakedKeys([...unstakedKeys, unstakedVersion]);
-        toast({ title: "取消质押成功 (NFT Unstaked)", description: `${keyToUnstake.name} 已成功取消质押。` });
+        toast({ title: "取消质押成功", description: `${keyToUnstake.name} 已成功取消质押。` });
     };
 
     const handleClaim = (keyToClaim: typeof stakedKeys[0]) => {
          // This is a placeholder. Real logic would involve a smart contract transaction.
         setStakedKeys(stakedKeys.map(k => k.id === keyToClaim.id ? { ...k, pendingGMD: 0 } : k));
-        toast({ title: "奖励已领取 (Rewards Claimed)", description: `您已从 ${keyToClaim.name} 领取了 ${keyToClaim.pendingGMD.toFixed(2)} $GMD。` });
+        toast({ title: "奖励已领取", description: `您已从 ${keyToClaim.name} 领取了 ${keyToClaim.pendingGMD.toFixed(2)} $GMD。` });
     };
 
+    const EmptyState = ({ title, description, buttonText, buttonLink }: { title: string, description: string, buttonText: string, buttonLink: string }) => (
+        <Card className="bg-card/50">
+            <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center">
+                <div className="p-3 bg-accent rounded-full mb-4">
+                    <PackagePlus className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">{title}</h3>
+                <p>{description}</p>
+                <Button variant="link" asChild className="mt-2">
+                    <Link href={buttonLink}>{buttonText}</Link>
+                </Button>
+            </CardContent>
+        </Card>
+    );
 
   return (
     <div>
-        <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Shield /> 质押中心 (Staking Center)</h1>
+        <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Shield /> 质押分红金库</h1>
         
-        <Card className="mb-8">
+        <Card className="mb-8 bg-gradient-to-r from-primary/20 to-secondary/20">
             <CardHeader>
                 <CardTitle>周期状态 (Epoch Status)</CardTitle>
-                <CardDescription>质押您的 NFT 密钥以在每个周期赚取 $GMD 奖励。(Stake your NFT Keys to earn $GMD rewards every epoch.)</CardDescription>
+                <CardDescription>质押您的 NFT 密钥以在每个周期赚取 $GMD 奖励。</CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-3 gap-4 text-center">
-                <div>
-                    <p className="text-2xl font-bold">#0</p>
-                    <p className="text-sm text-muted-foreground">当前周期 (Current Epoch)</p>
+                <div className="bg-background/50 p-4 rounded-lg">
+                    <p className="text-3xl font-bold">#0</p>
+                    <p className="text-sm text-muted-foreground">当前周期</p>
                 </div>
-                 <div>
-                    <p className="text-2xl font-bold flex items-center justify-center gap-1"><Clock /> 0h 0m</p>
-                    <p className="text-sm text-muted-foreground">剩余时间 (Time Remaining)</p>
+                 <div className="bg-background/50 p-4 rounded-lg">
+                    <p className="text-3xl font-bold flex items-center justify-center gap-1"><Clock /> 0h 0m</p>
+                    <p className="text-sm text-muted-foreground">剩余时间</p>
                 </div>
-                 <div>
-                    <p className="text-2xl font-bold text-yellow-300 flex items-center justify-center gap-1"><Coins size={24}/> 0.00</p>
-                    <p className="text-sm text-muted-foreground">本周期 $GMD 总奖励 (Total $GMD Rewards This Epoch)</p>
+                 <div className="bg-background/50 p-4 rounded-lg">
+                    <p className="text-3xl font-bold text-yellow-300 flex items-center justify-center gap-1"><Coins size={28}/> 0.00</p>
+                    <p className="text-sm text-muted-foreground">本周期 $GMD 总奖励</p>
                 </div>
             </CardContent>
         </Card>
 
         <div className="mb-8">
-            <h2 className="text-2xl font-bold font-headline mb-4">已质押密钥 (Staked Keys) ({stakedKeys.length})</h2>
+            <h2 className="text-2xl font-bold font-headline mb-4">已质押密钥 ({stakedKeys.length})</h2>
             {stakedKeys.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {stakedKeys.map(key => (
@@ -83,24 +98,29 @@ export default function StakingPage() {
                                     <Separator />
                                     <div>
                                         <p className="text-sm font-semibold text-yellow-300 flex items-center gap-1"><Coins size={14}/> {key.pendingGMD.toFixed(2)} $GMD</p>
-                                        <p className="text-xs text-muted-foreground">待领取奖励 (Pending Rewards)</p>
+                                        <p className="text-xs text-muted-foreground">待领取奖励</p>
                                     </div>
                                 </div>
                                 <div className="flex flex-col justify-between">
-                                    <Button size="sm" onClick={() => handleClaim(key)} disabled={key.pendingGMD <= 0}>领取 (Claim)</Button>
-                                    <Button size="sm" variant="outline" onClick={() => handleUnstake(key)}>取消质押 (Unstake)</Button>
+                                    <Button size="sm" onClick={() => handleClaim(key)} disabled={key.pendingGMD <= 0}>领取</Button>
+                                    <Button size="sm" variant="outline" onClick={() => handleUnstake(key)}>取消质押</Button>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             ) : (
-                <p className="text-muted-foreground text-center py-4">您还没有质押任何密钥。(You have no staked keys.)</p>
+                <EmptyState 
+                    title="您还没有质押任何密钥"
+                    description="质押密钥以赚取被动收益"
+                    buttonText="查看我未质押的密钥"
+                    buttonLink="#unstaked-keys"
+                />
             )}
         </div>
 
-         <div>
-            <h2 className="text-2xl font-bold font-headline mb-4">未质押密钥 (Unstaked Keys) ({unstakedKeys.length})</h2>
+         <div id="unstaked-keys">
+            <h2 className="text-2xl font-bold font-headline mb-4">未质押密钥 ({unstakedKeys.length})</h2>
             {unstakedKeys.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {unstakedKeys.map(key => (
@@ -115,13 +135,18 @@ export default function StakingPage() {
                                         <p>Base Weight: {key.weight.toFixed(1)}</p>
                                     </div>
                                 </div>
-                                <Button onClick={() => handleStake(key)}>质押 (Stake)</Button>
+                                <Button onClick={() => handleStake(key)}>质押</Button>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
              ) : (
-                <p className="text-muted-foreground text-center py-4">您所有的密钥都已质押。(All your keys are staked.)</p>
+                <EmptyState 
+                    title="您所有的密钥都已质押"
+                    description="或者您还没有任何密钥"
+                    buttonText="前往市场获取密钥"
+                    buttonLink="/marketplace"
+                />
             )}
         </div>
 
