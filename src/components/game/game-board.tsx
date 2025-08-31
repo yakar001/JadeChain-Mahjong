@@ -104,7 +104,7 @@ export function GameBoard({ players, wallCount, goldenTile, latestDiscard, activ
             {/* Central Info and Discard/Meld Pool */}
             <div className="flex-grow bg-black/10 rounded-md p-2 flex flex-col relative">
                 {/* Center Info Box */}
-                <div className="absolute top-2 right-2 bg-black/50 p-2 rounded-lg text-center text-white border border-amber-600/50 flex items-center justify-center gap-4 z-10">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/50 p-2 rounded-lg text-center text-white border border-amber-600/50 flex items-center justify-center gap-4 z-10">
                     <div className='flex items-center justify-center gap-1'>
                         <Layers className="w-4 h-4"/>
                         <p className="text-lg font-bold">{wallCount}</p>

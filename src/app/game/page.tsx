@@ -1286,9 +1286,18 @@ function GameRoom() {
                 />
            </div>
            {/* Player Info Areas */}
-            <div className="absolute top-2 left-2"><PlayerInfo player={players.find(p => p.name.includes("(北)"))} /></div>
-            <div className="absolute top-1/2 -translate-y-1/2 left-2"><PlayerInfo player={players.find(p => p.name.includes("(西)"))} /></div>
-            <div className="absolute top-1/2 -translate-y-1/2 right-2"><PlayerInfo player={players.find(p => p.name.includes("(东)"))} /></div>
+            <div className="absolute top-4 left-4"><PlayerInfo player={players.find(p => p.name.includes("(北)"))} /></div>
+            
+            {/* Player info for East and West players, positioned relative to the center info box */}
+            <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-4">
+                <div className="absolute left-4 transform -translate-y-1/2 top-1/2">
+                    <PlayerInfo player={players.find(p => p.name.includes("(西)"))} />
+                </div>
+                <div className="absolute right-4 transform -translate-y-1/2 top-1/2">
+                    <PlayerInfo player={players.find(p => p.name.includes("(东)"))} />
+                </div>
+            </div>
+
             <div className="absolute bottom-2 left-2 z-20">
                 <PlayerInfo player={humanPlayer} />
                 <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
