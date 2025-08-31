@@ -19,7 +19,7 @@ const keyNfts: NftKey[] = [
     weightH: 10.0,
     weightW: 20.0,
     price: 15000,
-    image: 'https://placehold.co/400x500.png',
+    image: '/nft-lv5-golden-dragon.png',
     'data-ai-hint': 'gold dragon statue',
   },
   {
