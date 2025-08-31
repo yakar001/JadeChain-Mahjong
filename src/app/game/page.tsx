@@ -365,9 +365,20 @@ function GameRoom() {
   }, [pot, STAKE_AMOUNT, playSound, toast]);
 
   const getNextPlayerId = useCallback((currentPlayerId: number) => {
-      const currentPlayerIndex = players.findIndex(p => p.id === currentPlayerId);
-      if (currentPlayerIndex === -1 || players.length === 0) return null;
-      return players[(currentPlayerIndex + 1) % players.length].id;
+      const playerPositions = ['南', '东', '北', '西'];
+      const currentPlayer = players.find(p => p.id === currentPlayerId);
+      if (!currentPlayer) return null;
+      
+      const currentWind = currentPlayer.name.split(' ')[2]?.replace(/[()]/g, '');
+      if (!currentWind) return null;
+
+      const currentIndex = playerPositions.indexOf(currentWind);
+      if (currentIndex === -1) return null;
+      
+      const nextWind = playerPositions[(currentIndex + 1) % playerPositions.length];
+      
+      const nextPlayer = players.find(p => p.name.includes(`(${nextWind})`));
+      return nextPlayer ? nextPlayer.id : null;
   }, [players]);
 
   const advanceTurn = useCallback((lastPlayerId: number) => {
@@ -379,11 +390,18 @@ function GameRoom() {
   }, [getNextPlayerId]);
 
   const handleWin = useCallback((winnerId?: number) => {
+    setIsProcessingTurn(true);
     const id = winnerId !== undefined ? winnerId : activePlayer;
-    if (id === null) return;
+    if (id === null) {
+        setIsProcessingTurn(false);
+        return;
+    }
 
     const winner = players.find(p => p.id === id);
-    if (!winner) return;
+    if (!winner) {
+        setIsProcessingTurn(false);
+        return;
+    }
     
     const handToCheck = latestDiscard && winnerId !== activePlayer 
         ? [...winner.hand, latestDiscard.tile] 
@@ -395,6 +413,7 @@ function GameRoom() {
             title: "诈胡! (False Win!)",
             description: "您的手牌未满足胡牌条件。(Your hand does not meet the winning criteria.)",
         });
+        setIsProcessingTurn(false);
         return; 
     }
 
@@ -544,28 +563,33 @@ function GameRoom() {
   
   const handleAction = useCallback(async (action: Action | 'skip', playerId: number) => {
     clearTimer(actionTimerRef);
+    setIsProcessingTurn(true);
     
     const canPerformAction = actionPossibilities.some(p => p.playerId === playerId);
     
+    const lastDiscarderId = latestDiscard?.playerId;
+    // Always clear possibilities after any action is taken or skipped.
+    setActionPossibilities([]); 
+
     if (!canPerformAction && action !== 'skip' && action !== 'kong') {
          toast({
             variant: "destructive",
             title: "无效操作 (Invalid Action)",
             description: `您的手牌不满足'${action}'的条件。`,
         });
-        const lastDiscarderId = latestDiscard?.playerId;
-        setActionPossibilities([]); 
         if (lastDiscarderId !== undefined) {
              advanceTurn(lastDiscarderId);
         }
         return;
     }
 
-    if (latestDiscard === null && action !== 'kong') return;
-    const lastDiscarderId = latestDiscard?.playerId;
-
-    setActionPossibilities([]); 
-
+    if (latestDiscard === null && action !== 'kong') {
+        if (lastDiscarderId !== undefined) {
+          advanceTurn(lastDiscarderId);
+        }
+        return;
+    }
+    
     if (action === 'skip') {
         if (lastDiscarderId !== undefined) {
           advanceTurn(lastDiscarderId);
@@ -579,7 +603,12 @@ function GameRoom() {
     }
     
     const actionPlayer = players.find(p => p.id === playerId);
-    if (!actionPlayer) return;
+    if (!actionPlayer) {
+        if (lastDiscarderId !== undefined) {
+             advanceTurn(lastDiscarderId);
+        }
+        return;
+    };
     
     // Concealed Kong (An Kong)
     if (action === 'kong' && concealedKongCandidate) {
@@ -654,14 +683,16 @@ function GameRoom() {
         setHumanPlayerCanDiscard(true);
     }
     setIsProcessingTurn(false);
-  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn]);
+  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn, getNextPlayerId]);
   
   const handleDrawTile = useCallback(() => {
+    if (isProcessingTurn) return;
     if (wall.length <= MIN_WALL_TILES_FOR_DRAW) {
       handleEndGame(players, true); // True for a draw game
       return;
     }
     if (activePlayer === 0 && !humanPlayerCanDiscard) {
+      setIsProcessingTurn(true);
       const newWall = [...wall];
       const tile = newWall.pop()!;
       setWall(newWall);
@@ -687,12 +718,15 @@ function GameRoom() {
       );
 
       setHumanPlayerCanDiscard(true);
+      setIsProcessingTurn(false);
     }
-  }, [wall, activePlayer, humanPlayerCanDiscard, players, handleEndGame]);
+  }, [wall, activePlayer, humanPlayerCanDiscard, players, handleEndGame, isProcessingTurn]);
 
   const handleDiscardTile = useCallback(async (playerId: number, tileIndex: number) => {
-     if (activePlayer !== playerId) return;
+     if (activePlayer !== playerId || isProcessingTurn) return;
      if (playerId === 0 && !humanPlayerCanDiscard) return;
+
+    setIsProcessingTurn(true);
 
     let tileToDiscard: Tile | null = null;
     
@@ -702,6 +736,7 @@ function GameRoom() {
         if (player && player.hand.length > 0) {
             tileIndex = player.hand.length - 1; // Default to last tile if index is invalid
         } else {
+            setIsProcessingTurn(false);
             return; // No tiles to discard
         }
     }
@@ -761,16 +796,19 @@ function GameRoom() {
 
     if (winActions.length > 0) {
         setActionPossibilities(winActions);
+        setIsProcessingTurn(false); // Release lock to allow players to act
     } else if (pongKongActions.length > 0) {
         setActionPossibilities(pongKongActions);
+        setIsProcessingTurn(false);
     } else if (chowActions.length > 0) {
         setActionPossibilities(chowActions);
+        setIsProcessingTurn(false);
     } else {
         setActionPossibilities([]);
-        advanceTurn(playerId);
+        advanceTurn(playerId); // This will set isProcessingTurn to false
     }
 
-  }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard, advanceTurn, players]);
+  }, [playSound, getNextPlayerId, goldenTile, activePlayer, humanPlayerCanDiscard, advanceTurn, players, isProcessingTurn]);
 
   const runGameFlow = useCallback(async () => {
     if (gameState !== 'playing' || activePlayer === null || isProcessingTurn) return;
@@ -955,25 +993,33 @@ function GameRoom() {
             total: rolls[index][0] + rolls[index][1],
         }));
 
-        playerRolls.sort((a, b) => b.total - a.total);
+        playerRolls.sort((a, b) => {
+            if (b.total !== a.total) {
+                return b.total - a.total;
+            }
+            return b.player.id - a.player.id; // Deterministic tie-breaking
+        });
+        
+        const windAssignments = { 0: '东', 1: '南', 2: '西', 3: '北' };
+        const assignedWinds: Record<string, string> = {};
+        
+        const eastPlayer = playerRolls[0].player;
+        setEastPlayerId(eastPlayer.id);
 
-        const windNames = ['(东)', '(南)', '(西)', '(北)'];
+        const southPlayer = playerRolls[1].player;
+        const westPlayer = playerRolls[2].player;
+        const northPlayer = playerRolls[3].player;
         
-        if (playerRolls.length === 0) {
-            console.error("Attempted to roll for seating with no players.");
-            return; // Guard against empty player array
-        }
-        
-        const newEastPlayer = playerRolls[0].player;
-        setEastPlayerId(newEastPlayer.id);
+        assignedWinds[eastPlayer.id] = '东';
+        assignedWinds[southPlayer.id] = '南';
+        assignedWinds[westPlayer.id] = '西';
+        assignedWinds[northPlayer.id] = '北';
 
         const finalPlayers = players.map(p => {
-            const rollInfo = playerRolls.find(pr => pr.player.id === p.id);
-            const windIndex = playerRolls.indexOf(rollInfo!);
-            const windName = windNames[windIndex];
-            const baseName = p.name.split(' ')[0].replace('(电脑)','').trim();
-            const newName = p.isAI ? `${baseName} (电脑) ${windName}` : `${baseName} ${windName}`;
-            return { ...p, name: newName, isEast: p.id === newEastPlayer.id };
+            const windName = assignedWinds[p.id];
+            const baseName = p.name.split(' ')[0].replace('(电脑)','').replace('(You)','').trim();
+            const newName = p.isAI ? `${baseName} (电脑) (${windName})` : `${baseName} (You) (${windName})`;
+            return { ...p, name: newName, isEast: p.id === eastPlayer.id };
         });
 
         setPlayers(finalPlayers);
@@ -1061,10 +1107,9 @@ function GameRoom() {
   }
 
   const handleSelectOrDiscardTile = (tileIndex: number) => {
-    if (activePlayer !== 0 || !humanPlayerCanDiscard || isAiControlled) return;
+    if (activePlayer !== 0 || !humanPlayerCanDiscard || isAiControlled || isProcessingTurn) return;
 
     if (selectedTileIndex === tileIndex) {
-      setIsProcessingTurn(true);
       handleDiscardTile(0, tileIndex);
     } else {
       setSelectedTileIndex(tileIndex);
@@ -1389,3 +1434,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
