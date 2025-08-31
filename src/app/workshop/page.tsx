@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Label } from '@/components/ui/label';
 
 // In production, this data will be fetched from the user's wallet and smart contracts.
 const ownedKeys: { id: number, name: string, level: number, energy: number, energyMax: number, image: string, 'data-ai-hint': string }[] = [];
