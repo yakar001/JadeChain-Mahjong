@@ -1,12 +1,16 @@
 
 'use client';
+import { useState, useMemo } from 'react';
 import { KeyNftCard } from '@/components/marketplace/key-nft-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Coins, Package, KeyRound } from 'lucide-react';
+import { Coins, Package, KeyRound, ArrowUpDown } from 'lucide-react';
 import { ShardCard } from '@/components/marketplace/shard-card';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import type { NftKey } from '@/types';
 
-const keyNfts = [
+const keyNfts: NftKey[] = [
   {
     name: '金龙 (Golden Dragon)',
     level: 5,
@@ -71,15 +75,27 @@ const shards = [
     { name: "神龙碎片", description: "Dragon Shard", image: "https://placehold.co/200x200.png", price: 5.0, "data-ai-hint": "glowing dragon fragment" },
 ];
 
+type SortOption = 'price-desc' | 'price-asc' | 'level-desc' | 'level-asc';
+
 export default function MarketplacePage() {
   const { toast } = useToast();
+  const [sortOption, setSortOption] = useState<SortOption>('level-desc');
+  const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [pendingPurchase, setPendingPurchase] = useState<NftKey | null>(null);
 
-  const handleBuyKey = (keyName: string, price: number) => {
+
+  const handleBuyKey = (key: NftKey) => {
+    setPendingPurchase(key);
+  };
+
+  const confirmPurchase = () => {
+    if (!pendingPurchase) return;
     toast({
       title: '购买成功 (Purchase Successful)',
-      description: `您已花费 ${price} $JIN 购买了 ${keyName}。`
+      description: `您已花费 ${pendingPurchase.price} $JIN 购买了 ${pendingPurchase.name}。`
     });
-  };
+    setPendingPurchase(null);
+  }
 
   const handleBuyShard = (shardName: string, price: number) => {
     toast({
@@ -87,6 +103,25 @@ export default function MarketplacePage() {
       description: `您已花费 ${price.toFixed(2)} $JIN 购买了 ${shardName}。`
     });
   };
+
+  const sortedAndFilteredKeys = useMemo(() => {
+    let filtered = [...keyNfts];
+
+    if (levelFilter !== 'all') {
+      filtered = filtered.filter(nft => nft.level === parseInt(levelFilter));
+    }
+
+    return filtered.sort((a, b) => {
+      switch (sortOption) {
+        case 'price-desc': return b.price - a.price;
+        case 'price-asc': return a.price - b.price;
+        case 'level-desc': return b.level - a.level;
+        case 'level-asc': return a.level - b.level;
+        default: return 0;
+      }
+    });
+  }, [sortOption, levelFilter]);
+
 
   return (
     <div>
@@ -105,13 +140,48 @@ export default function MarketplacePage() {
             碎片 (Shards)
           </TabsTrigger>
         </TabsList>
+
         <TabsContent value="keys">
+            <div className="mb-6 flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                    <label className="text-sm text-muted-foreground">排序方式</label>
+                    <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                        <SelectTrigger className="w-full sm:w-[240px]">
+                            <SelectValue placeholder="Sort by..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="level-desc">等级: 从高到低</SelectItem>
+                            <SelectItem value="level-asc">等级: 从低到高</SelectItem>
+                            <SelectItem value="price-desc">价格: 从高到低</SelectItem>
+                            <SelectItem value="price-asc">价格: 从低到高</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <div className="flex-1">
+                    <label className="text-sm text-muted-foreground">筛选等级</label>
+                    <Select value={levelFilter} onValueChange={setLevelFilter}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by level..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">所有等级</SelectItem>
+                            <SelectItem value="5">Level 5</SelectItem>
+                            <SelectItem value="4">Level 4</SelectItem>
+                            <SelectItem value="3">Level 3</SelectItem>
+                            <SelectItem value="2">Level 2</SelectItem>
+                            <SelectItem value="1">Level 1</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {keyNfts.map((nft) => (
-              <KeyNftCard key={nft.level} {...nft} onBuy={() => handleBuyKey(nft.name, nft.price)} />
+            {sortedAndFilteredKeys.map((nft) => (
+              <KeyNftCard key={nft.level} {...nft} onBuy={() => handleBuyKey(nft)} />
             ))}
           </div>
         </TabsContent>
+
         <TabsContent value="shards">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {shards.map((shard, index) => (
@@ -120,6 +190,26 @@ export default function MarketplacePage() {
           </div>
         </TabsContent>
       </Tabs>
+
+        <AlertDialog open={!!pendingPurchase} onOpenChange={(open) => !open && setPendingPurchase(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>确认购买吗？ (Confirm Purchase)</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        您即将购买 <span className="font-bold text-primary">{pendingPurchase?.name}</span>。
+                        这将从您的钱包中花费 <span className="font-bold text-primary font-mono">{pendingPurchase?.price.toLocaleString()} $JIN</span>。
+                        此操作在链上确认后将无法撤销。
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setPendingPurchase(null)}>取消</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmPurchase}>确认购买</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
     </div>
   );
 }
+
+    
