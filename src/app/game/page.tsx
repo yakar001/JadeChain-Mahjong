@@ -123,8 +123,6 @@ const getTileName = (tile: Tile): string => {
     return honorMap[tile.value] || '';
 }
 
-// SIMULATED WINNING HAND CHECK WITH GOLDEN TILE (WILD CARD)
-// This is a simplified check. It checks for the basic "4 melds and 1 pair" structure.
 const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
     if (hand.length % 3 !== 2) return false;
 
@@ -147,38 +145,47 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
         }
     });
 
-    const sortedKeys = Object.keys(counts).sort();
-
-    // Recursive function to check for melds using Depth-First Search
-    function canFormMelds(keys: string[], currentCounts: Record<string, number>, wilds: number): boolean {
-        if (keys.length === 0) {
-            return wilds % 3 === 0;
+    const sortedKeys = Object.keys(counts).sort((a, b) => {
+        const [suitA, valueA] = a.split('-');
+        const [suitB, valueB] = b.split('-');
+        const suitOrder = ['dots', 'bamboo', 'characters', 'wind', 'dragon'];
+        if (suitOrder.indexOf(suitA) !== suitOrder.indexOf(suitB)) {
+            return suitOrder.indexOf(suitA) - suitOrder.indexOf(suitB);
         }
+        return parseInt(valueA, 10) - parseInt(valueB, 10);
+    });
 
-        const newKeys = [...keys];
-        const key = newKeys.shift()!;
+    function canFormMelds(currentCounts: Record<string, number>, wilds: number): boolean {
+        let empty = true;
+        for (const key in currentCounts) {
+            if (currentCounts[key] > 0) {
+                empty = false;
+                break;
+            }
+        }
+        if (empty) return wilds % 3 === 0;
+
+        const key = Object.keys(currentCounts).find(k => currentCounts[k] > 0)!;
         const count = currentCounts[key];
-
-        if (count === 0) {
-            return canFormMelds(newKeys, currentCounts, wilds);
-        }
+        const nextCounts = { ...currentCounts };
 
         // Try to form a PONG (triplet)
         if (count >= 3) {
-            const nextCounts = { ...currentCounts, [key]: count - 3 };
-            if (canFormMelds(newKeys, nextCounts, wilds)) return true;
+            nextCounts[key] -= 3;
+            if (canFormMelds(nextCounts, wilds)) return true;
+            nextCounts[key] += 3;
+        }
+        if (count >= 2 && wilds >= 1) {
+            nextCounts[key] -= 2;
+            if (canFormMelds(nextCounts, wilds - 1)) return true;
+            nextCounts[key] += 2;
+        }
+        if (count >= 1 && wilds >= 2) {
+            nextCounts[key] -= 1;
+            if (canFormMelds(nextCounts, wilds - 2)) return true;
+            nextCounts[key] += 1;
         }
 
-        // Try to form a PONG with wildcards
-        if (count === 2 && wilds >= 1) {
-            const nextCounts = { ...currentCounts, [key]: 0 };
-            if (canFormMelds(newKeys, nextCounts, wilds - 1)) return true;
-        }
-        if (count === 1 && wilds >= 2) {
-            const nextCounts = { ...currentCounts, [key]: 0 };
-            if (canFormMelds(newKeys, nextCounts, wilds - 2)) return true;
-        }
-        
         // Try to form a CHOW (sequence)
         const tile = keyToTile(key);
         if (['dots', 'bamboo', 'characters'].includes(tile.suit)) {
@@ -186,34 +193,45 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
             if (v <= 7) {
                 const key2 = tileToKey({ suit: tile.suit, value: (v + 1).toString() });
                 const key3 = tileToKey({ suit: tile.suit, value: (v + 2).toString() });
-                const count2 = currentCounts[key2] || 0;
-                const count3 = currentCounts[key3] || 0;
-
+                
                 // Case 1: All 3 tiles present
-                if (count2 > 0 && count3 > 0) {
-                    const nextCounts = { ...currentCounts, [key]: count - 1, [key2]: count2 - 1, [key3]: count3 - 1 };
-                    if (canFormMelds(keys, nextCounts, wilds)) return true;
+                if (currentCounts[key2] > 0 && currentCounts[key3] > 0) {
+                    nextCounts[key] -= 1;
+                    nextCounts[key2] -= 1;
+                    nextCounts[key3] -= 1;
+                    if (canFormMelds(nextCounts, wilds)) return true;
+                    nextCounts[key] += 1;
+                    nextCounts[key2] += 1;
+                    nextCounts[key3] += 1;
                 }
-                // Case 2: Two tiles + 1 wild
+
                 if (wilds >= 1) {
-                    if (count2 > 0) { // 1, 2, wild
-                        const nextCounts = { ...currentCounts, [key]: count - 1, [key2]: count2 - 1 };
-                        if (canFormMelds(keys, nextCounts, wilds - 1)) return true;
+                    // Case 2: 1, 2, wild
+                    if (currentCounts[key2] > 0) {
+                        nextCounts[key] -= 1;
+                        nextCounts[key2] -= 1;
+                        if (canFormMelds(nextCounts, wilds - 1)) return true;
+                        nextCounts[key] += 1;
+                        nextCounts[key2] += 1;
                     }
-                    if (count3 > 0) { // 1, 3, wild
-                        const nextCounts = { ...currentCounts, [key]: count - 1, [key3]: count3 - 1 };
-                        if (canFormMelds(keys, nextCounts, wilds - 1)) return true;
+                    // Case 3: 1, 3, wild
+                    if (currentCounts[key3] > 0) {
+                        nextCounts[key] -= 1;
+                        nextCounts[key3] -= 1;
+                        if (canFormMelds(nextCounts, wilds - 1)) return true;
+                        nextCounts[key] += 1;
+                        nextCounts[key3] += 1;
                     }
                 }
-                 // Case 3: One tile + 2 wilds (e.g., we have 1, need 2 and 3)
-                if (wilds >= 2) {
-                    const nextCounts = { ...currentCounts, [key]: count - 1 };
-                    if (canFormMelds(keys, nextCounts, wilds - 2)) return true;
+                 if (wilds >= 2) {
+                    // Case 4: 1, wild, wild
+                    nextCounts[key] -= 1;
+                    if (canFormMelds(nextCounts, wilds - 2)) return true;
+                    nextCounts[key] += 1;
                 }
             }
         }
         
-        // If we reach here, it means we couldn't form a meld starting with `key`, so it's not a winning hand with this path.
         return false;
     }
 
@@ -222,22 +240,16 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
         if (counts[pairKey] >= 2) { // Normal pair
             const nextCounts = { ...counts };
             nextCounts[pairKey] -= 2;
-            if (canFormMelds(sortedKeys, nextCounts, goldenTileCount)) {
-                return true;
-            }
+            if (canFormMelds(nextCounts, goldenTileCount)) return true;
         }
         if (counts[pairKey] >= 1 && goldenTileCount >= 1) { // Pair with one wild
             const nextCounts = { ...counts };
             nextCounts[pairKey] -= 1;
-            if (canFormMelds(sortedKeys, nextCounts, goldenTileCount - 1)) {
-                return true;
-            }
+            if (canFormMelds(nextCounts, goldenTileCount - 1)) return true;
         }
     }
     if (goldenTileCount >= 2) { // Pair of wilds
-        if (canFormMelds(sortedKeys, { ...counts }, goldenTileCount - 2)) {
-            return true;
-        }
+        if (canFormMelds({ ...counts }, goldenTileCount - 2)) return true;
     }
 
     return false;
@@ -781,23 +793,22 @@ function GameRoom() {
     await playSound(tileName);
     
     const potentialActions: ActionPossibility[] = [];
-    // Important: use a fresh reference to players from state if possible, or use the `updatedPlayers` from this scope
     updatedPlayers.forEach(p => {
         if (p.id !== playerId) {
             const isNextPlayer = p.id === getNextPlayerId(playerId);
-            const tileCountInHand = p.hand.filter(t => t.suit === tileToDiscard!.suit && t.value === tileToDiscard!.value).length;
+            const handWithoutGolden = p.hand.filter(t => !(goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value));
+            const tileCountInHand = handWithoutGolden.filter(t => t.suit === tileToDiscard!.suit && t.value === tileToDiscard!.value).length;
             
-            const playerHasGolden = p.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
+            const playerHasGoldenInHand = p.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
 
-            // CRITICAL FIX: Player with golden tile cannot win on a discard.
-            const canWin = !playerHasGolden && isWinningHand([...p.hand, tileToDiscard!], goldenTile);
+            const canWin = !playerHasGoldenInHand && isWinningHand([...p.hand, tileToDiscard!], goldenTile);
             const canPong = tileCountInHand >= 2;
             const canKong = tileCountInHand >= 3;
 
             let canChow = false;
             if (isNextPlayer && !['wind', 'dragon'].includes(tileToDiscard!.suit)) {
                 const v = parseInt(tileToDiscard!.value);
-                const hasNum = (val: number) => p.hand.some(t => t.suit === tileToDiscard!.suit && parseInt(t.value) === val);
+                const hasNum = (val: number) => handWithoutGolden.some(t => t.suit === tileToDiscard!.suit && parseInt(t.value) === val);
                 if ((hasNum(v-2) && hasNum(v-1)) || (hasNum(v-1) && hasNum(v+1)) || (hasNum(v+1) && hasNum(v+2))) {
                     canChow = true;
                 }
@@ -1160,13 +1171,13 @@ function GameRoom() {
     }
   }, [audioSrc]);
 
-  const humanPlayer = players.find(p => p.id === 0);
+  const humanPlayer = players.find(p => p.name.includes('(南)'));
   const northPlayer = players.find(p => p.name.includes('(北)'));
   const westPlayer = players.find(p => p.name.includes('(西)'));
   const eastPlayer = players.find(p => p.name.includes('(东)'));
 
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
-  const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
+  const humanPlayerAction = actionPossibilities.find(p => p.playerId === humanPlayer?.id);
   
   const roomTierMap: Record<string, string> = {
     Free: "免费体验娱乐场",
@@ -1218,6 +1229,7 @@ function GameRoom() {
                                 <div className="text-left max-h-[60vh] overflow-y-auto pr-4 space-y-4">
                                     <p>核心特点：开局后随机指定一张牌为“金牌”（Wild Tile），该牌可以当做任意一张牌来使用。</p>
                                     <p>持金限制：当您手中有“金牌”时，您只能通过**自摸**胡牌，不能胡别人打出的牌。</p>
+                                    <p>行动规则：金牌不可用于吃、碰、杠。</p>
                                 </div>
                             </AlertDialogDescription>
                             </AlertDialogHeader>
@@ -1340,8 +1352,6 @@ function GameRoom() {
 
           <GameBoard 
               players={players} 
-              wallCount={wall.length}
-              goldenTile={goldenTile}
               latestDiscard={latestDiscard}
           />
       </div>
@@ -1351,11 +1361,11 @@ function GameRoom() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
                     <div className='flex items-center gap-2'>
                         <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-1 left-0 right-0 w-full h-0.5 [&>div]:bg-yellow-400" />
-                        {humanPlayerAction.actions.win && <Button onClick={() => handleAction('win', 0)} size="sm" variant="destructive" className="w-16 h-10" disabled={humanPlayerHasGolden}>胡</Button>}
-                        {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm" className="w-16 h-10">杠</Button>}
-                        {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm" className="w-16 h-10">碰</Button>}
-                        {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', 0)} size="sm" className="w-16 h-10">吃</Button>}
-                        <Button onClick={() => handleAction('skip', 0)} size="sm" variant="secondary" className="w-16 h-10">过 ({actionTimer}s)</Button>}
+                        {humanPlayerAction.actions.win && <Button onClick={() => handleAction('win', humanPlayer!.id)} size="sm" variant="destructive" className="w-16 h-10" disabled={humanPlayerHasGolden}>胡</Button>}
+                        {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', humanPlayer!.id)} size="sm" className="w-16 h-10">杠</Button>}
+                        {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', humanPlayer!.id)} size="sm" className="w-16 h-10">碰</Button>}
+                        {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', humanPlayer!.id)} size="sm" className="w-16 h-10">吃</Button>}
+                        <Button onClick={() => handleAction('skip', humanPlayer!.id)} size="sm" variant="secondary" className="w-16 h-10">过 ({actionTimer}s)</Button>}
                     </div>
                     {humanPlayerHasGolden && humanPlayerAction.actions.win && <p className="text-xs text-yellow-400 text-center mt-1">持金只能自摸，不可胡牌</p>}
                 </div>
@@ -1488,5 +1498,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
