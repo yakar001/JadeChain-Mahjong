@@ -6,6 +6,7 @@ import { AppHeader } from './header';
 import { useWallet } from '@/context/wallet-context';
 import { Button } from '../ui/button';
 import { Wallet } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function WalletGuard({ children }: { children: ReactNode }) {
     const { walletAddress, connectWallet } = useWallet();
@@ -30,6 +31,8 @@ function WalletGuard({ children }: { children: ReactNode }) {
 
 
 export function MainLayout({ children }: { children: ReactNode }) {
+  const isGamePage = typeof window !== 'undefined' && window.location.pathname === '/game';
+  
   return (
     <SidebarProvider>
       <div className="relative">
@@ -38,7 +41,9 @@ export function MainLayout({ children }: { children: ReactNode }) {
         </Sidebar>
         <SidebarInset>
           <AppHeader />
-          <main className="p-4 sm:p-6 lg:p-8 relative">
+          <main className={cn("p-4 sm:p-6 lg:p-8 relative", {
+            "bg-card/20 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg max-w-7xl mx-auto my-4": !isGamePage,
+          })}>
             <WalletGuard>
                 {children}
             </WalletGuard>
