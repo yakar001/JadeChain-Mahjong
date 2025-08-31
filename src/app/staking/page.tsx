@@ -5,14 +5,22 @@ import { useState } from 'react';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Coins, Zap, Clock, PackagePlus } from "lucide-react";
+import { Shield, Coins, Zap, Clock, PackagePlus, Trophy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 // In production, this data will be fetched from the user's wallet and smart contracts.
 const initialStakedKeys: any[] = [];
 const initialUnstakedKeys: any[] = [];
+const leaderboardData = [
+    { rank: 1, address: "0x1234...abcd", power: 12500.5, 'data-ai-hint': 'gold medal' },
+    { rank: 2, address: "0x5678...efgh", power: 11800.2, 'data-ai-hint': 'silver medal' },
+    { rank: 3, address: "0x90ab...cdef", power: 10500.8, 'data-ai-hint': 'bronze medal' },
+    { rank: 4, address: "0x4567...hijk", power: 9800.0, 'data-ai-hint': 'trophy' },
+    { rank: 5, address: "0x890a...lmno", power: 9500.5, 'data-ai-hint': 'trophy' },
+];
 
 export default function StakingPage() {
     const [stakedKeys, setStakedKeys] = useState(initialStakedKeys);
@@ -60,26 +68,56 @@ export default function StakingPage() {
         <h1 className="text-3xl font-bold font-headline text-primary mb-2 flex items-center gap-2"><Shield /> 质押分红金库</h1>
         <p className="text-muted-foreground mb-8">质押您的 NFT 密钥以在每个周期赚取 $GMD 奖励，并分享来自金库的 $JIN 分红。</p>
         
-        <Card className="mb-8 bg-gradient-to-r from-primary/20 to-secondary/20">
-            <CardHeader>
-                <CardTitle className="font-headline">周期状态 (Epoch Status)</CardTitle>
-                <CardDescription>当前周期的奖励池与剩余时间。</CardDescription>
-            </CardHeader>
-            <CardContent className="grid sm:grid-cols-3 gap-4 text-center">
-                <div className="bg-background/50 p-4 rounded-lg">
-                    <p className="text-3xl font-bold font-headline">#0</p>
-                    <p className="text-sm text-muted-foreground">当前周期 (Current Epoch)</p>
-                </div>
-                 <div className="bg-background/50 p-4 rounded-lg">
-                    <p className="text-3xl font-bold font-headline flex items-center justify-center gap-1"><Clock /> 0h 0m</p>
-                    <p className="text-sm text-muted-foreground">剩余时间 (Time Left)</p>
-                </div>
-                 <div className="bg-background/50 p-4 rounded-lg">
-                    <p className="text-3xl font-bold text-yellow-300 font-headline flex items-center justify-center gap-1"><Coins size={28}/> 0.00</p>
-                    <p className="text-sm text-muted-foreground">本周期 $GMD 奖励 (Epoch $GMD Rewards)</p>
-                </div>
-            </CardContent>
-        </Card>
+        <div className="grid lg:grid-cols-5 gap-8 mb-8 items-start">
+            <Card className="lg:col-span-3 bg-gradient-to-r from-primary/20 to-secondary/20">
+                <CardHeader>
+                    <CardTitle className="font-headline">周期状态 (Epoch Status)</CardTitle>
+                    <CardDescription>当前周期的奖励池与剩余时间。</CardDescription>
+                </CardHeader>
+                <CardContent className="grid sm:grid-cols-3 gap-4 text-center">
+                    <div className="bg-background/50 p-4 rounded-lg">
+                        <p className="text-4xl font-bold font-headline">#0</p>
+                        <p className="text-sm text-muted-foreground mt-1">当前周期 (Current Epoch)</p>
+                    </div>
+                     <div className="bg-background/50 p-4 rounded-lg">
+                        <p className="text-4xl font-bold font-headline flex items-center justify-center gap-2"><Clock /> 0h</p>
+                        <p className="text-sm text-muted-foreground mt-1">剩余时间 (Time Left)</p>
+                    </div>
+                     <div className="bg-background/50 p-4 rounded-lg">
+                        <p className="text-4xl font-bold text-yellow-300 font-headline flex items-center justify-center gap-2"><Coins size={32}/> 0</p>
+                        <p className="text-sm text-muted-foreground mt-1">本周期 $GMD 奖励</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+             <Card className="lg:col-span-2 bg-card/80 backdrop-blur-sm border-primary/20">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Trophy /> 全服质押算力榜</CardTitle>
+                    <CardDescription>Top 5 Staking Power Leaderboard</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-12 text-center">#</TableHead>
+                                <TableHead>玩家 (Player)</TableHead>
+                                <TableHead className="text-right">算力 (Power)</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                             {leaderboardData.map(player => (
+                                <TableRow key={player.rank}>
+                                    <TableCell className="text-center font-bold">{player.rank}</TableCell>
+                                    <TableCell className="font-mono text-xs">{player.address}</TableCell>
+                                    <TableCell className="text-right font-mono font-bold text-primary">{player.power.toLocaleString()}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+
 
         <div className="mb-8">
             <h2 className="text-2xl font-bold font-headline mb-4">已质押密钥 ({stakedKeys.length})</h2>
@@ -153,4 +191,5 @@ export default function StakingPage() {
 
     </div>
   );
-}
+
+    
