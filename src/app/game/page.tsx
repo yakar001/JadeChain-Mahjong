@@ -128,139 +128,116 @@ const getTileName = (tile: Tile): string => {
 const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
     if (hand.length % 3 !== 2) return false;
 
-    const tileToKey = (tile: Tile) => `${tile.suit}-${tile.value}`;
+    const tileToKey = (t: Tile) => `${t.suit}-${t.value}`;
+    const keyToTile = (k: string) => {
+        const [suit, value] = k.split('-');
+        return { suit, value };
+    };
+
     const goldenTileKey = goldenTile ? tileToKey(goldenTile) : null;
-    
+
     let goldenTileCount = 0;
     const counts: Record<string, number> = {};
-    for (const tile of hand) {
+    hand.forEach(tile => {
         const key = tileToKey(tile);
         if (key === goldenTileKey) {
             goldenTileCount++;
         } else {
             counts[key] = (counts[key] || 0) + 1;
         }
-    }
+    });
 
-    // Recursive function to check for melds
-    function canFormMelds(currentCounts: Record<string, number>, wilds: number): boolean {
-        let isEmpty = true;
-        for (const key in currentCounts) {
-            if (currentCounts[key] > 0) {
-                isEmpty = false;
-                break;
-            }
+    const sortedKeys = Object.keys(counts).sort();
+
+    // Recursive function to check for melds using Depth-First Search
+    function canFormMelds(keys: string[], currentCounts: Record<string, number>, wilds: number): boolean {
+        if (keys.length === 0) {
+            return wilds % 3 === 0;
         }
-        if (isEmpty) return true;
 
-        const firstTileKey = Object.keys(currentCounts).find(k => currentCounts[k] > 0);
-        if (!firstTileKey) return true;
+        const newKeys = [...keys];
+        const key = newKeys.shift()!;
+        const count = currentCounts[key];
+
+        if (count === 0) {
+            return canFormMelds(newKeys, currentCounts, wilds);
+        }
+
+        // Try to form a PONG (triplet)
+        if (count >= 3) {
+            const nextCounts = { ...currentCounts, [key]: count - 3 };
+            if (canFormMelds(newKeys, nextCounts, wilds)) return true;
+        }
+
+        // Try to form a PONG with wildcards
+        if (count === 2 && wilds >= 1) {
+            const nextCounts = { ...currentCounts, [key]: 0 };
+            if (canFormMelds(newKeys, nextCounts, wilds - 1)) return true;
+        }
+        if (count === 1 && wilds >= 2) {
+            const nextCounts = { ...currentCounts, [key]: 0 };
+            if (canFormMelds(newKeys, nextCounts, wilds - 2)) return true;
+        }
         
-        const [suit, value] = firstTileKey.split('-');
-
-        // Try to form a triplet (Pong)
-        if (currentCounts[firstTileKey] >= 3) {
-            const nextCounts = { ...currentCounts };
-            nextCounts[firstTileKey] -= 3;
-            if (canFormMelds(nextCounts, wilds)) return true;
-        }
-        if (currentCounts[firstTileKey] === 2 && wilds >= 1) {
-             const nextCounts = { ...currentCounts };
-            nextCounts[firstTileKey] -= 2;
-            if (canFormMelds(nextCounts, wilds - 1)) return true;
-        }
-        if (currentCounts[firstTileKey] === 1 && wilds >= 2) {
-             const nextCounts = { ...currentCounts };
-            nextCounts[firstTileKey] -= 1;
-            if (canFormMelds(nextCounts, wilds - 2)) return true;
-        }
-        if (wilds >= 3) { // Triplet of wilds
-            if(canFormMelds({...currentCounts}, wilds-3)) return true;
-        }
-
-        // Try to form a sequence (Chow)
-        if (!['wind', 'dragon'].includes(suit)) {
-            const v = parseInt(value, 10);
+        // Try to form a CHOW (sequence)
+        const tile = keyToTile(key);
+        if (['dots', 'bamboo', 'characters'].includes(tile.suit)) {
+            const v = parseInt(tile.value);
             if (v <= 7) {
-                const key2 = `${suit}-${v + 1}`;
-                const key3 = `${suit}-${v + 2}`;
-                
-                const c1 = currentCounts[firstTileKey] || 0;
-                const c2 = currentCounts[key2] || 0;
-                const c3 = currentCounts[key3] || 0;
+                const key2 = tileToKey({ suit: tile.suit, value: (v + 1).toString() });
+                const key3 = tileToKey({ suit: tile.suit, value: (v + 2).toString() });
+                const count2 = currentCounts[key2] || 0;
+                const count3 = currentCounts[key3] || 0;
 
                 // Case 1: All 3 tiles present
-                if (c1 > 0 && c2 > 0 && c3 > 0) {
-                    const nextCounts = { ...currentCounts };
-                    nextCounts[firstTileKey]--;
-                    nextCounts[key2]--;
-                    nextCounts[key3]--;
-                    if (canFormMelds(nextCounts, wilds)) return true;
+                if (count2 > 0 && count3 > 0) {
+                    const nextCounts = { ...currentCounts, [key]: count - 1, [key2]: count2 - 1, [key3]: count3 - 1 };
+                    if (canFormMelds(keys, nextCounts, wilds)) return true;
                 }
                 // Case 2: Two tiles + 1 wild
                 if (wilds >= 1) {
-                    if(c1 > 0 && c2 > 0) {
-                        const nextCounts = { ...currentCounts };
-                        nextCounts[firstTileKey]--;
-                        nextCounts[key2]--;
-                         if (canFormMelds(nextCounts, wilds-1)) return true;
+                    if (count2 > 0) { // 1, 2, wild
+                        const nextCounts = { ...currentCounts, [key]: count - 1, [key2]: count2 - 1 };
+                        if (canFormMelds(keys, nextCounts, wilds - 1)) return true;
                     }
-                     if(c1 > 0 && c3 > 0) {
-                        const nextCounts = { ...currentCounts };
-                        nextCounts[firstTileKey]--;
-                        nextCounts[key3]--;
-                         if (canFormMelds(nextCounts, wilds-1)) return true;
-                    }
-                     if(c2 > 0 && c3 > 0) {
-                        const nextCounts = { ...currentCounts };
-                        nextCounts[key2]--;
-                        nextCounts[key3]--;
-                         if (canFormMelds(nextCounts, wilds-1)) return true;
+                    if (count3 > 0) { // 1, 3, wild
+                        const nextCounts = { ...currentCounts, [key]: count - 1, [key3]: count3 - 1 };
+                        if (canFormMelds(keys, nextCounts, wilds - 1)) return true;
                     }
                 }
-                // Case 3: One tile + 2 wilds
-                if(wilds >= 2) {
-                    if(c1 > 0) {
-                         const nextCounts = { ...currentCounts };
-                         nextCounts[firstTileKey]--;
-                         if (canFormMelds(nextCounts, wilds - 2)) return true;
-                    }
-                     if(c2 > 0) {
-                         const nextCounts = { ...currentCounts };
-                         nextCounts[key2]--;
-                         if (canFormMelds(nextCounts, wilds - 2)) return true;
-                    }
-                     if(c3 > 0) {
-                         const nextCounts = { ...currentCounts };
-                         nextCounts[key3]--;
-                         if (canFormMelds(nextCounts, wilds - 2)) return true;
-                    }
+                 // Case 3: One tile + 2 wilds (e.g., we have 1, need 2 and 3)
+                if (wilds >= 2) {
+                    const nextCounts = { ...currentCounts, [key]: count - 1 };
+                    if (canFormMelds(keys, nextCounts, wilds - 2)) return true;
                 }
             }
         }
-
+        
+        // If we reach here, it means we couldn't form a meld starting with `key`, so it's not a winning hand with this path.
         return false;
     }
 
     // Iterate through all possible pairs
-    for (const pairKey in counts) {
-        if (counts[pairKey] >= 2) {
-            const countsWithoutPair = { ...counts };
-            countsWithoutPair[pairKey] -= 2;
-            if (canFormMelds(countsWithoutPair, goldenTileCount)) {
+    for (const pairKey of sortedKeys) {
+        if (counts[pairKey] >= 2) { // Normal pair
+            const nextCounts = { ...counts };
+            nextCounts[pairKey] -= 2;
+            if (canFormMelds(sortedKeys, nextCounts, goldenTileCount)) {
                 return true;
             }
         }
-        if (counts[pairKey] >= 1 && goldenTileCount >= 1) {
-             const countsWithoutPair = { ...counts };
-             countsWithoutPair[pairKey] -= 1;
-             if(canFormMelds(countsWithoutPair, goldenTileCount - 1)) {
-                 return true;
-             }
+        if (counts[pairKey] >= 1 && goldenTileCount >= 1) { // Pair with one wild
+            const nextCounts = { ...counts };
+            nextCounts[pairKey] -= 1;
+            if (canFormMelds(sortedKeys, nextCounts, goldenTileCount - 1)) {
+                return true;
+            }
         }
     }
-     if (goldenTileCount >= 2) {
-        if(canFormMelds({...counts}, goldenTileCount - 2)) return true;
+    if (goldenTileCount >= 2) { // Pair of wilds
+        if (canFormMelds(sortedKeys, { ...counts }, goldenTileCount - 2)) {
+            return true;
+        }
     }
 
     return false;
@@ -299,6 +276,18 @@ function GameRoom() {
   const [concealedKongCandidate, setConcealedKongCandidate] = useState<Tile | null>(null);
   const [audioCache, setAudioCache] = useState(new Map<string, string>());
   const [isProcessingTurn, setIsProcessingTurn] = useState(false);
+
+  const [layoutConfig, setLayoutConfig] = useState<LayoutConfig>(INITIAL_LAYOUT_CONFIG);
+
+  const handleLayoutChange = (component: keyof LayoutConfig, property: 'width' | 'height' | 'scale', value: number) => {
+      setLayoutConfig(prev => ({
+          ...prev,
+          [component]: {
+              ...prev[component],
+              [property]: value
+          }
+      }))
+  }
 
   const playSound = useCallback(async (text: string) => {
     if (isMuted) return;
@@ -971,14 +960,25 @@ function GameRoom() {
       setTurnTimer(TURN_DURATION); 
       clearTimer(timerRef);
       timerRef.current = setInterval(() => {
-        setTurnTimer(prev => prev - 1);
+        setTurnTimer(prev => {
+            const newTime = prev - 1;
+            if (newTime <= 0) {
+                clearTimer(timerRef);
+                 const currentPlayer = players.find(p => p.id === activePlayer);
+                if (currentPlayer && activePlayer === 0 && !isAiControlled) {
+                     toast({ title: "时间到 (Time's Up!)", description: "系统已为您开启AI托管并打出最右边的牌。(AI activated and discarded rightmost tile.)" });
+                     setIsAiControlled(true);
+                }
+            }
+            return newTime;
+        });
       }, 1000);
-
-      return () => clearTimer(timerRef);
     } else {
         clearTimer(timerRef);
+        setTurnTimer(TURN_DURATION);
     }
-  }, [gameState, activePlayer, humanPlayerCanDiscard]);
+     return () => clearTimer(timerRef);
+  }, [gameState, activePlayer, humanPlayerCanDiscard, isAiControlled, players, toast]);
 
   useEffect(() => {
       const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
@@ -986,29 +986,21 @@ function GameRoom() {
           setActionTimer(ACTION_DURATION);
           clearTimer(actionTimerRef);
           actionTimerRef.current = setInterval(() => {
-              setActionTimer(prev => prev - 1);
+              setActionTimer(prev => {
+                const newTime = prev - 1;
+                if (newTime <= 0) {
+                    clearTimer(actionTimerRef);
+                    handleAction('skip', 0);
+                }
+                return newTime;
+              });
           }, 1000);
-          return () => clearTimer(actionTimerRef);
       } else {
           clearTimer(actionTimerRef);
+          setActionTimer(ACTION_DURATION);
       }
-  }, [actionPossibilities]);
-
-  useEffect(() => {
-     if (turnTimer <= 0 && activePlayer !== null) {
-        const currentPlayer = players.find(p => p.id === activePlayer);
-        if (!currentPlayer) return;
-
-        if (activePlayer === 0 && !isAiControlled) {
-            toast({ title: "时间到 (Time's Up!)", description: "系统已为您开启AI托管并打出最右边的牌。(AI activated and discarded rightmost tile.)" });
-            setIsAiControlled(true);
-            // The runGameFlow effect will handle the AI-controlled discard
-        }
-    }
-     if (actionTimer <= 0 && actionPossibilities.some(p => p.playerId === 0)) {
-        handleAction('skip', 0);
-    }
-  }, [turnTimer, actionTimer, actionPossibilities, activePlayer, players, handleDiscardTile, toast, humanPlayerCanDiscard, handleAction, isAiControlled]);
+      return () => clearTimer(actionTimerRef);
+  }, [actionPossibilities, handleAction]);
 
   useEffect(() => {
     initializeGame();
@@ -1083,7 +1075,6 @@ function GameRoom() {
         const tempPlayers = JSON.parse(JSON.stringify(playersWithStake));
         
         const diceTotal = newDice[0] + newDice[1];
-        const bankerIndex = tempPlayers.findIndex((p: Player) => p.id === bankerId);
         
         const playerSeats = ['东', '南', '西', '北'];
         const seatMap = new Map<number, string>();
@@ -1169,7 +1160,7 @@ function GameRoom() {
     }
   }, [audioSrc]);
 
-  const humanPlayer = players.find(p => p.name.includes('You'));
+  const humanPlayer = players.find(p => p.id === 0);
   const northPlayer = players.find(p => p.name.includes('(北)'));
   const westPlayer = players.find(p => p.name.includes('(西)'));
   const eastPlayer = players.find(p => p.name.includes('(东)'));
@@ -1235,6 +1226,26 @@ function GameRoom() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Settings className="mr-2"/> 自定义设置</DropdownMenuItem>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader><DialogTitle>自定义布局</DialogTitle></DialogHeader>
+                            <div className="space-y-4">
+                                {Object.keys(layoutConfig).map(key => (
+                                    <div key={key} className="space-y-2 p-2 border rounded-md">
+                                        <p className="font-semibold text-sm capitalize">{key.replace(/([A-Z])/g, ' $1')}</p>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <Label>Width</Label><Slider value={[layoutConfig[key as keyof LayoutConfig].width]} onValueChange={([v]) => handleLayoutChange(key as keyof LayoutConfig, 'width', v)} max={500} step={10}/>
+                                            <Label>Height</Label><Slider value={[layoutConfig[key as keyof LayoutConfig].height]} onValueChange={([v]) => handleLayoutChange(key as keyof LayoutConfig, 'height', v)} max={500} step={10}/>
+                                            <Label>Scale</Label><Slider value={[layoutConfig[key as keyof LayoutConfig].scale]} onValueChange={([v]) => handleLayoutChange(key as keyof LayoutConfig, 'scale', v)} max={2} step={0.1}/>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Shuffle className="mr-2"/> 新对局</DropdownMenuItem>
@@ -1284,52 +1295,62 @@ function GameRoom() {
             </DropdownMenu>
        </div>
       <div className="flex-grow relative bg-gray-800 p-2 flex flex-col">
-          {/* Player Info Areas */}
           <DraggableBox initialPosition={{ top: 8, left: 8 }}>
-                <PlayerInfo player={northPlayer} />
+            <PlayerInfo player={northPlayer} />
           </DraggableBox>
             
           <DraggableBox initialPosition={{ bottom: 8, left: 8 }}>
-                <div>
-                  <PlayerInfo player={humanPlayer} />
-                  <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
-                      <div className="flex items-center space-x-2">
-                          <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
-                          <Label htmlFor="ai-control" className="flex items-center gap-1 text-xs">
-                              {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
-                              AI托管
-                          </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                          <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
-                          <Label htmlFor="sound-mute" className="flex items-center gap-1 text-xs">{isMuted ? <VolumeX/> : <Volume2/> } 语音</Label>
-                      </div>
-                  </div>
+            <div>
+              <PlayerInfo player={humanPlayer} />
+                <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
+                    <div className="flex items-center space-x-2">
+                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
+                        <Label htmlFor="ai-control" className="flex items-center gap-1 text-xs text-white">
+                            {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
+                            AI托管
+                        </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
+                        <Label htmlFor="sound-mute" className="flex items-center gap-1 text-xs text-white">{isMuted ? <VolumeX/> : <Volume2/> } 语音</Label>
+                    </div>
                 </div>
-            </DraggableBox>
+            </div>
+        </DraggableBox>
+        <DraggableBox initialPosition={{ top: '50%', right: 8, transform: 'translateY(-50%)' }}>
+            <PlayerInfo player={eastPlayer} />
+        </DraggableBox>
+        <DraggableBox initialPosition={{ top: '50%', left: 8, transform: 'translateY(-50%)' }}>
+            <PlayerInfo player={westPlayer} />
+        </DraggableBox>
+        <DraggableBox initialPosition={{ top: '40%', left: '50%', transform: 'translateX(-50%)' }}>
+             <div className="bg-black/50 p-2 rounded-lg text-center text-white border border-amber-600/50 flex items-center justify-center gap-4 z-10">
+                <div className='flex items-center justify-center gap-1'>
+                    <Layers className="w-4 h-4"/>
+                    <p className="text-lg font-bold">{wall.length}</p>
+                </div>
+                {goldenTile && (
+                    <div className="flex items-center justify-center gap-2">
+                        <span className="text-sm text-muted-foreground">金:</span>
+                        <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
+                    </div>
+                )}
+            </div>
+        </DraggableBox>
 
           <GameBoard 
               players={players} 
               wallCount={wall.length}
               goldenTile={goldenTile}
               latestDiscard={latestDiscard}
-              activePlayerId={activePlayer}
-          >
-              <DraggableBox initialPosition={{ top: 8, right: 8 }}>
-                <PlayerInfo player={eastPlayer} />
-              </DraggableBox>
-              <DraggableBox initialPosition={{ bottom: '50%', left: 8, transform: 'translateY(50%)' }}>
-                  <PlayerInfo player={westPlayer} />
-              </DraggableBox>
-          </GameBoard>
-
+          />
       </div>
       <div className="flex-none bg-background p-2 border-t">
-        <div className="relative min-h-[6rem] flex items-center justify-center">
-             {humanPlayerAction && (
-                <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
+        <div className="relative min-h-[10rem] flex items-center justify-center">
+            {humanPlayerAction && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
                     <div className='flex items-center gap-2'>
-                        <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-2 left-0 right-0 w-full h-1 [&>div]:bg-yellow-400" />
+                        <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-1 left-0 right-0 w-full h-0.5 [&>div]:bg-yellow-400" />
                         {humanPlayerAction.actions.win && <Button onClick={() => handleAction('win', 0)} size="sm" variant="destructive" className="w-16 h-10" disabled={humanPlayerHasGolden}>胡</Button>}
                         {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm" className="w-16 h-10">杠</Button>}
                         {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm" className="w-16 h-10">碰</Button>}
@@ -1339,8 +1360,28 @@ function GameRoom() {
                     {humanPlayerHasGolden && humanPlayerAction.actions.win && <p className="text-xs text-yellow-400 text-center mt-1">持金只能自摸，不可胡牌</p>}
                 </div>
             )}
-            <div className='flex flex-col items-center gap-2 w-full'>
-              <p className="text-xs text-muted-foreground">手牌区</p>
+            <div className='flex flex-col items-center gap-1 w-full'>
+              <div className="flex items-center justify-center gap-4 flex-wrap mt-2">
+                {gameState === 'playing' && activePlayer === humanPlayer?.id && !humanPlayerCanDiscard && !humanPlayerAction && (
+                <Button onClick={handleDrawTile} disabled={isProcessingTurn}>
+                    <Hand className="mr-2 h-4 w-4" />
+                    摸牌 (Draw Tile)
+                </Button>
+                )}
+                {gameState === 'playing' && activePlayer === humanPlayer?.id && humanPlayerCanDiscard && (
+                    <>
+                        {concealedKongCandidate && <Button onClick={() => handleAction('kong', 0)} variant="default">暗杠 (Kong)</Button>}
+                        {isWinningHand(humanPlayer?.hand || [], goldenTile) && 
+                            <Button onClick={() => handleWin()} variant="destructive">
+                                <ThumbsUp className="mr-2 h-4 w-4"/>
+                                自摸胡牌 (Win)
+                            </Button>
+                        }
+                    </>
+                )}
+            </div>
+             <Separator className="my-2" />
+             <p className="text-xs text-muted-foreground">手牌区</p>
               <PlayerHand 
                   hand={humanPlayer?.hand || []} 
                   onTileClick={handleSelectOrDiscardTile}
@@ -1349,23 +1390,6 @@ function GameRoom() {
                   selectedTileIndex={selectedTileIndex}
               />
             </div>
-        </div>
-        <div className="flex items-center justify-center gap-4 flex-wrap mt-2">
-            {gameState === 'playing' && activePlayer === humanPlayer?.id && !humanPlayerCanDiscard && !humanPlayerAction && (
-            <Button onClick={handleDrawTile} disabled={isProcessingTurn}>
-                <Hand className="mr-2 h-4 w-4" />
-                摸牌 (Draw Tile)
-            </Button>
-            )}
-            {gameState === 'playing' && activePlayer === humanPlayer?.id && humanPlayerCanDiscard && (
-                <>
-                    {concealedKongCandidate && <Button onClick={() => handleAction('kong', 0)} variant="default">暗杠 (Kong)</Button>}
-                    <Button onClick={() => handleWin()} variant="destructive" disabled={!isWinningHand(humanPlayer?.hand || [], goldenTile)}>
-                    <ThumbsUp className="mr-2 h-4 w-4"/>
-                    自摸胡牌 (Win)
-                    </Button>
-                </>
-            )}
         </div>
       </div>
 
@@ -1465,4 +1489,4 @@ export default function GamePage() {
     )
 }
 
-  
+    
