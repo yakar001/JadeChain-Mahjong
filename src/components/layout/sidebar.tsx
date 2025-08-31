@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Gem, Home, Store, User, Bot, Vote, Shield, Hammer, Banknote, ShieldCheck, KeyRound } from 'lucide-react';
+import { Gem, Home, Store, User, Bot, Vote, Shield, Hammer, Banknote, ShieldCheck, KeyRound, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -29,6 +29,14 @@ export function AppSidebar() {
               <Link href="/">
                 <Home />
                 Lobby (游戏大厅)
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/tournaments'}>
+              <Link href="/tournaments">
+                <Trophy />
+                Tournaments (赛事中心)
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
