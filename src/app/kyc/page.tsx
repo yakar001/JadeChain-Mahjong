@@ -96,7 +96,7 @@ export default function KycPage() {
         toast({
             title: `认证成功 (Verification Successful)`,
             description: `您已成功完成 Level ${step} 认证。`,
-            className: "bg-green-500 text-white"
+            className: "bg-green-500 text-white border-green-600"
         });
         setActiveStep(step);
         setIsLoading(false);
@@ -124,7 +124,7 @@ export default function KycPage() {
         switch(stepIndex) {
             case 0: // Level 1: Basic Info
                 return (
-                    <CardFooter className="flex-col items-stretch gap-4">
+                    <CardFooter className="flex-col items-stretch gap-4 !pt-6">
                         <div className="space-y-2">
                              <Label htmlFor="fullName">姓名 (Full Name)</Label>
                              <Input id="fullName" placeholder="请输入您的真实姓名" />
@@ -133,17 +133,18 @@ export default function KycPage() {
                              <Label htmlFor="idNumber">身份证号 (ID Number)</Label>
                              <Input id="idNumber" placeholder="请输入您的身份证号码" />
                         </div>
-                        <Button className="w-full" onClick={() => handleVerification(1)} disabled={isLoading}>
-                            {isLoading ? <Loader2 className="animate-spin" /> : <User className="mr-2" />}
+                        <Button className="w-full" size="lg" onClick={() => handleVerification(1)} disabled={isLoading}>
+                            {isLoading ? <Loader2 className="animate-spin" /> : <User />}
                             提交并开始 Level 1 认证
                         </Button>
                     </CardFooter>
                 );
             case 1: // Level 2: Face Recognition
                 return (
-                    <CardFooter className="flex-col items-stretch gap-4">
-                        <div className="w-full aspect-video bg-black rounded-md flex items-center justify-center relative">
+                    <CardFooter className="flex-col items-stretch gap-4 !pt-6">
+                        <div className="w-full aspect-video bg-black rounded-md flex items-center justify-center relative overflow-hidden">
                             <video ref={videoRef} className="w-full h-full object-cover rounded-md" autoPlay muted playsInline />
+                            {isLoading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="text-white animate-spin" size={48} /></div>}
                             {hasCameraPermission === false && (
                                 <Alert variant="destructive" className="w-auto absolute">
                                     <Camera className="h-4 w-4"/>
@@ -154,21 +155,21 @@ export default function KycPage() {
                                 </Alert>
                             )}
                         </div>
-                        <Button className="w-full" onClick={() => handleVerification(2)} disabled={isLoading || !hasCameraPermission}>
-                            {isLoading ? <Loader2 className="animate-spin" /> : <Camera className="mr-2" />}
+                        <Button className="w-full" size="lg" onClick={() => handleVerification(2)} disabled={isLoading || !hasCameraPermission}>
+                            {isLoading ? <Loader2 className="animate-spin" /> : <Camera />}
                             开始 Level 2 人脸识别
                         </Button>
                     </CardFooter>
                 )
              case 2: // Level 3: Fingerprint
                 return (
-                    <CardFooter className="flex-col items-stretch gap-4">
+                    <CardFooter className="flex-col items-stretch gap-4 !pt-6">
                         <div className="flex justify-center items-center p-8">
                             <Fingerprint className={`w-24 h-24 text-primary ${isLoading ? 'animate-pulse' : ''}`} />
                         </div>
                         <p className="text-center text-muted-foreground">请将手指放在设备的指纹识别器上以完成认证。</p>
-                         <Button className="w-full" onClick={() => handleVerification(3)} disabled={isLoading}>
-                            {isLoading ? <Loader2 className="animate-spin" /> : <Fingerprint className="mr-2" />}
+                         <Button className="w-full" size="lg" onClick={() => handleVerification(3)} disabled={isLoading}>
+                            {isLoading ? <Loader2 className="animate-spin" /> : <Fingerprint />}
                             开始 Level 3 指纹认证
                         </Button>
                     </CardFooter>
@@ -182,10 +183,10 @@ export default function KycPage() {
         <div>
             <div className="mb-8">
               <h1 className="text-3xl font-bold font-headline text-primary flex items-center gap-2"><ShieldCheck /> KYC 认证中心 (KYC Center)</h1>
-              <p className="text-muted-foreground mt-2">完成认证以解锁更高级别的游戏房间和功能，提升您的账户安全。(Complete verification to unlock higher-tier rooms, features, and enhance your account security.)</p>
+              <p className="text-muted-foreground mt-2">完成认证以解锁更高级别的游戏房间和功能，提升您的账户安全。</p>
             </div>
              
-             <div className="grid lg:grid-cols-3 gap-8">
+             <div className="grid lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-1">
                     <Stepper orientation="vertical" index={activeStep} className="gap-0">
                         {kycSteps.map((step, index) => (
@@ -194,7 +195,7 @@ export default function KycPage() {
                                     <StepStatus complete={<CheckCircle />} incomplete={<StepNumber />} active={<Loader2 className="animate-spin"/>} />
                                 </StepIndicator>
                                 <Box>
-                                    <StepTitle>{step.title}</StepTitle>
+                                    <StepTitle className="font-headline">{step.title}</StepTitle>
                                     <StepDescription>{step.description}</StepDescription>
                                 </Box>
                                 <StepSeparator />
@@ -203,28 +204,28 @@ export default function KycPage() {
                     </Stepper>
                 </div>
 
-                <div className="lg:col-span-2">
-                    <Card className="max-w-2xl">
+                <div className="lg:col-span-2 space-y-6">
+                    <Card className="max-w-2xl bg-card/80 backdrop-blur-sm border-primary/20">
                         <CardHeader>
-                            <CardTitle>
+                            <CardTitle className="font-headline text-xl">
                                 {activeStep >= kycSteps.length ? "所有认证已完成" : `${kycSteps[activeStep].title}`}
                             </CardTitle>
                             <CardDescription>
                                 {activeStep >= kycSteps.length ? "您的账户已达到最高安全等级。" : `完成此步骤以解锁: ${kycSteps[activeStep].privileges}`}
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-0">
                            {renderStepContent(activeStep)}
                         </CardContent>
                     </Card>
 
                     {/* Show next steps if not on the last one */}
                     {activeStep < kycSteps.length -1 && (
-                        <div className="mt-6">
-                            <h3 className="text-lg font-semibold mb-2">后续步骤 (Next Steps)</h3>
-                             <Card className="bg-muted border-dashed">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-2 font-headline">后续步骤 (Next Steps)</h3>
+                             <Card className="bg-muted/50 border-dashed">
                                 <CardHeader>
-                                    <CardTitle className="text-base flex items-center justify-between">
+                                    <CardTitle className="text-base flex items-center justify-between font-headline">
                                         <span>{kycSteps[activeStep + 1].title}</span>
                                         <ArrowRight />
                                     </CardTitle>

@@ -41,7 +41,7 @@ export default function StakingPage() {
     };
 
     const EmptyState = ({ title, description, buttonText, buttonLink }: { title: string, description: string, buttonText: string, buttonLink: string }) => (
-        <Card className="bg-card/50">
+        <Card className="bg-card/50 backdrop-blur-sm border-primary/20 border-dashed">
             <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center">
                 <div className="p-3 bg-accent rounded-full mb-4">
                     <PackagePlus className="w-8 h-8 text-primary" />
@@ -57,25 +57,26 @@ export default function StakingPage() {
 
   return (
     <div>
-        <h1 className="text-3xl font-bold font-headline text-primary mb-6 flex items-center gap-2"><Shield /> 质押分红金库</h1>
+        <h1 className="text-3xl font-bold font-headline text-primary mb-2 flex items-center gap-2"><Shield /> 质押分红金库</h1>
+        <p className="text-muted-foreground mb-8">质押您的 NFT 密钥以在每个周期赚取 $GMD 奖励，并分享来自金库的 $JIN 分红。</p>
         
         <Card className="mb-8 bg-gradient-to-r from-primary/20 to-secondary/20">
             <CardHeader>
-                <CardTitle>周期状态 (Epoch Status)</CardTitle>
-                <CardDescription>质押您的 NFT 密钥以在每个周期赚取 $GMD 奖励。</CardDescription>
+                <CardTitle className="font-headline">周期状态 (Epoch Status)</CardTitle>
+                <CardDescription>当前周期的奖励池与剩余时间。</CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-3 gap-4 text-center">
                 <div className="bg-background/50 p-4 rounded-lg">
-                    <p className="text-3xl font-bold">#0</p>
-                    <p className="text-sm text-muted-foreground">当前周期</p>
+                    <p className="text-3xl font-bold font-headline">#0</p>
+                    <p className="text-sm text-muted-foreground">当前周期 (Current Epoch)</p>
                 </div>
                  <div className="bg-background/50 p-4 rounded-lg">
-                    <p className="text-3xl font-bold flex items-center justify-center gap-1"><Clock /> 0h 0m</p>
-                    <p className="text-sm text-muted-foreground">剩余时间</p>
+                    <p className="text-3xl font-bold font-headline flex items-center justify-center gap-1"><Clock /> 0h 0m</p>
+                    <p className="text-sm text-muted-foreground">剩余时间 (Time Left)</p>
                 </div>
                  <div className="bg-background/50 p-4 rounded-lg">
-                    <p className="text-3xl font-bold text-yellow-300 flex items-center justify-center gap-1"><Coins size={28}/> 0.00</p>
-                    <p className="text-sm text-muted-foreground">本周期 $GMD 总奖励</p>
+                    <p className="text-3xl font-bold text-yellow-300 font-headline flex items-center justify-center gap-1"><Coins size={28}/> 0.00</p>
+                    <p className="text-sm text-muted-foreground">本周期 $GMD 奖励 (Epoch $GMD Rewards)</p>
                 </div>
             </CardContent>
         </Card>
@@ -85,19 +86,19 @@ export default function StakingPage() {
             {stakedKeys.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {stakedKeys.map(key => (
-                        <Card key={key.id}>
+                        <Card key={key.id} className="bg-card/80 backdrop-blur-sm border-primary/20">
                             <CardContent className="p-4 flex gap-4">
-                                <Image src={key.image} alt={key.name} width={100} height={125} className="rounded-md border" data-ai-hint={key['data-ai-hint']} />
+                                <Image src={key.image} alt={key.name} width={100} height={125} className="rounded-md border border-primary/20" data-ai-hint={key['data-ai-hint']} />
                                 <div className="flex-grow space-y-2">
-                                    <h3 className="font-bold">{key.name}</h3>
+                                    <h3 className="font-bold font-headline">{key.name}</h3>
                                     <div className="text-xs text-muted-foreground space-y-1">
-                                        <p>Level: {key.level}</p>
-                                        <p className="flex items-center gap-1"><Zap size={12}/> Energy: {key.energy}/{key.energyMax} ({((key.energy/key.energyMax)*100).toFixed(0)}%)</p>
-                                        <p>Weight: {key.weight.toFixed(1)}</p>
+                                        <p>等级 (Level): {key.level}</p>
+                                        <p className="flex items-center gap-1"><Zap size={12}/> 能量 (Energy): {key.energy}/{key.energyMax} ({((key.energy/key.energyMax)*100).toFixed(0)}%)</p>
+                                        <p>权重 (Weight): {key.weight.toFixed(1)}</p>
                                     </div>
                                     <Separator />
                                     <div>
-                                        <p className="text-sm font-semibold text-yellow-300 flex items-center gap-1"><Coins size={14}/> {key.pendingGMD.toFixed(2)} $GMD</p>
+                                        <p className="text-sm font-semibold text-yellow-300 flex items-center gap-1 font-mono"><Coins size={14}/> {key.pendingGMD.toFixed(2)} $GMD</p>
                                         <p className="text-xs text-muted-foreground">待领取奖励</p>
                                     </div>
                                 </div>
@@ -124,15 +125,15 @@ export default function StakingPage() {
             {unstakedKeys.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {unstakedKeys.map(key => (
-                        <Card key={key.id}>
+                        <Card key={key.id} className="bg-card/80 backdrop-blur-sm border-primary/20">
                             <CardContent className="p-4 flex gap-4 items-center">
-                                <Image src={key.image} alt={key.name} width={80} height={100} className="rounded-md border" data-ai-hint={key['data-ai-hint']} />
+                                <Image src={key.image} alt={key.name} width={80} height={100} className="rounded-md border border-primary/20" data-ai-hint={key['data-ai-hint']} />
                                 <div className="flex-grow space-y-2">
-                                    <h3 className="font-bold">{key.name}</h3>
+                                    <h3 className="font-bold font-headline">{key.name}</h3>
                                     <div className="text-xs text-muted-foreground space-y-1">
-                                        <p>Level: {key.level}</p>
-                                        <p className="flex items-center gap-1"><Zap size={12}/> Energy: {key.energy}/{key.energyMax}</p>
-                                        <p>Base Weight: {key.weight.toFixed(1)}</p>
+                                        <p>等级 (Level): {key.level}</p>
+                                        <p className="flex items-center gap-1"><Zap size={12}/> 能量 (Energy): {key.energy}/{key.energyMax}</p>
+                                        <p>基础权重 (Base Weight): {key.weight.toFixed(1)}</p>
                                     </div>
                                 </div>
                                 <Button onClick={() => handleStake(key)}>质押</Button>

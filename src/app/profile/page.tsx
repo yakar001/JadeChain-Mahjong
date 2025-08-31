@@ -16,9 +16,9 @@ const matchHistory: { id: number, room: string, result: number, date: string }[]
 const kycLevel = 1;
 
 const StatCard = ({ icon, value, label }: { icon: React.ReactNode, value: string | number, label: string }) => (
-    <Card className="bg-accent/50 text-center p-4">
+    <Card className="bg-card/50 backdrop-blur-sm text-center p-4 border-primary/20">
         <div className="text-primary mb-2">{icon}</div>
-        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-2xl font-bold font-headline">{value}</p>
         <p className="text-sm text-muted-foreground">{label}</p>
     </Card>
 )
@@ -28,18 +28,18 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <Card className="mb-8 overflow-hidden">
+      <Card className="mb-8 overflow-hidden bg-card/80 backdrop-blur-sm border-primary/20">
         <div className="h-24 bg-gradient-to-r from-primary/20 to-secondary/20" />
-        <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6 -mt-12">
-          <Avatar className="h-24 w-24 border-4 border-background">
+        <CardContent className="p-6 flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-16">
+          <Avatar className="h-28 w-28 border-4 border-background ring-2 ring-primary/50">
             <AvatarImage src="https://placehold.co/100x100.png" data-ai-hint="wise master" />
             <AvatarFallback>P</AvatarFallback>
           </Avatar>
-          <div className="text-center sm:text-left">
+          <div className="text-center sm:text-left flex-grow">
             <h1 className="text-2xl font-bold font-headline">PlayerOne</h1>
-            <p className="text-muted-foreground font-mono text-sm">0x1234...abcd</p>
+            <p className="text-muted-foreground font-mono text-sm break-all">0x1234567890abcdef1234567890abcdef12345678</p>
           </div>
-           <div className="sm:ml-auto flex flex-col md:flex-row items-center gap-4">
+           <div className="sm:ml-auto flex flex-col items-center gap-4">
              <div className="flex items-center gap-4 text-xl font-bold">
               <div className="flex items-center gap-2 text-primary">
                 <Coins /> 1,234 <span className="text-sm font-light">$JIN</span>
@@ -66,14 +66,14 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         <div className="lg:col-span-1 grid grid-cols-2 lg:grid-cols-1 gap-4">
-            <StatCard icon={<Gamepad2 size={28} />} value={0} label="总场次" />
-            <StatCard icon={<Trophy size={28} />} value="0%" label="胜率" />
-            <StatCard icon={<Plus size={28} />} value={0} label="总胡牌" />
-            <StatCard icon={<Maximize size={28} />} value="N/A" label="最大番型" />
+            <StatCard icon={<Gamepad2 size={28} />} value={0} label="总场次 (Matches)" />
+            <StatCard icon={<Trophy size={28} />} value="0%" label="胜率 (Win Rate)" />
+            <StatCard icon={<Plus size={28} />} value={0} label="总胡牌 (Total Wins)" />
+            <StatCard icon={<Maximize size={28} />} value="N/A" label="最大番型 (Max Fan)" />
         </div>
-         <Card className="lg:col-span-2">
+         <Card className="lg:col-span-2 bg-card/80 backdrop-blur-sm border-primary/20">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 font-headline">
                     <Clock />
                     牌局历史 (Match History)
                 </CardTitle>
@@ -83,9 +83,9 @@ export default function ProfilePage() {
                  <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>房间</TableHead>
-                            <TableHead className="text-right">输赢 ($JIN)</TableHead>
-                            <TableHead className="text-right">时间</TableHead>
+                            <TableHead>房间 (Room)</TableHead>
+                            <TableHead className="text-right">输赢 (PnL) ($JIN)</TableHead>
+                            <TableHead className="text-right">时间 (Date)</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -94,7 +94,7 @@ export default function ProfilePage() {
                                 <TableRow key={match.id}>
                                     <TableCell className="font-medium">{match.room}</TableCell>
                                     <TableCell className={`text-right font-bold ${match.result > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        <div className="flex items-center justify-end gap-1">
+                                        <div className="flex items-center justify-end gap-1 font-mono">
                                             {match.result > 0 ? <Plus size={14}/> : <Minus size={14} />}
                                             {Math.abs(match.result).toFixed(2)}
                                         </div>
@@ -120,7 +120,7 @@ export default function ProfilePage() {
         {ownedNfts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {ownedNfts.map((nft, index) => (
-                <div key={index} className="group relative aspect-[4/5] overflow-hidden rounded-lg border">
+                <div key={index} className="group relative aspect-[4/5] overflow-hidden rounded-lg border border-primary/20">
                 <Image
                     src={nft.image}
                     alt={nft.name}

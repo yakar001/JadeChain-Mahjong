@@ -65,10 +65,10 @@ const keyNfts = [
 ];
 
 const shards = [
-    { name: "Bamboo Shard", image: "https://placehold.co/200x200.png", price: 1.5, "data-ai-hint": "glowing bamboo fragment" },
-    { name: "Dots Shard", image: "https://placehold.co/200x200.png", price: 1.2, "data-ai-hint": "glowing circle fragment" },
-    { name: "Character Shard", image: "https://placehold.co/200x200.png", price: 1.8, "data-ai-hint": "glowing character fragment" },
-    { name: "Dragon Shard", image: "https://placehold.co/200x200.png", price: 5.0, "data-ai-hint": "glowing dragon fragment" },
+    { name: "万字碎片", description: "Character Shard", image: "https://placehold.co/200x200.png", price: 1.8, "data-ai-hint": "glowing character fragment" },
+    { name: "筒字碎片", description: "Dots Shard", image: "https://placehold.co/200x200.png", price: 1.2, "data-ai-hint": "glowing circle fragment" },
+    { name: "索字碎片", description: "Bamboo Shard", image: "https://placehold.co/200x200.png", price: 1.5, "data-ai-hint": "glowing bamboo fragment" },
+    { name: "神龙碎片", description: "Dragon Shard", image: "https://placehold.co/200x200.png", price: 5.0, "data-ai-hint": "glowing dragon fragment" },
 ];
 
 export default function MarketplacePage() {
@@ -90,24 +90,19 @@ export default function MarketplacePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold font-headline text-primary">Marketplace (市场)</h1>
-        <div className="flex items-center gap-4 text-primary">
-          <div className="flex items-center gap-2">
-            <Coins />
-            <span className="font-semibold">$JIN</span>
-          </div>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold font-headline text-primary">NFT 市场 (Marketplace)</h1>
+        <p className="text-muted-foreground mt-2">购买 NFT 密钥以参与质押分红，或购买碎片来合成您的第一把密钥。</p>
       </div>
       <Tabs defaultValue="keys">
-        <TabsList className="mb-4">
+        <TabsList className="mb-6 grid w-full grid-cols-2">
           <TabsTrigger value="keys">
-            <KeyRound className="mr-2 h-4 w-4" />
-            NFT Keys (NFT 密钥)
+            <KeyRound className="mr-2" />
+            NFT 密钥 (NFT Keys)
           </TabsTrigger>
           <TabsTrigger value="shards">
-            <Package className="mr-2 h-4 w-4" />
-            Shards (碎片)
+            <Package className="mr-2" />
+            碎片 (Shards)
           </TabsTrigger>
         </TabsList>
         <TabsContent value="keys">
