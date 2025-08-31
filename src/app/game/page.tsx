@@ -1226,20 +1226,21 @@ function GameRoom() {
                     <div className="space-y-4 mt-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <h2 className="text-xl font-bold">您的区域 (Your Area)</h2>
+                                <div className="flex items-center gap-4 flex-wrap justify-center">
+                                    <div className="flex items-center space-x-2">
+                                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
+                                        <Label htmlFor="ai-control" className="flex items-center gap-1">
+                                            {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
+                                            AI托管
+                                        </Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
+                                        <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex items-center gap-4 flex-wrap justify-center">
-                                <div className="flex items-center space-x-2">
-                                    <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
-                                    <Label htmlFor="ai-control" className="flex items-center gap-1">
-                                        {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
-                                        AI托管
-                                    </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
-                                    <Label htmlFor="sound-mute" className="flex items-center gap-1">{isMuted ? <VolumeX/> : <Volume2/> } 语音播报</Label>
-                                </div>
                                 {gameState === 'playing' && activePlayer === 0 && !humanPlayerCanDiscard && !humanPlayerAction && (
                                 <Button onClick={handleDrawTile} disabled={isProcessingTurn}>
                                     <Hand className="mr-2 h-4 w-4" />
@@ -1388,5 +1389,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    

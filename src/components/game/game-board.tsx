@@ -76,24 +76,22 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration }: { p
 
   return (
     <div className='flex items-center gap-2 z-10'>
-        <div className={cn('flex items-center gap-2 p-2 bg-background/80 rounded-lg border-2', isActive ? 'border-primary' : 'border-transparent')}>
-            <Avatar className={cn('h-10 w-10')}>
+        <div className={cn('flex items-center gap-2 p-1.5 bg-background/80 rounded-lg border-2', isActive ? 'border-primary' : 'border-transparent')}>
+            <Avatar className={cn('h-8 w-8')}>
             <AvatarImage src={player.avatar} />
             <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70')}>
             <div className='text-left'>
-                <div className='flex items-center gap-2'>
-                    <div className='flex items-center gap-1'>
-                        <p className="font-semibold text-sm whitespace-nowrap">{player.name}</p>
-                        {isBanker && <Crown className="w-4 h-4 text-yellow-500" />}
-                    </div>
-                     <TooltipProvider>
+                <div className='flex items-center gap-1'>
+                    <p className="font-semibold text-xs whitespace-nowrap">{player.name}</p>
+                    {isBanker && <Crown className="w-3 h-3 text-yellow-500" />}
+                    <TooltipProvider>
                         <Tooltip>
                         <TooltipTrigger>
-                            {player.hasLocation === true && <MapPin className="w-4 h-4 text-green-500" />}
-                            {player.hasLocation === false && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                            {player.hasLocation === null && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {player.hasLocation === true && <MapPin className="w-3 h-3 text-green-500" />}
+                            {player.hasLocation === false && <AlertTriangle className="w-3 h-3 text-red-500" />}
+                            {player.hasLocation === null && <Loader2 className="w-3 h-3 animate-spin" />}
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>{player.hasLocation === true ? '已开启定位 (Location Enabled)' : player.hasLocation === false ? '未开启定位 (Location Disabled)' : '正在获取定位... (Getting location...)'}</p>
@@ -106,9 +104,22 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration }: { p
             {showTimer && <TurnTimerCircle timer={turnTimer} duration={turnDuration} />}
             </div>
         </div>
+    </div>
+  );
+};
+
+const MeldsArea = ({ melds, orientation = 'S' }: { melds: Meld[], orientation?: 'N' | 'S' | 'E' | 'W' }) => {
+    const rotationClasses: Record<string, string> = {
+        'S': 'rotate-0',
+        'W': 'rotate-90',
+        'N': 'rotate-180',
+        'E': '-rotate-90',
+    };
+
+    return (
         <div className="flex items-center gap-1 p-1 bg-background/80 rounded-lg">
-            {player.melds.length > 0 && player.melds.map((meld, i) => (
-            <div key={i} className="flex gap-px">
+            {melds.length > 0 && melds.map((meld, i) => (
+            <div key={i} className={cn("flex gap-px", rotationClasses[orientation])}>
                 {meld.tiles.map((tile, j) => {
                     const isConcealed = meld.concealed && (j === 0 || j === 3);
                     return <MahjongTile key={j} suit={tile.suit} value={tile.value as any} size="sm" isFaceDown={isConcealed} />
@@ -116,9 +127,8 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration }: { p
             </div>
             ))}
         </div>
-    </div>
-  );
-};
+    )
+}
 
 const DiscardArea = ({ discards, latestDiscard, playerId, orientation }: { discards: Tile[], latestDiscard: Discard | null, playerId: number, orientation: 'N' | 'S' | 'E' | 'W' }) => {
     const rotationClasses: Record<string, string> = {
@@ -170,8 +180,8 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     const playerWest = players.find(p => p.id === 3);
     
   return (
-    <div className={"relative w-full aspect-square max-w-[80vh] mx-auto"}>
-        <div className={"absolute inset-[15%] bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4"}>
+    <div className={"relative w-full aspect-[9/12] max-w-[60vh] mx-auto"}>
+        <div className={"absolute inset-x-[10%] inset-y-[20%] bg-green-800/50 border-4 border-yellow-800/50 rounded-lg p-4"}>
             {/* Center Info Box */}
             <div className={cn("absolute inset-0 flex items-center justify-center")}>
                 <div className="bg-black/50 p-2 md:p-4 rounded-lg text-center text-white border-2 border-amber-600/50">
@@ -205,30 +215,44 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
         </div>
         
         {/* Player Areas */}
-        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        {/* South Player */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full flex flex-col items-center gap-2">
             {playerSouth && <PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
-            {playerSouth && <DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} playerId={playerSouth.id} orientation="S"/>}
         </div>
-         <div className="absolute -top-1 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-2">
+        
+        {/* North Player */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full flex flex-col-reverse items-center gap-2">
             {playerNorth && <PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
-             {playerNorth && <DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} playerId={playerNorth.id} orientation="N"/>}
         </div>
-         <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-2 -translate-x-1/2" style={{ transform: 'translateX(-50%) translateY(-50%) rotate(90deg)' }}>
+
+        {/* West Player (Left) */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-full flex flex-col-reverse justify-center items-center gap-2 rotate-90">
              {playerWest && <PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
-             {playerWest && <DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} playerId={playerWest.id} orientation="W" />}
         </div>
-        <div className="absolute -right-16 top-1/2 -translate-y-1/2 flex flex-row-reverse items-center gap-2 translate-x-1/2" style={{ transform: 'translateX(50%) translateY(-50%) rotate(-90deg)' }}>
+
+        {/* East Player (Right) */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full flex flex-col justify-center items-center gap-2 -rotate-90">
             {playerEast && <PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} />}
-            {playerEast && <DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} playerId={playerEast.id} orientation="E" />}
         </div>
+        
+        {/* Discard & Meld Areas */}
+        {playerSouth && <div className="absolute bottom-[13%] left-1/2 -translate-x-1/2"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} playerId={playerSouth.id} orientation="S"/></div>}
+        {playerNorth && <div className="absolute top-[13%] left-1/2 -translate-x-1/2"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} playerId={playerNorth.id} orientation="N"/></div>}
+        {playerWest && <div className="absolute left-[3%] top-1/2 -translate-y-1/2"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} playerId={playerWest.id} orientation="W" /></div>}
+        {playerEast && <div className="absolute right-[3%] top-1/2 -translate-y-1/2"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} playerId={playerEast.id} orientation="E" /></div>}
+        
+        {playerSouth && <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 transform scale-75"><MeldsArea melds={playerSouth.melds} orientation="S" /></div>}
+        {playerNorth && <div className="absolute top-[28%] left-1/2 -translate-x-1/2 transform scale-75"><MeldsArea melds={playerNorth.melds} orientation="N" /></div>}
+        {playerWest && <div className="absolute left-[30%] top-1/2 -translate-y-1/2 transform scale-75"><MeldsArea melds={playerWest.melds} orientation="W" /></div>}
+        {playerEast && <div className="absolute right-[30%] top-1/2 -translate-y-1/2 transform scale-75"><MeldsArea melds={playerEast.melds} orientation="E" /></div>}
         
         {goldenTile && (
             <>
-                <div className="absolute -bottom-4 right-0 flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
+                <div className="absolute bottom-[20%] right-[10%] flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg scale-75">
                     <span className="text-xs text-muted-foreground">金牌 (Wild)</span>
                     <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
                 </div>
-                 <div className="absolute -top-4 left-0 flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg">
+                 <div className="absolute top-[20%] left-[10%] flex flex-col items-center gap-1 p-2 bg-background/80 rounded-lg scale-75">
                     <span className="text-xs text-muted-foreground">金牌 (Wild)</span>
                     <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
                 </div>
