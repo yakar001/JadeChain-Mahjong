@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Crown, Coins, MapPin, AlertTriangle, Layers } from 'lucide-react';
+import { DraggableBox } from '@/components/game/draggable-box';
+
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
@@ -1286,34 +1288,51 @@ function GameRoom() {
                 />
            </div>
            {/* Player Info Areas */}
-            <div className="absolute top-4 left-4"><PlayerInfo player={players.find(p => p.name.includes("(北)"))} /></div>
+            <DraggableBox initialPosition={{ top: 16, left: 16 }}>
+                <PlayerInfo player={players.find(p => p.name.includes("(北)"))} />
+            </DraggableBox>
             
-            {/* Player info for East and West players, positioned relative to the center info box */}
-            <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-4">
-                <div className="absolute left-4 transform -translate-y-1/2 top-1/2">
-                    <PlayerInfo player={players.find(p => p.name.includes("(西)"))} />
+            <DraggableBox initialPosition={{ top: '50%', left: 16, transform: 'translateY(-50%)' }}>
+                <PlayerInfo player={players.find(p => p.name.includes("(西)"))} />
+            </DraggableBox>
+            
+            <DraggableBox initialPosition={{ top: '50%', right: 16, transform: 'translateY(-50%)' }}>
+                <PlayerInfo player={players.find(p => p.name.includes("(东)"))} />
+            </DraggableBox>
+            
+            <DraggableBox initialPosition={{ bottom: 110, left: 8 }}>
+                <div>
+                  <PlayerInfo player={humanPlayer} />
+                  <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
+                      <div className="flex items-center space-x-2">
+                          <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
+                          <Label htmlFor="ai-control" className="flex items-center gap-1 text-xs">
+                              {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
+                              AI托管
+                          </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
+                          <Label htmlFor="sound-mute" className="flex items-center gap-1 text-xs">{isMuted ? <VolumeX/> : <Volume2/> } 语音</Label>
+                      </div>
+                  </div>
                 </div>
-                <div className="absolute right-4 transform -translate-y-1/2 top-1/2">
-                    <PlayerInfo player={players.find(p => p.name.includes("(东)"))} />
-                </div>
-            </div>
+            </DraggableBox>
 
-            <div className="absolute bottom-2 left-2 z-20">
-                <PlayerInfo player={humanPlayer} />
-                <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
-                        <Label htmlFor="ai-control" className="flex items-center gap-1 text-xs">
-                            {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
-                            AI托管
-                        </Label>
+            <DraggableBox initialPosition={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                 <div className="bg-black/50 p-2 rounded-lg text-center text-white border border-amber-600/50 flex items-center justify-center gap-4 z-10">
+                    <div className='flex items-center justify-center gap-1'>
+                        <Layers className="w-4 h-4"/>
+                        <p className="text-lg font-bold">{wall.length}</p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
-                        <Label htmlFor="sound-mute" className="flex items-center gap-1 text-xs">{isMuted ? <VolumeX/> : <Volume2/> } 语音</Label>
-                    </div>
+                    {goldenTile && (
+                        <div className="flex items-center justify-center gap-2">
+                            <span className="text-sm text-muted-foreground">金:</span>
+                            <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
+                        </div>
+                    )}
                 </div>
-            </div>
+            </DraggableBox>
       </div>
       <div className="flex-none bg-background p-2 border-t">
         <div className="relative min-h-[6rem] flex items-center justify-center">
@@ -1452,3 +1471,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
