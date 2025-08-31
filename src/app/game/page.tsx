@@ -7,7 +7,6 @@ import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
 import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Bot, Loader2, Minus, Plus, Eye, Menu, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -821,6 +820,7 @@ function GameRoom() {
         }
     });
 
+    // Action priority: Win > Kong/Pong > Chow
     const winActions = potentialActions.filter(p => p.actions.win);
     const pongKongActions = potentialActions.filter(p => p.actions.pong || p.actions.kong);
     const chowActions = potentialActions.filter(p => p.actions.chow);
@@ -967,7 +967,7 @@ function GameRoom() {
   }, [gameState, eastPlayerId, bankerId, players]);
 
   useEffect(() => {
-    if (gameState === 'playing' && activePlayer !== null) {
+    if (gameState === 'playing' && activePlayer !== null && activePlayer === 0 && humanPlayerCanDiscard) {
       setTurnTimer(TURN_DURATION); 
       clearTimer(timerRef);
       timerRef.current = setInterval(() => {
@@ -975,8 +975,10 @@ function GameRoom() {
       }, 1000);
 
       return () => clearTimer(timerRef);
+    } else {
+        clearTimer(timerRef);
     }
-  }, [gameState, activePlayer]);
+  }, [gameState, activePlayer, humanPlayerCanDiscard]);
 
   useEffect(() => {
       const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
@@ -1167,7 +1169,11 @@ function GameRoom() {
     }
   }, [audioSrc]);
 
-  const humanPlayer = players.find(p => p.name.includes('(南)'));
+  const humanPlayer = players.find(p => p.name.includes('You'));
+  const northPlayer = players.find(p => p.name.includes('(北)'));
+  const westPlayer = players.find(p => p.name.includes('(西)'));
+  const eastPlayer = players.find(p => p.name.includes('(东)'));
+
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
   const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
   
@@ -1204,7 +1210,7 @@ function GameRoom() {
   return (
     <div className={cn("game-container bg-background text-white min-h-screen flex flex-col")}>
        <div className="flex-none p-2 flex justify-between items-center border-b">
-         <h1 className="text-lg font-bold font-headline text-primary">{`${roomTierMap[roomTier]}`}</h1>
+        <h1 className="text-lg font-bold font-headline text-primary">{`${roomTierMap[roomTier]}`}</h1>
            <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon"><Menu /></Button>
@@ -1277,30 +1283,13 @@ function GameRoom() {
                 </DropdownMenuContent>
             </DropdownMenu>
        </div>
-      <div className="flex-grow relative bg-gray-800">
-           <div className="absolute inset-0 p-2 flex flex-col">
-                 <GameBoard 
-                    players={players} 
-                    wallCount={wall.length}
-                    goldenTile={goldenTile}
-                    latestDiscard={latestDiscard}
-                    activePlayerId={activePlayer}
-                />
-           </div>
-           {/* Player Info Areas */}
-            <DraggableBox initialPosition={{ top: 16, left: 16 }}>
-                <PlayerInfo player={players.find(p => p.name.includes("(北)"))} />
-            </DraggableBox>
+      <div className="flex-grow relative bg-gray-800 p-2 flex flex-col">
+          {/* Player Info Areas */}
+          <DraggableBox initialPosition={{ top: 8, left: 8 }}>
+                <PlayerInfo player={northPlayer} />
+          </DraggableBox>
             
-            <DraggableBox initialPosition={{ top: '50%', left: 16, transform: 'translateY(-50%)' }}>
-                <PlayerInfo player={players.find(p => p.name.includes("(西)"))} />
-            </DraggableBox>
-            
-            <DraggableBox initialPosition={{ top: '50%', right: 16, transform: 'translateY(-50%)' }}>
-                <PlayerInfo player={players.find(p => p.name.includes("(东)"))} />
-            </DraggableBox>
-            
-            <DraggableBox initialPosition={{ bottom: 110, left: 8 }}>
+          <DraggableBox initialPosition={{ bottom: 8, left: 8 }}>
                 <div>
                   <PlayerInfo player={humanPlayer} />
                   <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
@@ -1319,20 +1308,21 @@ function GameRoom() {
                 </div>
             </DraggableBox>
 
-            <DraggableBox initialPosition={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                 <div className="bg-black/50 p-2 rounded-lg text-center text-white border border-amber-600/50 flex items-center justify-center gap-4 z-10">
-                    <div className='flex items-center justify-center gap-1'>
-                        <Layers className="w-4 h-4"/>
-                        <p className="text-lg font-bold">{wall.length}</p>
-                    </div>
-                    {goldenTile && (
-                        <div className="flex items-center justify-center gap-2">
-                            <span className="text-sm text-muted-foreground">金:</span>
-                            <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
-                        </div>
-                    )}
-                </div>
-            </DraggableBox>
+          <GameBoard 
+              players={players} 
+              wallCount={wall.length}
+              goldenTile={goldenTile}
+              latestDiscard={latestDiscard}
+              activePlayerId={activePlayer}
+          >
+              <DraggableBox initialPosition={{ top: 8, right: 8 }}>
+                <PlayerInfo player={eastPlayer} />
+              </DraggableBox>
+              <DraggableBox initialPosition={{ bottom: '50%', left: 8, transform: 'translateY(50%)' }}>
+                  <PlayerInfo player={westPlayer} />
+              </DraggableBox>
+          </GameBoard>
+
       </div>
       <div className="flex-none bg-background p-2 border-t">
         <div className="relative min-h-[6rem] flex items-center justify-center">
@@ -1349,13 +1339,16 @@ function GameRoom() {
                     {humanPlayerHasGolden && humanPlayerAction.actions.win && <p className="text-xs text-yellow-400 text-center mt-1">持金只能自摸，不可胡牌</p>}
                 </div>
             )}
-            <PlayerHand 
-                hand={humanPlayer?.hand || []} 
-                onTileClick={handleSelectOrDiscardTile}
-                canInteract={humanPlayerCanDiscard && activePlayer === humanPlayer?.id && !isAiControlled}
-                goldenTile={goldenTile}
-                selectedTileIndex={selectedTileIndex}
-            />
+            <div className='flex flex-col items-center gap-2 w-full'>
+              <p className="text-xs text-muted-foreground">手牌区</p>
+              <PlayerHand 
+                  hand={humanPlayer?.hand || []} 
+                  onTileClick={handleSelectOrDiscardTile}
+                  canInteract={humanPlayerCanDiscard && activePlayer === humanPlayer?.id && !isAiControlled}
+                  goldenTile={goldenTile}
+                  selectedTileIndex={selectedTileIndex}
+              />
+            </div>
         </div>
         <div className="flex items-center justify-center gap-4 flex-wrap mt-2">
             {gameState === 'playing' && activePlayer === humanPlayer?.id && !humanPlayerCanDiscard && !humanPlayerAction && (
@@ -1472,4 +1465,4 @@ export default function GamePage() {
     )
 }
 
-    
+  

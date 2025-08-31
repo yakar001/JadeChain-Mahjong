@@ -120,7 +120,7 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
     >
         {isGolden && <div className="absolute inset-0 bg-yellow-400/20 animate-pulse"></div>}
          {isLatestDiscard && (
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-8 border-l-transparent border-r-transparent border-t-yellow-400 animate-pulse"></div>
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-8 border-l-transparent border-r-transparent border-b-red-500 animate-pulse"></div>
         )}
       <div className="w-full h-full flex items-center justify-center">
         <TilePattern suit={suit} value={value} />
@@ -128,3 +128,5 @@ export function MahjongTile({ suit, value, className, size = 'md', isClickable =
     </div>
   );
 }
+
+  
