@@ -8,27 +8,37 @@ import { useToast } from "@/hooks/use-toast";
 import { Vote, FileText, PackagePlus } from "lucide-react";
 
 // In production, this data will be fetched from the DAO smart contract.
-const proposals: any[] = [
-  // {
-  //   id: "QGP-001",
-  //   title: "调整新手场入场费 (Adjust Novice Room Fee)",
-  //   proposer: "0x1234...abcd",
-  //   endDate: "2024-08-15",
-  //   status: "Active",
-  //   description: "建议将新手场的入场费从10 $JIN 降低到 5 $JIN，以吸引更多新玩家。",
-  //   for: 72,
-  //   against: 28,
-  // },
-  // {
-  //   id: "QGP-002",
-  //   title: "开启首届“泉金杯”锦标赛 (Launch First 'QuanJin Cup' Tournament)",
-  //   proposer: "0x5678...efgh",
-  //   endDate: "2024-08-10",
-  //   status: "Passed",
-  //   description: "提议于九月第一周举办大型线上锦标赛，总奖池为 1,000,000 $JIN。",
-  //   for: 95,
-  //   against: 5,
-  // }
+const proposals = [
+  {
+    id: "QGP-001",
+    title: "调整新手场入场费 (Adjust Novice Room Fee)",
+    proposer: "0x1234...abcd",
+    endDate: "2024-08-15",
+    status: "Active",
+    description: "建议将新手场的入场费从10 $JIN 降低到 5 $JIN，以吸引更多新玩家，提升社区活跃度。",
+    for: 72,
+    against: 28,
+  },
+  {
+    id: "QGP-002",
+    title: "开启首届“泉金杯”锦标赛 (Launch 'QuanJin Cup' Tournament)",
+    proposer: "0x5678...efgh",
+    endDate: "2024-08-10",
+    status: "Passed",
+    description: "提议于九月第一周举办大型线上锦标赛，总奖池为 1,000,000 $JIN，旨在提升品牌知名度。",
+    for: 95,
+    against: 5,
+  },
+  {
+    id: "QGP-003",
+    title: "增加金龙NFT能量上限 (Increase Golden Dragon NFT Energy Cap)",
+    proposer: "0x90ab...cdef",
+    endDate: "2024-08-01",
+    status: "Failed",
+    description: "提案建议将金龙NFT的能量上限从500提升至600，以奖励顶级持有者。",
+    for: 40,
+    against: 60,
+  }
 ];
 
 const statusConfig = {
