@@ -394,5 +394,4 @@ export default function Home() {
       </Tabs>
     </div>
   );
-
-    
+}

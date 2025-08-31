@@ -152,7 +152,12 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
         if (suitOrder.indexOf(suitA) !== suitOrder.indexOf(suitB)) {
             return suitOrder.indexOf(suitA) - suitOrder.indexOf(suitB);
         }
-        return parseInt(valueA, 10) - parseInt(valueB, 10);
+        const numA = parseInt(valueA, 10);
+        const numB = parseInt(valueB, 10);
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+        }
+        return a.localeCompare(b);
     });
 
     function canFormMelds(currentCounts: Record<string, number>, wilds: number): boolean {
@@ -163,9 +168,11 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
                 break;
             }
         }
-        if (empty) return wilds % 3 === 0;
+        if (empty) return true;
 
-        const key = Object.keys(currentCounts).find(k => currentCounts[k] > 0)!;
+        const key = sortedKeys.find(k => currentCounts[k] > 0)!;
+        if (!key) return true; // Should be covered by empty check
+
         const count = currentCounts[key];
         const nextCounts = { ...currentCounts };
 
@@ -185,6 +192,10 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
             if (canFormMelds(nextCounts, wilds - 2)) return true;
             nextCounts[key] += 1;
         }
+        if (wilds >= 3) {
+             if (canFormMelds(nextCounts, wilds - 3)) return true;
+        }
+
 
         // Try to form a CHOW (sequence)
         const tile = keyToTile(key);
@@ -194,8 +205,7 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
                 const key2 = tileToKey({ suit: tile.suit, value: (v + 1).toString() });
                 const key3 = tileToKey({ suit: tile.suit, value: (v + 2).toString() });
                 
-                // Case 1: All 3 tiles present
-                if (currentCounts[key2] > 0 && currentCounts[key3] > 0) {
+                if (nextCounts[key] > 0 && nextCounts[key2] > 0 && nextCounts[key3] > 0) {
                     nextCounts[key] -= 1;
                     nextCounts[key2] -= 1;
                     nextCounts[key3] -= 1;
@@ -204,34 +214,33 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
                     nextCounts[key2] += 1;
                     nextCounts[key3] += 1;
                 }
-
-                if (wilds >= 1) {
-                    // Case 2: 1, 2, wild
-                    if (currentCounts[key2] > 0) {
-                        nextCounts[key] -= 1;
-                        nextCounts[key2] -= 1;
-                        if (canFormMelds(nextCounts, wilds - 1)) return true;
-                        nextCounts[key] += 1;
-                        nextCounts[key2] += 1;
+                if (wilds > 0) {
+                    if (nextCounts[key] > 0 && nextCounts[key2] > 0) {
+                         nextCounts[key] -= 1;
+                         nextCounts[key2] -= 1;
+                         if (canFormMelds(nextCounts, wilds - 1)) return true;
+                         nextCounts[key] += 1;
+                         nextCounts[key2] += 1;
                     }
-                    // Case 3: 1, 3, wild
-                    if (currentCounts[key3] > 0) {
-                        nextCounts[key] -= 1;
-                        nextCounts[key3] -= 1;
-                        if (canFormMelds(nextCounts, wilds - 1)) return true;
-                        nextCounts[key] += 1;
-                        nextCounts[key3] += 1;
+                    if (nextCounts[key] > 0 && nextCounts[key3] > 0) {
+                         nextCounts[key] -= 1;
+                         nextCounts[key3] -= 1;
+                         if (canFormMelds(nextCounts, wilds - 1)) return true;
+                         nextCounts[key] += 1;
+                         nextCounts[key3] += 1;
                     }
                 }
-                 if (wilds >= 2) {
-                    // Case 4: 1, wild, wild
-                    nextCounts[key] -= 1;
-                    if (canFormMelds(nextCounts, wilds - 2)) return true;
-                    nextCounts[key] += 1;
+                 if (wilds > 1) {
+                     if (nextCounts[key] > 0) {
+                        nextCounts[key] -= 1;
+                        if (canFormMelds(nextCounts, wilds - 2)) return true;
+                        nextCounts[key] += 1;
+                     }
                 }
             }
         }
         
+        // If no melds can be formed with this tile, this path is invalid
         return false;
     }
 
@@ -722,7 +731,8 @@ function GameRoom() {
       handleEndGame(players, true); // True for a draw game
       return;
     }
-    if (activePlayer === 0 && !humanPlayerCanDiscard) {
+    const humanPlayer = players.find(p => p.id === 0);
+    if (activePlayer === 0 && humanPlayer && humanPlayer.hand.length % 3 !== 2) {
       setIsProcessingTurn(true);
       const newWall = [...wall];
       const tile = newWall.pop()!;
@@ -751,7 +761,7 @@ function GameRoom() {
       setHumanPlayerCanDiscard(true);
       setIsProcessingTurn(false);
     }
-  }, [wall, activePlayer, humanPlayerCanDiscard, players, handleEndGame, isProcessingTurn]);
+  }, [wall, activePlayer, players, handleEndGame, isProcessingTurn]);
 
   const handleDiscardTile = useCallback(async (playerId: number, tileIndex: number) => {
      if (activePlayer !== playerId || isProcessingTurn) return;
@@ -1171,13 +1181,13 @@ function GameRoom() {
     }
   }, [audioSrc]);
 
-  const humanPlayer = players.find(p => p.name.includes('(南)'));
-  const northPlayer = players.find(p => p.name.includes('(北)'));
+  const humanPlayer = players.find(p => p.id === 0);
+  const northPlayer = players.find(p => p.name.includes('(北)') && p.id !== 0);
   const westPlayer = players.find(p => p.name.includes('(西)'));
   const eastPlayer = players.find(p => p.name.includes('(东)'));
 
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
-  const humanPlayerAction = actionPossibilities.find(p => p.playerId === humanPlayer?.id);
+  const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
   
   const roomTierMap: Record<string, string> = {
     Free: "免费体验娱乐场",
@@ -1308,12 +1318,12 @@ function GameRoom() {
        </div>
       <div className="flex-grow relative bg-gray-800 p-2 flex flex-col">
           <DraggableBox initialPosition={{ top: 8, left: 8 }}>
-            <PlayerInfo player={northPlayer} />
+            <PlayerInfo player={northPlayer || players.find(p => p.name.includes('(北)'))} />
           </DraggableBox>
             
           <DraggableBox initialPosition={{ bottom: 8, left: 8 }}>
             <div>
-              <PlayerInfo player={humanPlayer} />
+              <PlayerInfo player={players.find(p => p.name.includes('(南)'))} />
                 <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
                     <div className="flex items-center space-x-2">
                         <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
@@ -1361,44 +1371,44 @@ function GameRoom() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
                     <div className='flex items-center gap-2'>
                         <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-1 left-0 right-0 w-full h-0.5 [&>div]:bg-yellow-400" />
-                        {humanPlayerAction.actions.win && <Button onClick={() => handleAction('win', humanPlayer!.id)} size="sm" variant="destructive" className="w-16 h-10" disabled={humanPlayerHasGolden}>胡</Button>}
-                        {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', humanPlayer!.id)} size="sm" className="w-16 h-10">杠</Button>}
-                        {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', humanPlayer!.id)} size="sm" className="w-16 h-10">碰</Button>}
-                        {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', humanPlayer!.id)} size="sm" className="w-16 h-10">吃</Button>}
-                        <Button onClick={() => handleAction('skip', humanPlayer!.id)} size="sm" variant="secondary" className="w-16 h-10">过 ({actionTimer}s)</Button>}
+                        {humanPlayerAction.actions.win && <Button onClick={() => handleAction('win', 0)} size="sm" variant="destructive" className="w-16 h-10" disabled={humanPlayerHasGolden}>胡</Button>}
+                        {humanPlayerAction.actions.kong && <Button onClick={() => handleAction('kong', 0)} size="sm" className="w-16 h-10">杠</Button>}
+                        {humanPlayerAction.actions.pong && <Button onClick={() => handleAction('pong', 0)} size="sm" className="w-16 h-10">碰</Button>}
+                        {humanPlayerAction.actions.chow && <Button onClick={() => handleAction('chow', 0)} size="sm" className="w-16 h-10">吃</Button>}
+                        <Button onClick={() => handleAction('skip', 0)} size="sm" variant="secondary" className="w-16 h-10">过 ({actionTimer}s)</Button>}
                     </div>
                     {humanPlayerHasGolden && humanPlayerAction.actions.win && <p className="text-xs text-yellow-400 text-center mt-1">持金只能自摸，不可胡牌</p>}
                 </div>
             )}
             <div className='flex flex-col items-center gap-1 w-full'>
-              <div className="flex items-center justify-center gap-4 flex-wrap mt-2">
-                {gameState === 'playing' && activePlayer === humanPlayer?.id && !humanPlayerCanDiscard && !humanPlayerAction && (
-                <Button onClick={handleDrawTile} disabled={isProcessingTurn}>
-                    <Hand className="mr-2 h-4 w-4" />
-                    摸牌 (Draw Tile)
-                </Button>
-                )}
-                {gameState === 'playing' && activePlayer === humanPlayer?.id && humanPlayerCanDiscard && (
-                    <>
-                        {concealedKongCandidate && <Button onClick={() => handleAction('kong', 0)} variant="default">暗杠 (Kong)</Button>}
-                        {isWinningHand(humanPlayer?.hand || [], goldenTile) && 
-                            <Button onClick={() => handleWin()} variant="destructive">
-                                <ThumbsUp className="mr-2 h-4 w-4"/>
-                                自摸胡牌 (Win)
-                            </Button>
-                        }
-                    </>
-                )}
-            </div>
-             <Separator className="my-2" />
-             <p className="text-xs text-muted-foreground">手牌区</p>
-              <PlayerHand 
-                  hand={humanPlayer?.hand || []} 
-                  onTileClick={handleSelectOrDiscardTile}
-                  canInteract={humanPlayerCanDiscard && activePlayer === humanPlayer?.id && !isAiControlled}
-                  goldenTile={goldenTile}
-                  selectedTileIndex={selectedTileIndex}
-              />
+                <div className="flex items-center justify-center gap-4 flex-wrap mt-2">
+                    {gameState === 'playing' && activePlayer === 0 && humanPlayer && humanPlayer.hand.length % 3 !== 2 && !humanPlayerAction && (
+                    <Button onClick={handleDrawTile} disabled={isProcessingTurn}>
+                        <Hand className="mr-2 h-4 w-4" />
+                        摸牌 (Draw Tile)
+                    </Button>
+                    )}
+                    {gameState === 'playing' && activePlayer === 0 && humanPlayerCanDiscard && (
+                        <>
+                            {concealedKongCandidate && <Button onClick={() => handleAction('kong', 0)} variant="default">暗杠 (Kong)</Button>}
+                            {isWinningHand(humanPlayer?.hand || [], goldenTile) && 
+                                <Button onClick={() => handleWin()} variant="destructive">
+                                    <ThumbsUp className="mr-2 h-4 w-4"/>
+                                    自摸胡牌 (Win)
+                                </Button>
+                            }
+                        </>
+                    )}
+                </div>
+                <Separator className="my-2" />
+                <p className="text-xs text-muted-foreground">手牌区</p>
+                <PlayerHand 
+                    hand={humanPlayer?.hand || []} 
+                    onTileClick={handleSelectOrDiscardTile}
+                    canInteract={humanPlayerCanDiscard && activePlayer === 0 && !isAiControlled}
+                    goldenTile={goldenTile}
+                    selectedTileIndex={selectedTileIndex}
+                />
             </div>
         </div>
       </div>
