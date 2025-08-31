@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { GameBoard } from '@/components/game/game-board';
 import { PlayerHand } from '@/components/game/player-hand';
 import { Button } from '@/components/ui/button';
-import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Bot, Loader2, Minus, Plus, Eye, RotateCw, Menu } from 'lucide-react';
+import { Undo2, Hand, Shuffle, Dices, Volume2, VolumeX, BookOpen, ThumbsUp, Bot, Loader2, Minus, Plus, Eye, Menu, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { AiTutor } from '@/components/game/ai-tutor';
 import { Separator } from '@/components/ui/separator';
@@ -19,6 +19,8 @@ import { Progress } from '@/components/ui/progress';
 import { MahjongTile } from '@/components/game/mahjong-tile';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
 
 // 定义牌的类型
 type Tile = { suit: string; value: string };
@@ -47,6 +49,23 @@ type RoundResult = {
     isDraw?: boolean;
     finalHands: Player[];
 } | null;
+
+export type LayoutConfig = {
+    [key: string]: {
+        width: number;
+        height: number;
+        scale: number;
+    }
+};
+
+const INITIAL_LAYOUT_CONFIG: LayoutConfig = {
+    playerInfo: { width: 160, height: 60, scale: 1 },
+    discardArea: { width: 200, height: 100, scale: 1 },
+    meldsArea: { width: 200, height: 50, scale: 1 },
+    goldenTile: { width: 80, height: 100, scale: 1 },
+    wallCounter: { width: 120, height: 80, scale: 1 },
+}
+
 
 // 初始牌的数据
 const suits = ['dots', 'bamboo', 'characters'];
@@ -271,7 +290,7 @@ function GameRoom() {
   const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
   const [actionPossibilities, setActionPossibilities] = useState<ActionPossibility[]>([]);
   const [actionTimer, setActionTimer] = useState(ACTION_DURATION);
-  const [isLandscape, setIsLandscape] = useState(false);
+  const [layoutConfig, setLayoutConfig] = useState<LayoutConfig>(INITIAL_LAYOUT_CONFIG);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const actionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [humanPlayerCanDiscard, setHumanPlayerCanDiscard] = useState(false);
@@ -365,7 +384,7 @@ function GameRoom() {
   }, [pot, STAKE_AMOUNT, playSound, toast]);
 
   const getNextPlayerId = useCallback((currentPlayerId: number) => {
-      const playerPositions = ['南', '东', '北', '西'];
+      const playerPositions = ['东', '南', '西', '北'];
       const currentPlayer = players.find(p => p.id === currentPlayerId);
       if (!currentPlayer) return null;
       
@@ -577,21 +596,21 @@ function GameRoom() {
             title: "无效操作 (Invalid Action)",
             description: `您的手牌不满足'${action}'的条件。`,
         });
-        if (lastDiscarderId !== undefined) {
+        if (lastDiscarderId !== undefined && lastDiscarderId !== null) {
              advanceTurn(lastDiscarderId);
         }
         return;
     }
 
     if (latestDiscard === null && action !== 'kong') {
-        if (lastDiscarderId !== undefined) {
+        if (lastDiscarderId !== undefined && lastDiscarderId !== null) {
           advanceTurn(lastDiscarderId);
         }
         return;
     }
     
     if (action === 'skip') {
-        if (lastDiscarderId !== undefined) {
+        if (lastDiscarderId !== undefined && lastDiscarderId !== null) {
           advanceTurn(lastDiscarderId);
         }
         return;
@@ -604,7 +623,7 @@ function GameRoom() {
     
     const actionPlayer = players.find(p => p.id === playerId);
     if (!actionPlayer) {
-        if (lastDiscarderId !== undefined) {
+        if (lastDiscarderId !== undefined && lastDiscarderId !== null) {
              advanceTurn(lastDiscarderId);
         }
         return;
@@ -683,7 +702,7 @@ function GameRoom() {
         setHumanPlayerCanDiscard(true);
     }
     setIsProcessingTurn(false);
-  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn, getNextPlayerId]);
+  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn]);
   
   const handleDrawTile = useCallback(() => {
     if (isProcessingTurn) return;
@@ -1017,8 +1036,8 @@ function GameRoom() {
 
         const finalPlayers = players.map(p => {
             const windName = assignedWinds[p.id];
-            const baseName = p.name.split(' ')[0].replace('(电脑)','').replace('(You)','').trim();
-            const newName = p.isAI ? `${baseName} (电脑) (${windName})` : `${baseName} (You) (${windName})`;
+            const baseName = p.isAI ? p.name : 'You';
+            const newName = `${baseName} (${windName})`;
             return { ...p, name: newName, isEast: p.id === eastPlayer.id };
         });
 
@@ -1136,12 +1155,53 @@ function GameRoom() {
   };
 
   const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
+
+  const CustomizationDialog = () => (
+    <DialogContent>
+        <DialogHeader>
+            <DialogTitle>自定义布局 (Custom Layout)</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+            {Object.keys(INITIAL_LAYOUT_CONFIG).map((key) => (
+                <div key={key} className="space-y-2">
+                    <h3 className="font-semibold">{key}</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                            <Label>Width: {layoutConfig[key]?.width}px</Label>
+                            <Slider
+                                value={[layoutConfig[key]?.width]}
+                                onValueChange={([val]) => setLayoutConfig(prev => ({...prev, [key]: {...prev[key], width: val}}))}
+                                min={50} max={500} step={10}
+                            />
+                        </div>
+                        <div>
+                            <Label>Height: {layoutConfig[key]?.height}px</Label>
+                            <Slider
+                                value={[layoutConfig[key]?.height]}
+                                onValueChange={([val]) => setLayoutConfig(prev => ({...prev, [key]: {...prev[key], height: val}}))}
+                                min={50} max={500} step={10}
+                            />
+                        </div>
+                         <div className="col-span-2">
+                            <Label>Scale: {layoutConfig[key]?.scale.toFixed(2)}x</Label>
+                            <Slider
+                                value={[layoutConfig[key]?.scale]}
+                                onValueChange={([val]) => setLayoutConfig(prev => ({...prev, [key]: {...prev[key], scale: val}}))}
+                                min={0.5} max={1.5} step={0.1}
+                            />
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    </DialogContent>
+  );
   
   return (
-    <div className={cn("game-container", isLandscape && "landscape", "bg-gray-800 text-white min-h-screen")}>
+    <div className={cn("game-container bg-gray-800 text-white min-h-screen")}>
       <div className={cn("relative p-4")}>
-        <div className={cn("grid gap-6", !isLandscape && "lg:grid-cols-4")}>
-            <div className={cn("space-y-6", !isLandscape && "lg:col-span-3")}>
+        <div className={cn("grid gap-6 lg:grid-cols-4")}>
+            <div className={cn("space-y-6 lg:col-span-3")}>
                 <div className={cn("flex flex-wrap justify-between items-center gap-4")}>
                     <h1 className="text-2xl font-bold font-headline text-primary">{`${roomTierMap[roomTier]} (${roomTier} Room)`}</h1>
                     <DropdownMenu>
@@ -1149,9 +1209,12 @@ function GameRoom() {
                             <Button variant="outline"><Menu /> 菜单 (Menu)</Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                             <DropdownMenuItem onClick={() => setIsLandscape(!isLandscape)}>
-                                <RotateCw className="mr-2" /> {isLandscape ? '切换竖屏' : '切换横屏'}
-                            </DropdownMenuItem>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Settings className="mr-2"/> 自定义设置</DropdownMenuItem>
+                                </DialogTrigger>
+                               <CustomizationDialog/>
+                            </Dialog>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}><BookOpen className="mr-2"/> 玩法说明</DropdownMenuItem>
@@ -1244,7 +1307,7 @@ function GameRoom() {
                     </DropdownMenu>
                 </div>
 
-                <div className={cn("relative", isLandscape && "h-[calc(100vh-8rem)] flex items-center justify-center")}>
+                <div className={cn("relative h-[calc(100vh-8rem)] flex items-center justify-center")}>
                     <GameBoard 
                         players={players} 
                         activePlayerId={activePlayer}
@@ -1261,12 +1324,12 @@ function GameRoom() {
                         onRollForStart={handleRollDice}
                         onRollForGolden={handleRollForGolden}
                         eastPlayerId={eastPlayerId}
-                        isLandscape={isLandscape}
                         latestDiscard={latestDiscard}
+                        layoutConfig={layoutConfig}
                     />
                 </div>
 
-                <div className={cn(isLandscape && "hidden")}>
+                <div className={cn("lg:hidden")}>
                     <Separator />
                     <div className="space-y-4 mt-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1334,7 +1397,7 @@ function GameRoom() {
                 </div>
 
             </div>
-            <div className={cn("lg:col-span-1", isLandscape && "hidden")}>
+            <div className={cn("lg:col-span-1 hidden lg:block")}>
                 <AiTutor />
             </div>
       </div>
@@ -1434,5 +1497,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
