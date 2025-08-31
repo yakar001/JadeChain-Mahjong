@@ -92,5 +92,3 @@ export function DraggableBox({ children, className, initialPosition = {} }: Drag
     </div>
   );
 }
-
-    

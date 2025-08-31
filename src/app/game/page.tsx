@@ -1182,9 +1182,12 @@ function GameRoom() {
   }, [audioSrc]);
 
   const humanPlayer = players.find(p => p.id === 0);
-  const northPlayer = players.find(p => p.name.includes('(北)') && p.id !== 0);
+  const humanPlayerPosition = humanPlayer?.name.match(/\(([^)]+)\)/)?.[1];
+  const northPlayer = players.find(p => p.name.includes('(北)'));
+  const southPlayer = players.find(p => p.name.includes('(南)'));
   const westPlayer = players.find(p => p.name.includes('(西)'));
   const eastPlayer = players.find(p => p.name.includes('(东)'));
+
 
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
   const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
@@ -1317,53 +1320,42 @@ function GameRoom() {
             </DropdownMenu>
        </div>
       <div className="flex-grow relative bg-gray-800 p-2 flex flex-col">
-          <DraggableBox initialPosition={{ top: 8, left: 8 }}>
-            <PlayerInfo player={northPlayer || players.find(p => p.name.includes('(北)'))} />
-          </DraggableBox>
-            
-          <DraggableBox initialPosition={{ bottom: 8, left: 8 }}>
-            <div>
-              <PlayerInfo player={players.find(p => p.name.includes('(南)'))} />
-                <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
-                        <Label htmlFor="ai-control" className="flex items-center gap-1 text-xs text-white">
-                            {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
-                            AI托管
-                        </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
-                        <Label htmlFor="sound-mute" className="flex items-center gap-1 text-xs text-white">{isMuted ? <VolumeX/> : <Volume2/> } 语音</Label>
-                    </div>
-                </div>
-            </div>
-        </DraggableBox>
-        <DraggableBox initialPosition={{ top: '50%', right: 8, transform: 'translateY(-50%)' }}>
-            <PlayerInfo player={eastPlayer} />
-        </DraggableBox>
-        <DraggableBox initialPosition={{ top: '50%', left: 8, transform: 'translateY(-50%)' }}>
-            <PlayerInfo player={westPlayer} />
-        </DraggableBox>
-        <DraggableBox initialPosition={{ top: '40%', left: '50%', transform: 'translateX(-50%)' }}>
-             <div className="bg-black/50 p-2 rounded-lg text-center text-white border border-amber-600/50 flex items-center justify-center gap-4 z-10">
-                <div className='flex items-center justify-center gap-1'>
-                    <Layers className="w-4 h-4"/>
-                    <p className="text-lg font-bold">{wall.length}</p>
-                </div>
-                {goldenTile && (
-                    <div className="flex items-center justify-center gap-2">
-                        <span className="text-sm text-muted-foreground">金:</span>
-                        <MahjongTile suit={goldenTile.suit} value={goldenTile.value as any} size="sm" isGolden />
-                    </div>
-                )}
-            </div>
-        </DraggableBox>
-
           <GameBoard 
               players={players} 
               latestDiscard={latestDiscard}
-          />
+              activePlayerId={activePlayer}
+              wallCount={wall.length}
+              goldenTile={goldenTile}
+          >
+            <DraggableBox initialPosition={{ top: 8, left: '50%', transform: 'translateX(-50%)' }}>
+                <PlayerInfo player={humanPlayerPosition === '北' ? southPlayer : northPlayer} />
+            </DraggableBox>
+                
+            <DraggableBox initialPosition={{ bottom: 8, left: '50%', transform: 'translateX(-50%)' }}>
+                <div>
+                  <PlayerInfo player={humanPlayerPosition === '南' ? northPlayer : southPlayer} />
+                    <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
+                        <div className="flex items-center space-x-2">
+                            <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
+                            <Label htmlFor="ai-control" className="flex items-center gap-1 text-xs text-white">
+                                {isAiControlled ? <Loader2 className="animate-spin" /> : <Bot />}
+                                AI托管
+                            </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Switch id="sound-mute" checked={!isMuted} onCheckedChange={() => setIsMuted(!isMuted)} />
+                            <Label htmlFor="sound-mute" className="flex items-center gap-1 text-xs text-white">{isMuted ? <VolumeX/> : <Volume2/> } 语音</Label>
+                        </div>
+                    </div>
+                </div>
+            </DraggableBox>
+            <DraggableBox initialPosition={{ top: '50%', right: 8, transform: 'translateY(-50%)' }}>
+                <PlayerInfo player={humanPlayerPosition === '东' ? westPlayer : eastPlayer} />
+            </DraggableBox>
+            <DraggableBox initialPosition={{ top: '50%', left: 8, transform: 'translateY(-50%)' }}>
+                <PlayerInfo player={humanPlayerPosition === '西' ? eastPlayer : westPlayer} />
+            </DraggableBox>
+          </GameBoard>
       </div>
       <div className="flex-none bg-background p-2 border-t">
         <div className="relative min-h-[10rem] flex items-center justify-center">

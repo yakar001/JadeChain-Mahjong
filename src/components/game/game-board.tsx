@@ -136,5 +136,3 @@ export function GameBoard({ players, wallCount, goldenTile, latestDiscard, activ
         </div>
     );
 }
-
-  
