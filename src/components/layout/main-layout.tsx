@@ -1,3 +1,4 @@
+
 'use client';
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
@@ -7,6 +8,7 @@ import { useWallet } from '@/context/wallet-context';
 import { Button } from '../ui/button';
 import { Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 function WalletGuard({ children }: { children: ReactNode }) {
     const { walletAddress, connectWallet } = useWallet();
@@ -31,7 +33,12 @@ function WalletGuard({ children }: { children: ReactNode }) {
 
 
 export function MainLayout({ children }: { children: ReactNode }) {
-  const isGamePage = typeof window !== 'undefined' && window.location.pathname === '/game';
+  const [isGamePage, setIsGamePage] = useState(false);
+
+  useEffect(() => {
+    // This check runs only on the client, after hydration.
+    setIsGamePage(window.location.pathname === '/game');
+  }, []);
   
   return (
     <SidebarProvider>
