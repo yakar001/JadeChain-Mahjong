@@ -72,21 +72,21 @@ const TurnTimerCircle = ({ timer, duration }: { timer: number; duration: number 
     );
 };
 
-const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration }: { player: Player; isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number }) => {
+const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration, layout = 'horizontal' }: { player: Player; isActive: boolean, isBanker: boolean, turnTimer: number, turnDuration: number, layout?: 'horizontal' | 'vertical' }) => {
   const showTimer = isActive;
 
   return (
-    <div className='flex items-center gap-2 z-10 p-1.5 bg-background/80 rounded-lg border-2'
+    <div className={cn('flex items-center gap-2 z-10 p-1.5 bg-background/80 rounded-lg border-2', layout === 'vertical' && 'flex-col h-28 w-20 justify-center')}
         style={{ 
             borderColor: isActive ? 'hsl(var(--primary))' : 'transparent',
         }}
     >
-        <Avatar className={cn('h-8 w-8')}>
+        <Avatar className={cn('h-8 w-8', layout === 'vertical' && 'h-10 w-10 mb-1')}>
         <AvatarImage src={player.avatar} />
         <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
         </Avatar>
-        <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70')}>
-        <div className='text-left'>
+        <div className={cn('transition-opacity duration-300 flex items-center gap-2', isActive ? 'opacity-100' : 'opacity-70', layout === 'vertical' && 'flex-col gap-1')}>
+        <div className={cn('text-left', layout === 'vertical' && 'text-center')}>
             <div className='flex items-center gap-1'>
                 <p className="font-semibold text-xs whitespace-nowrap">{player.name}</p>
                 {isBanker && <Crown className="w-3 h-3 text-yellow-500" />}
@@ -111,9 +111,9 @@ const PlayerInfo = ({ player, isActive, isBanker, turnTimer, turnDuration }: { p
   );
 };
 
-const MeldsArea = ({ melds }: { melds: Meld[] }) => {
+const MeldsArea = ({ melds, rotation = 0 }: { melds: Meld[], rotation?: number }) => {
     return (
-        <div className="flex items-center justify-center gap-1 p-1 h-full w-full">
+        <div className="flex items-center justify-center gap-1 p-1 h-full w-full" style={{ transform: `rotate(${rotation}deg)`}}>
             {melds.length > 0 && melds.map((meld, i) => (
             <div key={i} className={cn("flex gap-px")}>
                 {meld.tiles.map((tile, j) => {
@@ -126,9 +126,9 @@ const MeldsArea = ({ melds }: { melds: Meld[] }) => {
     )
 }
 
-const DiscardArea = ({ discards, latestDiscard, playerId }: { discards: Tile[], latestDiscard: Discard | null, playerId: number }) => {
+const DiscardArea = ({ discards, latestDiscard, playerId, rotation = 0 }: { discards: Tile[], latestDiscard: Discard | null, playerId: number, rotation?: number }) => {
     return (
-         <div className="relative bg-black/20 rounded grid grid-cols-6 grid-rows-3 gap-0.5 p-1 w-full h-full">
+         <div className="relative bg-black/20 rounded grid grid-cols-6 grid-rows-3 gap-0.5 p-1 w-full h-full" style={{ transform: `rotate(${rotation}deg)`}}>
             {discards.map((tile, index) => (
                 <div key={index} className={cn("relative flex items-center justify-center")}>
                     <MahjongTile 
@@ -161,67 +161,38 @@ const DiceRoller = ({ dice, rolling }: { dice: DiceRoll, rolling: boolean }) => 
     );
 }
 
-const WallSegment = ({ count }: { count: number }) => {
-    return (
-        <div className="flex items-center justify-center gap-px -space-x-4">
-            {Array.from({ length: count / 2 }).map((_, i) => (
-                <div key={i} className="flex flex-col">
-                    <MahjongTile suit="bamboo" value="1" size="sm" isFaceDown />
-                    <MahjongTile suit="bamboo" value="1" size="sm" isFaceDown />
-                </div>
-            ))}
-        </div>
-    )
-}
-
 export function GameBoard({ players, activePlayerId, wallCount, dice, gameState, bankerId, turnTimer, turnDuration, goldenTile, seatingRolls, onRollForSeating, onRollForBanker, onRollForStart, onRollForGolden, eastPlayerId, latestDiscard }: GameBoardProps) {
     const playerSouth = players.find(p => p.name.includes('(南)'));
     const playerEast = players.find(p => p.name.includes('(东)'));
     const playerNorth = players.find(p => p.name.includes('(北)'));
     const playerWest = players.find(p => p.name.includes('(西)'));
-    
-    // Distribute wall tiles visually
-    const baseWallTiles = Math.floor(wallCount / 4);
-    const remainder = wallCount % 4;
-    const wallSegments = {
-        south: baseWallTiles + (remainder > 0 ? 1 : 0),
-        east: baseWallTiles + (remainder > 1 ? 1 : 0),
-        west: baseWallTiles + (remainder > 2 ? 1 : 0),
-        north: baseWallTiles,
-    }
-
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+    <div className="absolute inset-0 flex items-center justify-center">
       {/* Player Info Areas (Outermost Layer) */}
       {playerSouth && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-30"><PlayerInfo player={playerSouth} isActive={activePlayerId === playerSouth.id} isBanker={bankerId === playerSouth.id} turnTimer={turnTimer} turnDuration={turnDuration} /></div>}
       {playerNorth && <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30"><PlayerInfo player={playerNorth} isActive={activePlayerId === playerNorth.id} isBanker={bankerId === playerNorth.id} turnTimer={turnTimer} turnDuration={turnDuration} /></div>}
-      {playerWest && <div className="absolute left-1 top-1/2 -translate-y-1/2 z-30"><PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} /></div>}
-      {playerEast && <div className="absolute right-1 top-1/2 -translate-y-1/2 z-30"><PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} /></div>}
+      {playerWest && <div className="absolute left-1 top-1/2 -translate-y-1/2 z-30"><PlayerInfo player={playerWest} isActive={activePlayerId === playerWest.id} isBanker={bankerId === playerWest.id} turnTimer={turnTimer} turnDuration={turnDuration} layout='vertical'/></div>}
+      {playerEast && <div className="absolute right-1 top-1/2 -translate-y-1/2 z-30"><PlayerInfo player={playerEast} isActive={activePlayerId === playerEast.id} isBanker={bankerId === playerEast.id} turnTimer={turnTimer} turnDuration={turnDuration} layout='vertical'/></div>}
       
-      <div className="relative w-[95vw] h-[95vw] max-w-[80vh] max-h-[80vh] bg-green-800/50 border-8 border-yellow-800/50 rounded-lg p-2 flex items-center justify-center">
-        {/* Wall Layer */}
-        <div className="absolute inset-[8%]">
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-8"><WallSegment count={wallSegments.south} /></div>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-8 rotate-180"><WallSegment count={wallSegments.north} /></div>
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 -rotate-90"><WallSegment count={wallSegments.west} /></div>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 rotate-90"><WallSegment count={wallSegments.east} /></div>
+      <div className="relative w-[85vw] h-[75vh] bg-green-800/50 border-8 border-yellow-800/50 rounded-lg p-2 flex items-center justify-center">
+        
+        {/* Melds Layer */}
+         <div className="absolute inset-[5%] grid grid-cols-3 grid-rows-3 w-[90%] h-[90%]">
+            {playerSouth && <div className="col-start-2 row-start-3 flex justify-center items-end"><MeldsArea melds={playerSouth.melds} /></div>}
+            {playerNorth && <div className="col-start-2 row-start-1 flex justify-center items-start"><MeldsArea melds={playerNorth.melds} rotation={180}/></div>}
+            {playerWest && <div className="col-start-1 row-start-2 flex items-center justify-start"><MeldsArea melds={playerWest.melds} rotation={90} /></div>}
+            {playerEast && <div className="col-start-3 row-start-2 flex items-center justify-end"><MeldsArea melds={playerEast.melds} rotation={-90} /></div>}
         </div>
-
+        
         {/* Discard Layer */}
-        <div className="absolute inset-[18%]">
-            {playerSouth && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1/4"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} playerId={playerSouth.id} /></div>}
-            {playerNorth && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-1/4 rotate-180"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} playerId={playerNorth.id} /></div>}
-            {playerWest && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2/3 h-1/4 -rotate-90 origin-top-left" style={{ transform: 'rotate(90deg) translateY(-100%)' }}><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} playerId={playerWest.id} /></div>}
-            {playerEast && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2/3 h-1/4 rotate-90 origin-top-right" style={{ transform: 'rotate(-90deg) translateY(-100%)' }}><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} playerId={playerEast.id} /></div>}
+        <div className="absolute inset-x-[10%] inset-y-[20%]">
+            {playerSouth && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[30%]"><DiscardArea discards={playerSouth.discards} latestDiscard={latestDiscard} playerId={playerSouth.id} /></div>}
+            {playerNorth && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[30%]"><DiscardArea discards={playerNorth.discards} latestDiscard={latestDiscard} playerId={playerNorth.id} rotation={180}/></div>}
         </div>
-
-         {/* Meld Layer */}
-         <div className="absolute inset-[38%]">
-            {playerSouth && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-1/3"><MeldsArea melds={playerSouth.melds} /></div>}
-            {playerNorth && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/3 rotate-180"><MeldsArea melds={playerNorth.melds} /></div>}
-            {playerWest && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1/3 origin-center rotate-90"><MeldsArea melds={playerWest.melds} /></div>}
-            {playerEast && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-full h-1/3 origin-center -rotate-90"><MeldsArea melds={playerEast.melds} /></div>}
+         <div className="absolute inset-y-[10%] inset-x-[25%]">
+            {playerWest && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-full w-[30%]"><DiscardArea discards={playerWest.discards} latestDiscard={latestDiscard} playerId={playerWest.id} rotation={90}/></div>}
+            {playerEast && <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full w-[30%]"><DiscardArea discards={playerEast.discards} latestDiscard={latestDiscard} playerId={playerEast.id} rotation={-90}/></div>}
         </div>
 
         {/* Center Info Box */}
@@ -260,5 +231,3 @@ export function GameBoard({ players, activePlayerId, wallCount, dice, gameState,
     </div>
   );
 }
-
-    
