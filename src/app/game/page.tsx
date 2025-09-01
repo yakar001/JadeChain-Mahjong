@@ -517,41 +517,39 @@ function GameRoom() {
     
     setWall(shuffled);
     setGoldenTile(null);
-
+    
     const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null, discards: [] };
-    
     const initialPlayers: Player[] = [humanPlayer];
-    
-    if(roomTier === 'Free' && initialPlayers.length < 4) {
-      const aiPlayersNeeded = 4 - initialPlayers.length;
-      for(let i=1; i<=aiPlayersNeeded; i++) {
-        initialPlayers.push({
-          id: i,
-          name: `AI 玩家 ${i}`,
-          avatar: `https://placehold.co/40x40.png`,
-          isAI: true,
-          hand: [],
-          melds: [],
-          balance: INITIAL_BALANCE,
-          hasLocation: Math.random() > 0.5,
-          discards: [],
-        })
-      }
-    } else if (initialPlayers.length < 4) {
-       const playersNeeded = 4 - initialPlayers.length;
-       for(let i=1; i<=playersNeeded; i++) {
-        initialPlayers.push({
-          id: i,
-          name: `玩家 ${i+1}`,
-          avatar: `https://placehold.co/40x40.png`,
-          isAI: false,
-          hand: [],
-          melds: [],
-          balance: INITIAL_BALANCE,
-          hasLocation: Math.random() > 0.5,
-          discards: [],
-        })
-      }
+    const playersNeeded = 4 - initialPlayers.length;
+
+    if (roomTier === 'Free') {
+        for (let i = 1; i <= playersNeeded; i++) {
+            initialPlayers.push({
+                id: i,
+                name: `AI 玩家 ${i}`,
+                avatar: `https://placehold.co/40x40.png`,
+                isAI: true,
+                hand: [],
+                melds: [],
+                balance: INITIAL_BALANCE,
+                hasLocation: Math.random() > 0.5,
+                discards: [],
+            });
+        }
+    } else {
+        for (let i = 1; i <= playersNeeded; i++) {
+            initialPlayers.push({
+                id: i,
+                name: `玩家 ${i + 1}`,
+                avatar: `https://placehold.co/40x40.png`,
+                isAI: false,
+                hand: [],
+                melds: [],
+                balance: INITIAL_BALANCE,
+                hasLocation: Math.random() > 0.5,
+                discards: [],
+            });
+        }
     }
     
     setPlayers(initialPlayers);
