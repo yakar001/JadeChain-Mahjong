@@ -733,6 +733,9 @@ function GameRoom() {
     if (action === 'kong' && concealedKongCandidate) {
         playSound('杠');
         toast({ title: `执行操作 (杠)`, description: `您选择了暗杠。` });
+
+        const wallCopy = [...wall];
+        const supplementalTile = wallCopy.shift()!; // Draw from the back of the wall (conventionally opposite end from dealing)
         
         setPlayers(currentPlayers => {
             const updatedPlayers = [...currentPlayers];
@@ -740,15 +743,15 @@ function GameRoom() {
             if(playerToUpdate) {
                 const tilesToMeld = playerToUpdate.hand.filter(t => t.suit === concealedKongCandidate.suit && t.value === concealedKongCandidate.value);
                 playerToUpdate.hand = playerToUpdate.hand.filter(t => t.suit !== concealedKongCandidate.suit || t.value !== concealedKongCandidate.value);
+                playerToUpdate.hand.push(supplementalTile); // Add supplemental tile
                 playerToUpdate.melds.push({ type: 'kong', tiles: tilesToMeld, concealed: true });
             }
             return updatedPlayers;
         });
 
+        setWall(wallCopy);
         setConcealedKongCandidate(null);
         setActivePlayer(playerId);
-        // Player must draw a tile from the end of the wall after a kong, then discard.
-        // For simplicity, we'll let them draw on their next turn. This is a slight deviation.
         if (playerId === 0) {
             setHumanPlayerCanDiscard(true);
         }
@@ -792,6 +795,13 @@ function GameRoom() {
             meldTiles.push(...tilesToRemoveFromHand);
             playerToUpdate.hand = playerToUpdate.hand.filter(tile => !tilesToRemoveFromHand.some(removed => removed.suit === tile.suit && removed.value === tile.value));
             playerToUpdate.melds.push({ type: action as 'pong' | 'kong' | 'chow', tiles: meldTiles, concealed: false });
+            
+            if (action === 'kong') {
+                const wallCopy = [...wall];
+                const supplementalTile = wallCopy.shift()!; // Draw from the back of the wall
+                setWall(wallCopy);
+                playerToUpdate.hand.push(supplementalTile);
+            }
         }
         return updatedPlayers;
     });
@@ -802,7 +812,7 @@ function GameRoom() {
         setHumanPlayerCanDiscard(true);
     }
     setIsProcessingTurn(false);
-  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn]);
+  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn, wall]);
   
   const handleDrawTile = useCallback(() => {
     if (isProcessingTurn) return;
@@ -1306,6 +1316,7 @@ function GameRoom() {
   const PlayerInfo = ({ player, action }: { player: Player | undefined, action?: ActionPossibility }) => {
     if (!player) return null;
     const isBanker = bankerId === player.id;
+    const actionPossibility = actionPossibilities.find(ap => ap.playerId === player.id);
     return (
         <div className={cn('flex items-center gap-2 z-10 p-1.5 bg-background/80 rounded-lg border-2 border-transparent relative')}>
             <Avatar className='h-8 w-8'>
@@ -1319,14 +1330,14 @@ function GameRoom() {
                 </div>
                 <p className='text-xs text-primary font-mono flex items-center gap-1'><Coins size={12}/> {player.balance}</p>
             </div>
-             {action && (
+             {actionPossibility && (
                 <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-1 rounded-lg backdrop-blur-sm">
                     <div className='flex items-center gap-1'>
                         <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-1 left-0 right-0 w-full h-0.5 [&>div]:bg-yellow-400" />
-                        {action.actions.win && <Button size="sm" variant="destructive" className="w-12 h-8 text-xs">胡</Button>}
-                        {action.actions.kong && <Button size="sm" className="w-12 h-8 text-xs">杠</Button>}
-                        {action.actions.pong && <Button size="sm" className="w-12 h-8 text-xs">碰</Button>}
-                        {action.actions.chow && <Button size="sm" className="w-12 h-8 text-xs">吃</Button>}
+                        {actionPossibility.actions.win && <div className="text-destructive font-bold text-xs px-2">胡?</div>}
+                        {actionPossibility.actions.kong && <div className="text-primary font-bold text-xs px-2">杠?</div>}
+                        {actionPossibility.actions.pong && <div className="text-primary font-bold text-xs px-2">碰?</div>}
+                        {actionPossibility.actions.chow && <div className="text-primary font-bold text-xs px-2">吃?</div>}
                     </div>
                 </div>
             )}
@@ -1612,5 +1623,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    

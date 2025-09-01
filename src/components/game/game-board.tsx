@@ -20,20 +20,60 @@ interface GameBoardProps {
   children: React.ReactNode;
 }
 
-const InfoRow = ({ label, children, shouldScroll }: { label: string | React.ReactNode; children: React.ReactNode, shouldScroll?: boolean }) => {
-  const viewportRef = useRef<HTMLDivElement>(null);
+const DISCARDS_PER_ROW = 6;
 
-  useEffect(() => {
-    if (shouldScroll && viewportRef.current) {
-      viewportRef.current.scrollLeft = viewportRef.current.scrollWidth;
+const DiscardRow = ({ label, discards, latestDiscardInfo }: { label: string | React.ReactNode; discards: Tile[], latestDiscardInfo: { tile: Tile, playerId: number } | null }) => {
+    const numRows = Math.ceil(discards.length / DISCARDS_PER_ROW);
+    const rows: Tile[][] = [];
+    for (let i = 0; i < numRows; i++) {
+        rows.push(discards.slice(i * DISCARDS_PER_ROW, (i + 1) * DISCARDS_PER_ROW));
     }
-  }, [children, shouldScroll]);
-  
+
+    return (
+        <div className="flex items-start">
+            <div className="w-10 text-center font-bold text-sm text-primary flex-shrink-0 pt-1">{label}</div>
+            <div className="flex-1 relative" style={{ minHeight: `${1.5 * (numRows || 1)}rem` }}>
+                {rows.map((row, rowIndex) => (
+                    <div
+                        key={rowIndex}
+                        className="absolute top-0 left-0 flex space-x-1"
+                        style={{ transform: `translateY(${rowIndex * 0.3}rem)`, zIndex: rowIndex }}
+                    >
+                        {row.map((tile, tileIndex) => {
+                             const overallIndex = rowIndex * DISCARDS_PER_ROW + tileIndex;
+                             const isLatest = latestDiscardInfo?.playerId !== undefined && overallIndex === discards.length - 1;
+                             const isCovered = rowIndex < numRows - 1;
+
+                            return (
+                                <MahjongTile
+                                    key={overallIndex}
+                                    suit={tile.suit}
+                                    value={tile.value as any}
+                                    size="sm"
+                                    isLatestDiscard={isLatest}
+                                    isFaceDown={isCovered}
+                                />
+                            );
+                        })}
+                    </div>
+                ))}
+                {numRows > 1 && (
+                     <div className="absolute top-0 right-0 z-20 bg-black/50 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                        {discards.length}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+const InfoRow = ({ label, children }: { label: string | React.ReactNode; children: React.ReactNode }) => {
   return (
     <div className="flex items-start">
       <div className="w-10 text-center font-bold text-sm text-primary flex-shrink-0 pt-1">{label}</div>
       <ScrollArea className="w-full whitespace-nowrap rounded-md">
-          <div className="flex w-max space-x-1 p-1" ref={viewportRef}>
+          <div className="flex w-max space-x-1 p-1">
               {children}
           </div>
           <ScrollBar orientation="horizontal" />
@@ -104,18 +144,14 @@ export function GameBoard({ players, wallCount, goldenTile, latestDiscard, activ
                         {['东', '南', '西', '北'].map(wind => {
                             const player = playerWindMap[wind];
                             if (!player) return null;
+                            const latestForPlayer = latestDiscard?.playerId === player.id ? latestDiscard : null;
                             return (
-                                <InfoRow key={`discard-${wind}`} label={wind} shouldScroll={!!latestDiscard}>
-                                {player.discards.map((tile, index) => (
-                                    <MahjongTile
-                                        key={index}
-                                        suit={tile.suit}
-                                        value={tile.value as any}
-                                        size="sm"
-                                        isLatestDiscard={latestDiscard?.playerId === player.id && index === player.discards.length - 1}
-                                    />
-                                ))}
-                                </InfoRow>
+                                <DiscardRow
+                                    key={`discard-${wind}`}
+                                    label={wind}
+                                    discards={player.discards}
+                                    latestDiscardInfo={latestForPlayer}
+                                />
                             );
                         })}
                      </div>
