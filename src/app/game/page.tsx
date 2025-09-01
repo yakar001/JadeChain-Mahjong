@@ -1215,11 +1215,39 @@ function GameRoom() {
   }, [audioSrc]);
 
   const humanPlayer = players.find(p => p.id === 0);
-  const humanPlayerPosition = humanPlayer?.name.match(/\(([^)]+)\)/)?.[1];
-  const northPlayer = players.find(p => p.name.includes('(北)'));
-  const southPlayer = players.find(p => p.name.includes('(南)'));
-  const westPlayer = players.find(p => p.name.includes('(西)'));
-  const eastPlayer = players.find(p => p.name.includes('(东)'));
+  const humanPlayerWind = humanPlayer?.name.match(/\(([^)]+)\)/)?.[1];
+  
+  const getPlayerByWind = (wind: '东' | '南' | '西' | '北') => {
+      return players.find(p => p.name.includes(`(${wind})`));
+  }
+  
+  // Define fixed positions for rendering
+  const playerPositions = {
+      south: getPlayerByWind('南'),
+      north: getPlayerByWind('北'),
+      east: getPlayerByWind('东'),
+      west: getPlayerByWind('西'),
+  };
+  
+  let topPlayer, bottomPlayer, leftPlayer, rightPlayer;
+  
+  if (humanPlayerWind) {
+      const windOrder = ['东', '南', '西', '北'];
+      const humanIndex = windOrder.indexOf(humanPlayerWind);
+
+      bottomPlayer = humanPlayer; // Human is always at the bottom
+      rightPlayer = getPlayerByWind(windOrder[(humanIndex + 3) % 4]);
+      topPlayer = getPlayerByWind(windOrder[(humanIndex + 2) % 4]);
+      leftPlayer = getPlayerByWind(windOrder[(humanIndex + 1) % 4]);
+
+  } else {
+      // Fallback for pre-seating state
+      bottomPlayer = players.find(p => p.id === 0);
+      const otherPlayers = players.filter(p => p.id !== 0);
+      rightPlayer = otherPlayers[0];
+      topPlayer = otherPlayers[1];
+      leftPlayer = otherPlayers[2];
+  }
 
 
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
@@ -1361,12 +1389,12 @@ function GameRoom() {
               goldenTile={goldenTile}
           >
             <DraggableBox initialPosition={{ top: 8, left: '50%', transform: 'translateX(-50%)' }}>
-                <PlayerInfo player={humanPlayerPosition === '北' ? southPlayer : northPlayer} />
+                <PlayerInfo player={topPlayer} />
             </DraggableBox>
                 
             <DraggableBox initialPosition={{ bottom: 8, left: '50%', transform: 'translateX(-50%)' }}>
                 <div>
-                  <PlayerInfo player={humanPlayerPosition === '南' ? northPlayer : southPlayer} />
+                  <PlayerInfo player={bottomPlayer} />
                     <div className="mt-2 flex items-center gap-4 flex-wrap justify-center">
                         <div className="flex items-center space-x-2">
                             <Switch id="ai-control" checked={isAiControlled} onCheckedChange={setIsAiControlled} />
@@ -1383,10 +1411,10 @@ function GameRoom() {
                 </div>
             </DraggableBox>
             <DraggableBox initialPosition={{ top: '50%', right: 8, transform: 'translateY(-50%)' }}>
-                <PlayerInfo player={humanPlayerPosition === '东' ? westPlayer : eastPlayer} />
+                <PlayerInfo player={rightPlayer} />
             </DraggableBox>
             <DraggableBox initialPosition={{ top: '50%', left: 8, transform: 'translateY(-50%)' }}>
-                <PlayerInfo player={humanPlayerPosition === '西' ? eastPlayer : westPlayer} />
+                <PlayerInfo player={leftPlayer} />
             </DraggableBox>
           </GameBoard>
       </div>
@@ -1533,3 +1561,4 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
