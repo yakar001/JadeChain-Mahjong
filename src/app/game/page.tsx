@@ -42,6 +42,18 @@ type ActionPossibility = {
         chow: boolean;
     }
 }
+type FanCalculation = {
+    winner: Player;
+    isSelfDrawn: boolean;
+    isGoldenUsedInWin: boolean;
+    totalFan: number;
+    breakdown: { item: string; fan: number }[];
+};
+
+type WinningHandStructure = {
+    melds: Tile[][];
+    pair: Tile[];
+}
 
 type RoundResult = {
     winners: Array<{ player: Player; netWin: number }>;
@@ -50,8 +62,10 @@ type RoundResult = {
     tableFee: number;
     leaver?: Player;
     isDraw?: boolean;
-    finalHands: Player[];
+    finalHands: (Player & { winningHand?: WinningHandStructure, winningTile?: Tile })[];
+    fanCalculation?: FanCalculation;
 } | null;
+
 
 export type LayoutConfig = {
     [key: string]: {
@@ -1063,7 +1077,7 @@ function GameRoom() {
         const windAssignments = ['东', '南', '西', '北'];
         const finalPlayers = playerRolls.map((pr, index) => {
             const windName = windAssignments[index];
-            const baseName = pr.player.isAI ? pr.player.name : 'You';
+            const baseName = pr.player.isAI ? pr.player.name.replace(/\s*\([^)]*\)/, '') : 'You';
             const newName = `${baseName} (${windName})`;
             const isEast = windName === '东';
             if (isEast) {
