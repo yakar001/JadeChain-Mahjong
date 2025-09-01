@@ -170,95 +170,108 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
         }
         if (empty) return true;
 
-        const key = sortedKeys.find(k => currentCounts[k] > 0)!;
-        if (!key) return true; // Should be covered by empty check
-
-        const count = currentCounts[key];
-        const nextCounts = { ...currentCounts };
+        const firstKey = sortedKeys.find(k => currentCounts[k] > 0)!;
 
         // Try to form a PONG (triplet)
-        if (count >= 3) {
-            nextCounts[key] -= 3;
+        if (currentCounts[firstKey] >= 3) {
+            const nextCounts = { ...currentCounts };
+            nextCounts[firstKey] -= 3;
             if (canFormMelds(nextCounts, wilds)) return true;
-            nextCounts[key] += 3;
         }
-        if (count >= 2 && wilds >= 1) {
-            nextCounts[key] -= 2;
+        if (currentCounts[firstKey] >= 2 && wilds >= 1) {
+             const nextCounts = { ...currentCounts };
+            nextCounts[firstKey] -= 2;
             if (canFormMelds(nextCounts, wilds - 1)) return true;
-            nextCounts[key] += 2;
         }
-        if (count >= 1 && wilds >= 2) {
-            nextCounts[key] -= 1;
+        if (currentCounts[firstKey] >= 1 && wilds >= 2) {
+             const nextCounts = { ...currentCounts };
+            nextCounts[firstKey] -= 1;
             if (canFormMelds(nextCounts, wilds - 2)) return true;
-            nextCounts[key] += 1;
-        }
-        if (wilds >= 3) {
-             if (canFormMelds(nextCounts, wilds - 3)) return true;
         }
 
 
         // Try to form a CHOW (sequence)
-        const tile = keyToTile(key);
+        const tile = keyToTile(firstKey);
         if (['dots', 'bamboo', 'characters'].includes(tile.suit)) {
             const v = parseInt(tile.value);
             if (v <= 7) {
                 const key2 = tileToKey({ suit: tile.suit, value: (v + 1).toString() });
                 const key3 = tileToKey({ suit: tile.suit, value: (v + 2).toString() });
                 
-                if (nextCounts[key] > 0 && nextCounts[key2] > 0 && nextCounts[key3] > 0) {
-                    nextCounts[key] -= 1;
+                // Normal Chow
+                if (currentCounts[firstKey] > 0 && currentCounts[key2] > 0 && currentCounts[key3] > 0) {
+                    const nextCounts = { ...currentCounts };
+                    nextCounts[firstKey] -= 1;
                     nextCounts[key2] -= 1;
                     nextCounts[key3] -= 1;
                     if (canFormMelds(nextCounts, wilds)) return true;
-                    nextCounts[key] += 1;
-                    nextCounts[key2] += 1;
-                    nextCounts[key3] += 1;
                 }
-                if (wilds > 0) {
-                    if (nextCounts[key] > 0 && nextCounts[key2] > 0) {
-                         nextCounts[key] -= 1;
+                if (wilds >= 1) {
+                     // Chow with 1 wild
+                    if (currentCounts[firstKey] > 0 && currentCounts[key2] > 0) {
+                         const nextCounts = { ...currentCounts };
+                         nextCounts[firstKey] -= 1;
                          nextCounts[key2] -= 1;
                          if (canFormMelds(nextCounts, wilds - 1)) return true;
-                         nextCounts[key] += 1;
-                         nextCounts[key2] += 1;
                     }
-                    if (nextCounts[key] > 0 && nextCounts[key3] > 0) {
-                         nextCounts[key] -= 1;
+                    if (currentCounts[firstKey] > 0 && currentCounts[key3] > 0) {
+                         const nextCounts = { ...currentCounts };
+                         nextCounts[firstKey] -= 1;
                          nextCounts[key3] -= 1;
                          if (canFormMelds(nextCounts, wilds - 1)) return true;
-                         nextCounts[key] += 1;
-                         nextCounts[key3] += 1;
+                    }
+                     if (currentCounts[key2] > 0 && currentCounts[key3] > 0) {
+                         const nextCounts = { ...currentCounts };
+                         nextCounts[key2] -= 1;
+                         nextCounts[key3] -= 1;
+                         if (canFormMelds(nextCounts, wilds - 1)) return true;
                     }
                 }
-                 if (wilds > 1) {
-                     if (nextCounts[key] > 0) {
-                        nextCounts[key] -= 1;
+                 if (wilds >= 2) {
+                     // Chow with 2 wilds
+                     if (currentCounts[firstKey] > 0) {
+                        const nextCounts = { ...currentCounts };
+                        nextCounts[firstKey] -= 1;
                         if (canFormMelds(nextCounts, wilds - 2)) return true;
-                        nextCounts[key] += 1;
+                     }
+                      if (currentCounts[key2] > 0) {
+                        const nextCounts = { ...currentCounts };
+                        nextCounts[key2] -= 1;
+                        if (canFormMelds(nextCounts, wilds - 2)) return true;
+                     }
+                      if (currentCounts[key3] > 0) {
+                        const nextCounts = { ...currentCounts };
+                        nextCounts[key3] -= 1;
+                        if (canFormMelds(nextCounts, wilds - 2)) return true;
                      }
                 }
             }
         }
         
-        // If no melds can be formed with this tile, this path is invalid
         return false;
     }
 
     // Iterate through all possible pairs
-    for (const pairKey of sortedKeys) {
-        if (counts[pairKey] >= 2) { // Normal pair
-            const nextCounts = { ...counts };
-            nextCounts[pairKey] -= 2;
-            if (canFormMelds(nextCounts, goldenTileCount)) return true;
-        }
-        if (counts[pairKey] >= 1 && goldenTileCount >= 1) { // Pair with one wild
-            const nextCounts = { ...counts };
-            nextCounts[pairKey] -= 1;
-            if (canFormMelds(nextCounts, goldenTileCount - 1)) return true;
-        }
-    }
-    if (goldenTileCount >= 2) { // Pair of wilds
-        if (canFormMelds({ ...counts }, goldenTileCount - 2)) return true;
+    for (const pairKey of [...sortedKeys, goldenTileKey]) {
+       if (!pairKey) continue;
+       
+       const tempCounts = {...counts};
+       let tempWilds = goldenTileCount;
+
+       // Form the pair
+       if (pairKey === goldenTileKey) { // Pair of wilds
+           if(tempWilds < 2) continue;
+           tempWilds -= 2;
+       } else if (tempCounts[pairKey] >= 2) { // Normal pair
+           tempCounts[pairKey] -= 2;
+       } else if (tempCounts[pairKey] >= 1 && tempWilds >= 1) { // Pair with one wild
+            tempCounts[pairKey] -= 1;
+            tempWilds -= 1;
+       } else {
+           continue; // Cannot form this pair
+       }
+
+       if (canFormMelds(tempCounts, tempWilds)) return true;
     }
 
     return false;
@@ -443,7 +456,8 @@ function GameRoom() {
         return;
     }
     
-    const handToCheck = latestDiscard && winnerId !== activePlayer 
+    const isSelfDrawn = winnerId === undefined || winnerId === activePlayer;
+    const handToCheck = !isSelfDrawn && latestDiscard 
         ? [...winner.hand, latestDiscard.tile] 
         : winner.hand;
     
@@ -457,10 +471,10 @@ function GameRoom() {
         return; 
     }
 
-    playSound("胡牌");
+    playSound(isSelfDrawn ? "自摸" : "胡牌");
 
     toast({
-        title: `${winner.name} 胡牌了！ (Win!)`,
+        title: `${winner.name} ${isSelfDrawn ? '自摸' : ''}胡牌了！ (Win!)`,
         description: `恭喜玩家 ${winner.name} 获得胜利！`,
     });
 
