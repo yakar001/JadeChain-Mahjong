@@ -291,6 +291,74 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
     return false;
 };
 
+const findBestDiscard = (hand: Tile[], goldenTile: Tile | null): number => {
+    // A more sophisticated AI would analyze tile efficiency, but for now, we'll use a simple heuristic.
+    // 1. Never discard the golden tile unless it's for a win.
+    // 2. Discard lone honor/wind tiles first.
+    // 3. Discard lone terminal tiles (1s and 9s).
+    // 4. Discard other lone tiles.
+
+    const tileToKey = (t: Tile) => `${t.suit}-${t.value}`;
+    const goldenTileKey = goldenTile ? tileToKey(goldenTile) : null;
+
+    const counts: Record<string, number> = {};
+    hand.forEach(tile => {
+        const key = tileToKey(tile);
+        counts[key] = (counts[key] || 0) + 1;
+    });
+
+    let bestDiscardIndex = -1;
+    let lowestScore = Infinity;
+
+    for (let i = 0; i < hand.length; i++) {
+        const tile = hand[i];
+        const key = tileToKey(tile);
+
+        if (key === goldenTileKey) continue; // Never discard the golden tile
+
+        let score = 50; // Base score
+
+        // Reduce score for tiles that are part of pairs or melds
+        if (counts[key] > 1) {
+            score -= 20 * (counts[key] - 1);
+        }
+
+        // Check for potential sequences
+        if (['dots', 'bamboo', 'characters'].includes(tile.suit)) {
+            const v = parseInt(tile.value, 10);
+            const has = (val: number) => hand.some(t => t.suit === tile.suit && parseInt(t.value, 10) === val);
+            if (has(v - 2) || has(v - 1) || has(v + 1) || has(v + 2)) {
+                score -= 10;
+            }
+             // Terminals are slightly less valuable than middle tiles
+            if (v === 1 || v === 9) {
+                score += 5;
+            }
+        } else {
+            // Winds and dragons are generally less valuable unless paired
+             score += 10;
+        }
+
+        if (score < lowestScore) {
+            lowestScore = score;
+            bestDiscardIndex = i;
+        }
+    }
+    
+    // If all tiles are golden or something went wrong, discard the last non-golden tile
+    if (bestDiscardIndex === -1) {
+        for (let i = hand.length - 1; i >= 0; i--) {
+            if (tileToKey(hand[i]) !== goldenTileKey) {
+                return i;
+            }
+        }
+        // If hand is all golden tiles, just return the last one
+        return hand.length - 1;
+    }
+
+    return bestDiscardIndex;
+};
+
 function GameRoom() {
   const searchParams = useSearchParams();
   const roomTier = searchParams.get('tier') || 'Novice';
@@ -479,7 +547,7 @@ function GameRoom() {
          toast({
             variant: "destructive",
             title: "诈胡! (False Win!)",
-            description: "您的手牌未满足胡牌条件。(Your hand does not meet the winning criteria.)",
+            description: `${winner.name} 的手牌未满足胡牌条件。(Player ${winner.name}'s hand does not meet the winning criteria.)`,
         });
         setIsProcessingTurn(false);
         return; 
@@ -536,11 +604,10 @@ function GameRoom() {
     const initialPlayers: Player[] = [humanPlayer];
 
     for (let i = 1; i <= 3; i++) {
-        const playerId = i;
-        const isAI = roomTier === 'Free';
-        const name = isAI ? `AI 玩家 ${i}` : `玩家 ${i+1}`;
+        const isAI = true; // All other players are AI for now
+        const name = `AI 玩家 ${i}`;
         initialPlayers.push({
-            id: playerId,
+            id: i,
             name: name,
             avatar: `https://placehold.co/40x40.png`,
             isAI: isAI,
@@ -571,7 +638,7 @@ function GameRoom() {
         }
     };
     requestLocation();
-  }, [roomTier]);
+  }, []);
 
   const handleLeaveGame = (andStartNew = false) => {
     const leaver = players.find(p => p.id === 0);
@@ -899,7 +966,8 @@ function GameRoom() {
             if (isWinningHand(currentPlayer.hand, goldenTile)) {
                 setTimeout(() => handleWin(activePlayer), 500);
             } else {
-                await handleDiscardTile(activePlayer, Math.floor(Math.random() * currentPlayer.hand.length));
+                const discardIndex = findBestDiscard(currentPlayer.hand, goldenTile);
+                await handleDiscardTile(activePlayer, discardIndex);
             }
             return;
         }
@@ -924,7 +992,8 @@ function GameRoom() {
                 setTimeout(() => handleWin(activePlayer), 500);
             } else {
                 setTimeout(() => {
-                    handleDiscardTile(activePlayer, Math.floor(Math.random() * aiPlayerWithNewTile.hand.length));
+                    const discardIndex = findBestDiscard(aiPlayerWithNewTile.hand, goldenTile);
+                    handleDiscardTile(activePlayer, discardIndex);
                 }, 500);
             }
             
@@ -944,10 +1013,12 @@ function GameRoom() {
         if (currentPlayer.hand.length % 3 !== 2) {
             handleDrawTile(); // This will set humanPlayerCanDiscard to true
             setTimeout(() => {
-                handleDiscardTile(0, currentPlayer.hand.length); // Draw and discard
+                const discardIndex = findBestDiscard(currentPlayer.hand, goldenTile);
+                handleDiscardTile(0, discardIndex);
             }, 1000)
         } else {
-             handleDiscardTile(0, Math.floor(Math.random() * currentPlayer.hand.length));
+             const discardIndex = findBestDiscard(currentPlayer.hand, goldenTile);
+             handleDiscardTile(0, discardIndex);
         }
     }
   }, [gameState, activePlayer, players, actionPossibilities, wall, handleDiscardTile, handleEndGame, handleWin, goldenTile, handleAction, isProcessingTurn, isAiControlled, handleDrawTile]);
@@ -1207,9 +1278,9 @@ function GameRoom() {
       const humanIndex = windOrder.indexOf(humanPlayerWind);
 
       bottomPlayer = humanPlayer;
-      rightPlayer = getPlayerByWind(windOrder[(humanIndex + 3) % 4]);
+      rightPlayer = getPlayerByWind(windOrder[(humanIndex + 1) % 4]);
       topPlayer = getPlayerByWind(windOrder[(humanIndex + 2) % 4]);
-      leftPlayer = getPlayerByWind(windOrder[(humanIndex + 1) % 4]);
+      leftPlayer = getPlayerByWind(windOrder[(humanIndex + 3) % 4]);
   } else {
       // Fallback for pre-seating state
       bottomPlayer = players.find(p => p.id === 0);
@@ -1541,3 +1612,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
