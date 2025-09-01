@@ -33,7 +33,7 @@ type Player = { id: number; name: string; avatar: string; isAI: boolean; hand: T
 type DiceRoll = [number, number];
 type GameState = 'pre-roll-seating' | 'rolling-seating' | 'pre-roll-banker' | 'rolling-banker' | 'pre-roll' | 'rolling' | 'deal' | 'banker-roll-for-golden' | 'playing' | 'game-over';
 type Action = 'pong' | 'kong' | 'chow' | 'win';
-type ActionPossibility = {
+export type ActionPossibility = {
     playerId: number;
     actions: {
         win: boolean;
@@ -534,38 +534,22 @@ function GameRoom() {
     
     const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null, discards: [] };
     const initialPlayers: Player[] = [humanPlayer];
-    const playersNeeded = 4 - initialPlayers.length;
 
-    let aiPlayerCount = 1;
-    let realPlayerCount = 2;
-
-    for (let i = 1; i <= playersNeeded; i++) {
+    for (let i = 1; i <= 3; i++) {
         const playerId = i;
-        if (roomTier === 'Free') {
-            initialPlayers.push({
-                id: playerId,
-                name: `AI 玩家 ${aiPlayerCount++}`,
-                avatar: `https://placehold.co/40x40.png`,
-                isAI: true,
-                hand: [],
-                melds: [],
-                balance: INITIAL_BALANCE,
-                hasLocation: Math.random() > 0.5,
-                discards: [],
-            });
-        } else {
-            initialPlayers.push({
-                id: playerId,
-                name: `玩家 ${realPlayerCount++}`,
-                avatar: `https://placehold.co/40x40.png`,
-                isAI: false,
-                hand: [],
-                melds: [],
-                balance: INITIAL_BALANCE,
-                hasLocation: Math.random() > 0.5,
-                discards: [],
-            });
-        }
+        const isAI = roomTier === 'Free';
+        const name = isAI ? `AI 玩家 ${i}` : `玩家 ${i+1}`;
+        initialPlayers.push({
+            id: playerId,
+            name: name,
+            avatar: `https://placehold.co/40x40.png`,
+            isAI: isAI,
+            hand: [],
+            melds: [],
+            balance: INITIAL_BALANCE,
+            hasLocation: Math.random() > 0.5,
+            discards: [],
+        });
     }
     
     setPlayers(initialPlayers);
@@ -1067,12 +1051,7 @@ function GameRoom() {
             total: rolls[index][0] + rolls[index][1],
         }));
 
-        playerRolls.sort((a, b) => {
-            if (b.total !== a.total) {
-                return b.total - a.total;
-            }
-            return b.player.id - a.player.id;
-        });
+        playerRolls.sort((a, b) => b.total - a.total);
         
         const windAssignments = ['东', '南', '西', '北'];
         const finalPlayers = playerRolls.map((pr, index) => {
@@ -1086,7 +1065,7 @@ function GameRoom() {
             return { ...pr.player, name: newName, isEast };
         });
 
-        // Re-sort players based on the wind order to ensure consistency
+        // Re-sort players based on the wind order to ensure consistency for rendering
         const sortedFinalPlayers = finalPlayers.sort((a, b) => {
             const windA = a.name.match(/\(([^)]+)\)/)?.[1] || '';
             const windB = b.name.match(/\(([^)]+)\)/)?.[1] || '';
@@ -1217,17 +1196,9 @@ function GameRoom() {
   const humanPlayer = players.find(p => p.id === 0);
   const humanPlayerWind = humanPlayer?.name.match(/\(([^)]+)\)/)?.[1];
   
-  const getPlayerByWind = (wind: '东' | '南' | '西' | '北') => {
+  const getPlayerByWind = (wind: string) => {
       return players.find(p => p.name.includes(`(${wind})`));
   }
-  
-  // Define fixed positions for rendering
-  const playerPositions = {
-      south: getPlayerByWind('南'),
-      north: getPlayerByWind('北'),
-      east: getPlayerByWind('东'),
-      west: getPlayerByWind('西'),
-  };
   
   let topPlayer, bottomPlayer, leftPlayer, rightPlayer;
   
@@ -1235,11 +1206,10 @@ function GameRoom() {
       const windOrder = ['东', '南', '西', '北'];
       const humanIndex = windOrder.indexOf(humanPlayerWind);
 
-      bottomPlayer = humanPlayer; // Human is always at the bottom
+      bottomPlayer = humanPlayer;
       rightPlayer = getPlayerByWind(windOrder[(humanIndex + 3) % 4]);
       topPlayer = getPlayerByWind(windOrder[(humanIndex + 2) % 4]);
       leftPlayer = getPlayerByWind(windOrder[(humanIndex + 1) % 4]);
-
   } else {
       // Fallback for pre-seating state
       bottomPlayer = players.find(p => p.id === 0);
@@ -1248,7 +1218,6 @@ function GameRoom() {
       topPlayer = otherPlayers[1];
       leftPlayer = otherPlayers[2];
   }
-
 
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
   const humanPlayerAction = actionPossibilities.find(p => p.playerId === 0);
@@ -1263,11 +1232,11 @@ function GameRoom() {
 
   const isGameInProgress = gameState === 'deal' || gameState === 'playing' || gameState === 'banker-roll-for-golden';
 
-  const PlayerInfo = ({ player }: { player: Player | undefined }) => {
+  const PlayerInfo = ({ player, action }: { player: Player | undefined, action?: ActionPossibility }) => {
     if (!player) return null;
     const isBanker = bankerId === player.id;
     return (
-        <div className={cn('flex items-center gap-2 z-10 p-1.5 bg-background/80 rounded-lg border-2 border-transparent')}>
+        <div className={cn('flex items-center gap-2 z-10 p-1.5 bg-background/80 rounded-lg border-2 border-transparent relative')}>
             <Avatar className='h-8 w-8'>
                 <AvatarImage src={player.avatar} />
                 <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
@@ -1279,6 +1248,17 @@ function GameRoom() {
                 </div>
                 <p className='text-xs text-primary font-mono flex items-center gap-1'><Coins size={12}/> {player.balance}</p>
             </div>
+             {action && (
+                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-1 rounded-lg backdrop-blur-sm">
+                    <div className='flex items-center gap-1'>
+                        <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-1 left-0 right-0 w-full h-0.5 [&>div]:bg-yellow-400" />
+                        {action.actions.win && <Button size="sm" variant="destructive" className="w-12 h-8 text-xs">胡</Button>}
+                        {action.actions.kong && <Button size="sm" className="w-12 h-8 text-xs">杠</Button>}
+                        {action.actions.pong && <Button size="sm" className="w-12 h-8 text-xs">碰</Button>}
+                        {action.actions.chow && <Button size="sm" className="w-12 h-8 text-xs">吃</Button>}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
@@ -1389,7 +1369,7 @@ function GameRoom() {
               goldenTile={goldenTile}
           >
             <DraggableBox initialPosition={{ top: 8, left: '50%', transform: 'translateX(-50%)' }}>
-                <PlayerInfo player={topPlayer} />
+                <PlayerInfo player={topPlayer} action={actionPossibilities.find(ap => ap.playerId === topPlayer?.id)} />
             </DraggableBox>
                 
             <DraggableBox initialPosition={{ bottom: 8, left: '50%', transform: 'translateX(-50%)' }}>
@@ -1411,10 +1391,10 @@ function GameRoom() {
                 </div>
             </DraggableBox>
             <DraggableBox initialPosition={{ top: '50%', right: 8, transform: 'translateY(-50%)' }}>
-                <PlayerInfo player={rightPlayer} />
+                <PlayerInfo player={rightPlayer} action={actionPossibilities.find(ap => ap.playerId === rightPlayer?.id)} />
             </DraggableBox>
             <DraggableBox initialPosition={{ top: '50%', left: 8, transform: 'translateY(-50%)' }}>
-                <PlayerInfo player={leftPlayer} />
+                <PlayerInfo player={leftPlayer} action={actionPossibilities.find(ap => ap.playerId === leftPlayer?.id)} />
             </DraggableBox>
           </GameBoard>
       </div>
@@ -1561,4 +1541,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-

@@ -2,7 +2,7 @@
 import { MahjongTile } from './mahjong-tile';
 import { cn } from '@/lib/utils';
 import { Layers } from 'lucide-react';
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
@@ -20,17 +20,27 @@ interface GameBoardProps {
   children: React.ReactNode;
 }
 
-const InfoRow = ({ label, children }: { label: string | React.ReactNode; children: React.ReactNode }) => (
-  <div className="flex items-start">
-    <div className="w-10 text-center font-bold text-sm text-primary flex-shrink-0 pt-1">{label}</div>
-    <ScrollArea className="w-full whitespace-nowrap rounded-md">
-        <div className="flex w-max space-x-1 p-1">
-            {children}
-        </div>
-        <ScrollBar orientation="horizontal" />
-    </ScrollArea>
-  </div>
-);
+const InfoRow = ({ label, children, shouldScroll }: { label: string | React.ReactNode; children: React.ReactNode, shouldScroll?: boolean }) => {
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (shouldScroll && viewportRef.current) {
+      viewportRef.current.scrollLeft = viewportRef.current.scrollWidth;
+    }
+  }, [children, shouldScroll]);
+  
+  return (
+    <div className="flex items-start">
+      <div className="w-10 text-center font-bold text-sm text-primary flex-shrink-0 pt-1">{label}</div>
+      <ScrollArea className="w-full whitespace-nowrap rounded-md">
+          <div className="flex w-max space-x-1 p-1" ref={viewportRef}>
+              {children}
+          </div>
+          <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+    </div>
+  );
+};
 
 
 export function GameBoard({ players, wallCount, goldenTile, latestDiscard, activePlayerId, children }: GameBoardProps) {
@@ -95,7 +105,7 @@ export function GameBoard({ players, wallCount, goldenTile, latestDiscard, activ
                             const player = playerWindMap[wind];
                             if (!player) return null;
                             return (
-                                <InfoRow key={`discard-${wind}`} label={wind}>
+                                <InfoRow key={`discard-${wind}`} label={wind} shouldScroll={!!latestDiscard}>
                                 {player.discards.map((tile, index) => (
                                     <MahjongTile
                                         key={index}
