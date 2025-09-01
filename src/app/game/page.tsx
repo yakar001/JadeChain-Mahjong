@@ -522,11 +522,15 @@ function GameRoom() {
     const initialPlayers: Player[] = [humanPlayer];
     const playersNeeded = 4 - initialPlayers.length;
 
-    if (roomTier === 'Free') {
-        for (let i = 1; i <= playersNeeded; i++) {
+    let aiPlayerCount = 1;
+    let realPlayerCount = 2;
+
+    for (let i = 1; i <= playersNeeded; i++) {
+        const playerId = i;
+        if (roomTier === 'Free') {
             initialPlayers.push({
-                id: i,
-                name: `AI 玩家 ${i}`,
+                id: playerId,
+                name: `AI 玩家 ${aiPlayerCount++}`,
                 avatar: `https://placehold.co/40x40.png`,
                 isAI: true,
                 hand: [],
@@ -535,12 +539,10 @@ function GameRoom() {
                 hasLocation: Math.random() > 0.5,
                 discards: [],
             });
-        }
-    } else {
-        for (let i = 1; i <= playersNeeded; i++) {
+        } else {
             initialPlayers.push({
-                id: i,
-                name: `玩家 ${i + 1}`,
+                id: playerId,
+                name: `玩家 ${realPlayerCount++}`,
                 avatar: `https://placehold.co/40x40.png`,
                 isAI: false,
                 hand: [],
@@ -1051,7 +1053,6 @@ function GameRoom() {
             total: rolls[index][0] + rolls[index][1],
         }));
 
-        // Sort by roll total (desc), then by player ID (desc) for deterministic tie-breaking
         playerRolls.sort((a, b) => {
             if (b.total !== a.total) {
                 return b.total - a.total;
@@ -1059,10 +1060,9 @@ function GameRoom() {
             return b.player.id - a.player.id;
         });
         
-        const windAssignments = { 0: '东', 1: '南', 2: '西', 3: '北' };
-        
+        const windAssignments = ['东', '南', '西', '北'];
         const finalPlayers = playerRolls.map((pr, index) => {
-            const windName = windAssignments[index as keyof typeof windAssignments];
+            const windName = windAssignments[index];
             const baseName = pr.player.isAI ? pr.player.name : 'You';
             const newName = `${baseName} (${windName})`;
             const isEast = windName === '东';
@@ -1072,7 +1072,14 @@ function GameRoom() {
             return { ...pr.player, name: newName, isEast };
         });
 
-        setPlayers(finalPlayers);
+        // Re-sort players based on the wind order to ensure consistency
+        const sortedFinalPlayers = finalPlayers.sort((a, b) => {
+            const windA = a.name.match(/\(([^)]+)\)/)?.[1] || '';
+            const windB = b.name.match(/\(([^)]+)\)/)?.[1] || '';
+            return windAssignments.indexOf(windA) - windAssignments.indexOf(windB);
+        });
+
+        setPlayers(sortedFinalPlayers);
         setGameState('pre-roll-banker');
     }, 5500); 
 }
