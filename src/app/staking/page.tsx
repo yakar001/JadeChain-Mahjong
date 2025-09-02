@@ -191,5 +191,4 @@ export default function StakingPage() {
 
     </div>
   );
-
-    
+}
