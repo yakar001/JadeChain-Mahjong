@@ -34,6 +34,7 @@ function WalletGuard({ children }: { children: ReactNode }) {
 
 export function MainLayout({ children }: { children: ReactNode }) {
   const [isGamePage, setIsGamePage] = useState(false);
+  const { walletAddress } = useWallet();
 
   useEffect(() => {
     // This check runs only on the client, after hydration.
@@ -51,11 +52,10 @@ export function MainLayout({ children }: { children: ReactNode }) {
           <main className={cn("p-4 sm:p-6 lg:p-8 relative", {
             "bg-card/20 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg max-w-7xl mx-auto my-4": !isGamePage,
           })}>
-            <WalletGuard>
-                {children}
-            </WalletGuard>
+            {walletAddress ? children : <div className="h-[80vh]"></div>}
           </main>
         </SidebarInset>
+        {!walletAddress && <WalletGuard>{null}</WalletGuard>}
       </div>
     </SidebarProvider>
   );
