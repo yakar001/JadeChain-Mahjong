@@ -292,72 +292,74 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
 };
 
 const findBestDiscard = (hand: Tile[], goldenTile: Tile | null): number => {
-    // A more sophisticated AI would analyze tile efficiency, but for now, we'll use a simple heuristic.
     // 1. Never discard the golden tile unless it's for a win.
-    // 2. Discard lone honor/wind tiles first.
-    // 3. Discard lone terminal tiles (1s and 9s).
-    // 4. Discard other lone tiles.
-
     const tileToKey = (t: Tile) => `${t.suit}-${t.value}`;
     const goldenTileKey = goldenTile ? tileToKey(goldenTile) : null;
+    if (hand.every(t => tileToKey(t) === goldenTileKey)) return hand.length - 1;
 
-    const counts: Record<string, number> = {};
-    hand.forEach(tile => {
-        const key = tileToKey(tile);
-        counts[key] = (counts[key] || 0) + 1;
-    });
-
+    // Simulate discarding each tile and find the one that results in the "best" hand
     let bestDiscardIndex = -1;
-    let lowestScore = Infinity;
+    let highestScore = -Infinity;
 
     for (let i = 0; i < hand.length; i++) {
         const tile = hand[i];
-        const key = tileToKey(tile);
+        if (tileToKey(tile) === goldenTileKey) continue;
 
-        if (key === goldenTileKey) continue; // Never discard the golden tile
+        const tempHand = [...hand];
+        tempHand.splice(i, 1);
 
-        let score = 50; // Base score
+        // Simple scoring: count pairs and potential sequences
+        let score = 0;
+        const counts: Record<string, number> = {};
+        tempHand.forEach(t => {
+            const key = tileToKey(t);
+            counts[key] = (counts[key] || 0) + 1;
+        });
 
-        // Reduce score for tiles that are part of pairs or melds
-        if (counts[key] > 1) {
-            score -= 20 * (counts[key] - 1);
+        for (const key in counts) {
+            if (counts[key] >= 2) score += counts[key] * 2; // Pairs/Pongs are good
+
+            const t = key.split('-').reduce((acc, part, i) => ({...acc, [i === 0 ? 'suit' : 'value']: part}), {}) as Tile;
+
+            if (!['wind', 'dragon'].includes(t.suit)) {
+                const v = parseInt(t.value, 10);
+                const has = (val: number) => tempHand.some(th => th.suit === t.suit && parseInt(th.value, 10) === val);
+                if (has(v - 1)) score += 1.5; // Potential sequence
+                if (has(v + 1)) score += 1.5; // Potential sequence
+                if (has(v - 2)) score += 0.5; // Wider potential sequence
+                if (has(v + 2)) score += 0.5;
+            }
         }
 
-        // Check for potential sequences
-        if (['dots', 'bamboo', 'characters'].includes(tile.suit)) {
-            const v = parseInt(tile.value, 10);
-            const has = (val: number) => hand.some(t => t.suit === tile.suit && parseInt(t.value, 10) === val);
-            if (has(v - 2) || has(v - 1) || has(v + 1) || has(v + 2)) {
-                score -= 10;
-            }
-             // Terminals are slightly less valuable than middle tiles
-            if (v === 1 || v === 9) {
-                score += 5;
-            }
-        } else {
-            // Winds and dragons are generally less valuable unless paired
-             score += 10;
-        }
-
-        if (score < lowestScore) {
-            lowestScore = score;
+        if (score > highestScore) {
+            highestScore = score;
             bestDiscardIndex = i;
         }
     }
-    
-    // If all tiles are golden or something went wrong, discard the last non-golden tile
-    if (bestDiscardIndex === -1) {
-        for (let i = hand.length - 1; i >= 0; i--) {
-            if (tileToKey(hand[i]) !== goldenTileKey) {
-                return i;
-            }
-        }
-        // If hand is all golden tiles, just return the last one
-        return hand.length - 1;
-    }
 
-    return bestDiscardIndex;
+    if (bestDiscardIndex !== -1) {
+        return bestDiscardIndex;
+    }
+    
+    // Fallback: discard lone winds/dragons, then terminals, then others
+    const findIndexToDiscard = (filterFn: (tile: Tile) => boolean) => {
+        return hand.findIndex(t => tileToKey(t) !== goldenTileKey && filterFn(t));
+    };
+
+    const isHonor = (t: Tile) => ['wind', 'dragon'].includes(t.suit);
+    const isTerminal = (t: Tile) => t.value === '1' || t.value === '9';
+
+    bestDiscardIndex = findIndexToDiscard(t => isHonor(t));
+    if (bestDiscardIndex !== -1) return bestDiscardIndex;
+
+    bestDiscardIndex = findIndexToDiscard(t => isTerminal(t));
+    if (bestDiscardIndex !== -1) return bestDiscardIndex;
+
+    // If all else fails, find the first non-golden tile
+    bestDiscardIndex = hand.findIndex(t => tileToKey(t) !== goldenTileKey);
+    return bestDiscardIndex !== -1 ? bestDiscardIndex : hand.length - 1;
 };
+
 
 function GameRoom() {
   const searchParams = useSearchParams();
@@ -604,7 +606,7 @@ function GameRoom() {
     const initialPlayers: Player[] = [humanPlayer];
 
     for (let i = 1; i <= 3; i++) {
-        const isAI = true; // All other players are AI for now
+        const isAI = true;
         const name = `AI 玩家 ${i}`;
         initialPlayers.push({
             id: i,
@@ -784,23 +786,37 @@ function GameRoom() {
                 tilesToRemoveFromHand = playerToUpdate.hand.filter(t => t.suit === lastDiscardTile.suit && t.value === lastDiscardTile.value).slice(0, 2);
             } else if (action === 'kong') {
                 tilesToRemoveFromHand = playerToUpdate.hand.filter(t => t.suit === lastDiscardTile.suit && t.value === lastDiscardTile.value).slice(0, 3);
-            }
-            else if (action === 'chow') {
-                 const v = parseInt(lastDiscardTile.value);
-                 const tile1 = playerToUpdate.hand.find(t => t.suit === lastDiscardTile.suit && parseInt(t.value) === v - 1);
-                 const tile2 = playerToUpdate.hand.find(t => t.suit === lastDiscardTile.suit && parseInt(t.value) === v + 1);
-                 if (tile1 && tile2) tilesToRemoveFromHand = [tile1, tile2];
+            } else if (action === 'chow') {
+                const v = parseInt(lastDiscardTile.value);
+                const handWithoutGolden = playerToUpdate.hand.filter(t => !(goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value));
+                const findInHand = (val: number) => handWithoutGolden.find(t => t.suit === lastDiscardTile.suit && parseInt(t.value) === val);
+                
+                // Potential chow combinations
+                const combos = [
+                    [findInHand(v - 2), findInHand(v - 1)], // e.g., have 3,4 for a 5
+                    [findInHand(v - 1), findInHand(v + 1)], // e.g., have 4,6 for a 5
+                    [findInHand(v + 1), findInHand(v + 2)], // e.g., have 6,7 for a 5
+                ];
+                
+                const validCombo = combos.find(c => c[0] && c[1]);
+                if (validCombo) {
+                    tilesToRemoveFromHand = validCombo as Tile[];
+                }
             }
             
             meldTiles.push(...tilesToRemoveFromHand);
-            playerToUpdate.hand = playerToUpdate.hand.filter(tile => !tilesToRemoveFromHand.some(removed => removed.suit === tile.suit && removed.value === tile.value));
+            playerToUpdate.hand = playerToUpdate.hand.filter(handTile => {
+                return !tilesToRemoveFromHand.some(removedTile => removedTile.suit === handTile.suit && removedTile.value === handTile.value);
+            });
             playerToUpdate.melds.push({ type: action as 'pong' | 'kong' | 'chow', tiles: meldTiles, concealed: false });
             
             if (action === 'kong') {
                 const wallCopy = [...wall];
-                const supplementalTile = wallCopy.shift()!; // Draw from the back of the wall
-                setWall(wallCopy);
-                playerToUpdate.hand.push(supplementalTile);
+                if (wallCopy.length > MIN_WALL_TILES_FOR_DRAW) {
+                    const supplementalTile = wallCopy.shift()!;
+                    setWall(wallCopy);
+                    playerToUpdate.hand.push(supplementalTile);
+                }
             }
         }
         return updatedPlayers;
@@ -812,7 +828,7 @@ function GameRoom() {
         setHumanPlayerCanDiscard(true);
     }
     setIsProcessingTurn(false);
-  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn, wall]);
+  }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn, wall, goldenTile]);
   
   const handleDrawTile = useCallback(() => {
     if (isProcessingTurn) return;
@@ -1146,7 +1162,6 @@ function GameRoom() {
             return { ...pr.player, name: newName, isEast };
         });
 
-        // Re-sort players based on the wind order to ensure consistency for rendering
         const sortedFinalPlayers = finalPlayers.sort((a, b) => {
             const windA = a.name.match(/\(([^)]+)\)/)?.[1] || '';
             const windB = b.name.match(/\(([^)]+)\)/)?.[1] || '';
@@ -1202,14 +1217,12 @@ function GameRoom() {
 
         const bankerSeatIndex = playerSeats.indexOf(bankerWind);
 
-        // Determine deal start player
         const dealStartSeatIndex = (bankerSeatIndex + diceTotal - 1) % 4;
         const dealStartWind = playerSeats[dealStartSeatIndex];
         const dealStartPlayer = tempPlayers.find((p: Player) => seatMap.get(p.id) === dealStartWind);
         if(!dealStartPlayer) return;
         const dealStartPlayerIndex = tempPlayers.findIndex((p:Player) => p.id === dealStartPlayer.id);
 
-        // Deal 13 tiles to each player
         for (let i = 0; i < 13; i++) {
             for (let j = 0; j < tempPlayers.length; j++) {
                  const playerArrayIndex = (dealStartPlayerIndex + j) % tempPlayers.length;
@@ -1218,7 +1231,6 @@ function GameRoom() {
             }
         }
         
-        // Deal 14th tile to banker
         const bankerPlayerIndex = tempPlayers.findIndex((p: Player) => p.id === bankerId);
         const bankerTile = wallCopy.pop();
         if (bankerTile) tempPlayers[bankerPlayerIndex].hand.push(bankerTile);
@@ -1286,18 +1298,16 @@ function GameRoom() {
   if (humanPlayerWind) {
       const windOrder = ['东', '南', '西', '北'];
       const humanIndex = windOrder.indexOf(humanPlayerWind);
-
+      
       bottomPlayer = humanPlayer;
       rightPlayer = getPlayerByWind(windOrder[(humanIndex + 1) % 4]);
       topPlayer = getPlayerByWind(windOrder[(humanIndex + 2) % 4]);
       leftPlayer = getPlayerByWind(windOrder[(humanIndex + 3) % 4]);
   } else {
-      // Fallback for pre-seating state
       bottomPlayer = players.find(p => p.id === 0);
-      const otherPlayers = players.filter(p => p.id !== 0);
-      rightPlayer = otherPlayers[0];
-      topPlayer = otherPlayers[1];
-      leftPlayer = otherPlayers[2];
+      rightPlayer = players.find(p => p.id === 1);
+      topPlayer = players.find(p => p.id === 2);
+      leftPlayer = players.find(p => p.id === 3);
   }
 
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
@@ -1317,8 +1327,13 @@ function GameRoom() {
     if (!player) return null;
     const isBanker = bankerId === player.id;
     const actionPossibility = actionPossibilities.find(ap => ap.playerId === player.id);
+    const isActive = activePlayer === player.id;
+
     return (
-        <div className={cn('flex items-center gap-2 z-10 p-1.5 bg-background/80 rounded-lg border-2 border-transparent relative')}>
+        <div className={cn(
+            'flex items-center gap-2 z-10 p-1.5 bg-background/80 rounded-lg border-2 border-transparent relative transition-all',
+            isActive && 'border-primary shadow-lg shadow-primary/30'
+            )}>
             <Avatar className='h-8 w-8'>
                 <AvatarImage src={player.avatar} />
                 <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
@@ -1330,7 +1345,7 @@ function GameRoom() {
                 </div>
                 <p className='text-xs text-primary font-mono flex items-center gap-1'><Coins size={12}/> {player.balance}</p>
             </div>
-             {actionPossibility && (
+             {actionPossibility && player.isAI && (
                 <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-20 bg-background/80 p-1 rounded-lg backdrop-blur-sm">
                     <div className='flex items-center gap-1'>
                         <Progress value={(actionTimer / ACTION_DURATION) * 100} className="absolute -top-1 left-0 right-0 w-full h-0.5 [&>div]:bg-yellow-400" />
@@ -1623,3 +1638,5 @@ export default function GamePage() {
         </Suspense>
     )
 }
+
+    
