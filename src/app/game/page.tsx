@@ -138,7 +138,9 @@ const getTileName = (tile: Tile): string => {
 }
 
 const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
-    if (hand.length % 3 !== 2) return false;
+    if (hand.length % 3 !== 2 || hand.length < 5) {
+        return false;
+    }
 
     const tileToKey = (t: Tile) => `${t.suit}-${t.value}`;
     const keyToTile = (k: string) => {
@@ -163,14 +165,10 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
         const [suitA, valueA] = a.split('-');
         const [suitB, valueB] = b.split('-');
         const suitOrder = ['dots', 'bamboo', 'characters', 'wind', 'dragon'];
-        if (suitOrder.indexOf(suitA) !== suitOrder.indexOf(suitB)) {
-            return suitOrder.indexOf(suitA) - suitOrder.indexOf(suitB);
-        }
-        const numA = parseInt(valueA, 10);
-        const numB = parseInt(valueB, 10);
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return numA - numB;
-        }
+        const suitIndexA = suitOrder.indexOf(suitA);
+        const suitIndexB = suitOrder.indexOf(suitB);
+        if (suitIndexA !== suitIndexB) return suitIndexA - suitIndexB;
+        if (!isNaN(parseInt(valueA)) && !isNaN(parseInt(valueB))) return parseInt(valueA) - parseInt(valueB);
         return a.localeCompare(b);
     });
 
@@ -185,24 +183,23 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
         if (empty) return true;
 
         const firstKey = sortedKeys.find(k => currentCounts[k] > 0)!;
-
+        
         // Try to form a PONG (triplet)
         if (currentCounts[firstKey] >= 3) {
             const nextCounts = { ...currentCounts };
             nextCounts[firstKey] -= 3;
             if (canFormMelds(nextCounts, wilds)) return true;
         }
-        if (currentCounts[firstKey] >= 2 && wilds >= 1) {
-             const nextCounts = { ...currentCounts };
+        if (currentCounts[firstKey] === 2 && wilds >= 1) {
+            const nextCounts = { ...currentCounts };
             nextCounts[firstKey] -= 2;
             if (canFormMelds(nextCounts, wilds - 1)) return true;
         }
-        if (currentCounts[firstKey] >= 1 && wilds >= 2) {
-             const nextCounts = { ...currentCounts };
+        if (currentCounts[firstKey] === 1 && wilds >= 2) {
+            const nextCounts = { ...currentCounts };
             nextCounts[firstKey] -= 1;
             if (canFormMelds(nextCounts, wilds - 2)) return true;
         }
-
 
         // Try to form a CHOW (sequence)
         const tile = keyToTile(firstKey);
@@ -221,7 +218,6 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
                     if (canFormMelds(nextCounts, wilds)) return true;
                 }
                 if (wilds >= 1) {
-                     // Chow with 1 wild
                     if (currentCounts[firstKey] > 0 && currentCounts[key2] > 0) {
                          const nextCounts = { ...currentCounts };
                          nextCounts[firstKey] -= 1;
@@ -242,7 +238,6 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
                     }
                 }
                  if (wilds >= 2) {
-                     // Chow with 2 wilds
                      if (currentCounts[firstKey] > 0) {
                         const nextCounts = { ...currentCounts };
                         nextCounts[firstKey] -= 1;
@@ -264,76 +259,78 @@ const isWinningHand = (hand: Tile[], goldenTile: Tile | null): boolean => {
         
         return false;
     }
-
+    
     // Iterate through all possible pairs
-    for (const pairKey of [...sortedKeys, goldenTileKey]) {
-       if (!pairKey) continue;
-       
+    for (const pairKey of sortedKeys) {
        const tempCounts = {...counts};
        let tempWilds = goldenTileCount;
 
        // Form the pair
-       if (pairKey === goldenTileKey) { // Pair of wilds
-           if(tempWilds < 2) continue;
-           tempWilds -= 2;
-       } else if (tempCounts[pairKey] >= 2) { // Normal pair
+       if (tempCounts[pairKey] >= 2) {
            tempCounts[pairKey] -= 2;
-       } else if (tempCounts[pairKey] >= 1 && tempWilds >= 1) { // Pair with one wild
+           if (canFormMelds(tempCounts, tempWilds)) return true;
+       } else if (tempCounts[pairKey] === 1 && tempWilds >= 1) {
             tempCounts[pairKey] -= 1;
             tempWilds -= 1;
-       } else {
-           continue; // Cannot form this pair
+            if (canFormMelds(tempCounts, tempWilds)) return true;
        }
-
-       if (canFormMelds(tempCounts, tempWilds)) return true;
+    }
+    
+    // Try forming a pair with two wild cards
+    if (goldenTileCount >= 2) {
+        if(canFormMelds({...counts}, goldenTileCount - 2)) return true;
     }
 
     return false;
 };
 
 const findBestDiscard = (hand: Tile[], goldenTile: Tile | null): number => {
-    // 1. Never discard the golden tile unless it's for a win.
     const tileToKey = (t: Tile) => `${t.suit}-${t.value}`;
     const goldenTileKey = goldenTile ? tileToKey(goldenTile) : null;
-    if (hand.every(t => tileToKey(t) === goldenTileKey)) return hand.length - 1;
+    
+    const nonGoldenTiles = hand.map((tile, index) => ({ tile, index }))
+                               .filter(({ tile }) => tileToKey(tile) !== goldenTileKey);
 
-    // Simulate discarding each tile and find the one that results in the "best" hand
+    if (nonGoldenTiles.length === 0) {
+        return hand.length > 0 ? hand.length - 1 : 0;
+    }
+    if (nonGoldenTiles.length === 1) {
+        return nonGoldenTiles[0].index;
+    }
+    
     let bestDiscardIndex = -1;
     let highestScore = -Infinity;
 
-    for (let i = 0; i < hand.length; i++) {
-        const tile = hand[i];
-        if (tileToKey(tile) === goldenTileKey) continue;
-
+    for (const { tile, index } of nonGoldenTiles) {
         const tempHand = [...hand];
-        tempHand.splice(i, 1);
+        tempHand.splice(index, 1);
 
-        // Simple scoring: count pairs and potential sequences
         let score = 0;
         const counts: Record<string, number> = {};
         tempHand.forEach(t => {
-            const key = tileToKey(t);
-            counts[key] = (counts[key] || 0) + 1;
+            if (tileToKey(t) !== goldenTileKey) {
+                const key = tileToKey(t);
+                counts[key] = (counts[key] || 0) + 1;
+            }
         });
-
+        
         for (const key in counts) {
-            if (counts[key] >= 2) score += counts[key] * 2; // Pairs/Pongs are good
+            if (counts[key] >= 2) score += counts[key] * 2; 
 
             const t = key.split('-').reduce((acc, part, i) => ({...acc, [i === 0 ? 'suit' : 'value']: part}), {}) as Tile;
-
             if (!['wind', 'dragon'].includes(t.suit)) {
                 const v = parseInt(t.value, 10);
-                const has = (val: number) => tempHand.some(th => th.suit === t.suit && parseInt(th.value, 10) === val);
-                if (has(v - 1)) score += 1.5; // Potential sequence
-                if (has(v + 1)) score += 1.5; // Potential sequence
-                if (has(v - 2)) score += 0.5; // Wider potential sequence
+                const has = (val: number) => tempHand.some(th => th.suit === t.suit && parseInt(th.value, 10) === val && tileToKey(th) !== goldenTileKey);
+                if (has(v - 1)) score += 1.5;
+                if (has(v + 1)) score += 1.5; 
+                if (has(v - 2)) score += 0.5;
                 if (has(v + 2)) score += 0.5;
             }
         }
 
         if (score > highestScore) {
             highestScore = score;
-            bestDiscardIndex = i;
+            bestDiscardIndex = index;
         }
     }
 
@@ -341,23 +338,20 @@ const findBestDiscard = (hand: Tile[], goldenTile: Tile | null): number => {
         return bestDiscardIndex;
     }
     
-    // Fallback: discard lone winds/dragons, then terminals, then others
     const findIndexToDiscard = (filterFn: (tile: Tile) => boolean) => {
-        return hand.findIndex(t => tileToKey(t) !== goldenTileKey && filterFn(t));
+        return hand.findIndex((t, i) => nonGoldenTiles.some(ngt => ngt.index === i) && filterFn(t));
     };
 
     const isHonor = (t: Tile) => ['wind', 'dragon'].includes(t.suit);
     const isTerminal = (t: Tile) => t.value === '1' || t.value === '9';
+    
+    const honorIndices = nonGoldenTiles.filter(({ tile }) => isHonor(tile)).map(t => t.index);
+    if(honorIndices.length > 0) return honorIndices[0];
 
-    bestDiscardIndex = findIndexToDiscard(t => isHonor(t));
-    if (bestDiscardIndex !== -1) return bestDiscardIndex;
-
-    bestDiscardIndex = findIndexToDiscard(t => isTerminal(t));
-    if (bestDiscardIndex !== -1) return bestDiscardIndex;
-
-    // If all else fails, find the first non-golden tile
-    bestDiscardIndex = hand.findIndex(t => tileToKey(t) !== goldenTileKey);
-    return bestDiscardIndex !== -1 ? bestDiscardIndex : hand.length - 1;
+    const terminalIndices = nonGoldenTiles.filter(({ tile }) => isTerminal(tile)).map(t => t.index);
+     if(terminalIndices.length > 0) return terminalIndices[0];
+    
+    return nonGoldenTiles[nonGoldenTiles.length - 1].index;
 };
 
 
@@ -602,17 +596,16 @@ function GameRoom() {
     setWall(shuffled);
     setGoldenTile(null);
     
-    const humanPlayer: Player = { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null, discards: [] };
-    const initialPlayers: Player[] = [humanPlayer];
+    const initialPlayers: Player[] = [
+        { id: 0, name: 'You', avatar: `https://placehold.co/40x40.png`, isAI: false, hand: [], melds: [], balance: INITIAL_BALANCE, hasLocation: null, discards: [] }
+    ];
 
     for (let i = 1; i <= 3; i++) {
-        const isAI = true;
-        const name = `AI 玩家 ${i}`;
         initialPlayers.push({
             id: i,
-            name: name,
+            name: `AI 玩家 ${i}`,
             avatar: `https://placehold.co/40x40.png`,
-            isAI: isAI,
+            isAI: true,
             hand: [],
             melds: [],
             balance: INITIAL_BALANCE,
@@ -737,7 +730,14 @@ function GameRoom() {
         toast({ title: `执行操作 (杠)`, description: `您选择了暗杠。` });
 
         const wallCopy = [...wall];
-        const supplementalTile = wallCopy.shift()!; // Draw from the back of the wall (conventionally opposite end from dealing)
+        if (wallCopy.length <= MIN_WALL_TILES_FOR_DRAW) {
+             if (lastDiscarderId !== undefined && lastDiscarderId !== null) {
+                advanceTurn(lastDiscarderId);
+            }
+            return;
+        }
+
+        const supplementalTile = wallCopy.shift()!;
         
         setPlayers(currentPlayers => {
             const updatedPlayers = [...currentPlayers];
@@ -745,7 +745,7 @@ function GameRoom() {
             if(playerToUpdate) {
                 const tilesToMeld = playerToUpdate.hand.filter(t => t.suit === concealedKongCandidate.suit && t.value === concealedKongCandidate.value);
                 playerToUpdate.hand = playerToUpdate.hand.filter(t => t.suit !== concealedKongCandidate.suit || t.value !== concealedKongCandidate.value);
-                playerToUpdate.hand.push(supplementalTile); // Add supplemental tile
+                playerToUpdate.hand.push(supplementalTile);
                 playerToUpdate.melds.push({ type: 'kong', tiles: tilesToMeld, concealed: true });
             }
             return updatedPlayers;
@@ -791,22 +791,21 @@ function GameRoom() {
                 const handWithoutGolden = playerToUpdate.hand.filter(t => !(goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value));
                 const findInHand = (val: number) => handWithoutGolden.find(t => t.suit === lastDiscardTile.suit && parseInt(t.value) === val);
                 
-                // Potential chow combinations
                 const combos = [
-                    [findInHand(v - 2), findInHand(v - 1)], // e.g., have 3,4 for a 5
-                    [findInHand(v - 1), findInHand(v + 1)], // e.g., have 4,6 for a 5
-                    [findInHand(v + 1), findInHand(v + 2)], // e.g., have 6,7 for a 5
+                    [findInHand(v - 2), findInHand(v - 1)],
+                    [findInHand(v - 1), findInHand(v + 1)],
+                    [findInHand(v + 1), findInHand(v + 2)],
                 ];
                 
                 const validCombo = combos.find(c => c[0] && c[1]);
                 if (validCombo) {
-                    tilesToRemoveFromHand = validCombo as Tile[];
+                    tilesToRemoveFromHand = validCombo.filter(t => t !== undefined) as Tile[];
                 }
             }
             
             meldTiles.push(...tilesToRemoveFromHand);
             playerToUpdate.hand = playerToUpdate.hand.filter(handTile => {
-                return !tilesToRemoveFromHand.some(removedTile => removedTile.suit === handTile.suit && removedTile.value === handTile.value);
+                return !tilesToRemoveFromHand.some(removedTile => removedTile.suit === handTile.suit && removedTile.value === handTile.value && handTile !== removedTile);
             });
             playerToUpdate.melds.push({ type: action as 'pong' | 'kong' | 'chow', tiles: meldTiles, concealed: false });
             
@@ -821,13 +820,20 @@ function GameRoom() {
         }
         return updatedPlayers;
     });
-
-    setLatestDiscard(null); // The discard has been claimed
+    
+    setLatestDiscard(null);
     setActivePlayer(playerId);
-    if (playerId === 0) {
-        setHumanPlayerCanDiscard(true);
+    
+    if (action !== 'kong') {
+        if (playerId === 0) {
+            setHumanPlayerCanDiscard(true);
+        }
+        setIsProcessingTurn(false);
+    } else {
+        // After a Kong, the player must still discard.
+        // We will handle drawing and setting discard state in the main game loop.
+        setIsProcessingTurn(false);
     }
-    setIsProcessingTurn(false);
   }, [latestDiscard, handleWin, playSound, toast, players, concealedKongCandidate, actionPossibilities, advanceTurn, wall, goldenTile]);
   
   const handleDrawTile = useCallback(() => {
@@ -987,19 +993,20 @@ function GameRoom() {
         setIsProcessingTurn(true);
         await new Promise(res => setTimeout(res, Math.random() * 1000 + 1000));
 
-        // Banker starts with 14 tiles, so they discard directly.
+        if (isWinningHand(currentPlayer.hand, goldenTile)) {
+            setTimeout(() => handleWin(activePlayer), 500);
+            return;
+        }
+
+        // Banker starts with 14 tiles, or after a pong/chow, so they discard directly.
         if (currentPlayer.hand.length % 3 === 2) {
-            if (isWinningHand(currentPlayer.hand, goldenTile)) {
-                setTimeout(() => handleWin(activePlayer), 500);
-            } else {
-                const discardIndex = findBestDiscard(currentPlayer.hand, goldenTile);
-                await handleDiscardTile(activePlayer, discardIndex);
-            }
+            const discardIndex = findBestDiscard(currentPlayer.hand, goldenTile);
+            await handleDiscardTile(activePlayer, discardIndex);
             return;
         }
 
         if (wall.length <= MIN_WALL_TILES_FOR_DRAW) {
-            handleEndGame(players, true); // True for a draw game
+            handleEndGame(players, true);
             return;
         }
         
@@ -1039,7 +1046,8 @@ function GameRoom() {
         if (currentPlayer.hand.length % 3 !== 2) {
             handleDrawTile(); // This will set humanPlayerCanDiscard to true
             setTimeout(() => {
-                const discardIndex = findBestDiscard(currentPlayer.hand, goldenTile);
+                const updatedPlayer = players.find(p => p.id === 0)!;
+                const discardIndex = findBestDiscard(updatedPlayer.hand, goldenTile);
                 handleDiscardTile(0, discardIndex);
             }, 1000)
         } else {
@@ -1153,7 +1161,7 @@ function GameRoom() {
         const windAssignments = ['东', '南', '西', '北'];
         const finalPlayers = playerRolls.map((pr, index) => {
             const windName = windAssignments[index];
-            const baseName = pr.player.isAI ? pr.player.name.replace(/\s*\([^)]*\)/, '') : 'You';
+            const baseName = pr.player.isAI ? `AI 玩家 ${pr.player.id}` : 'You';
             const newName = `${baseName} (${windName})`;
             const isEast = windName === '东';
             if (isEast) {
@@ -1162,13 +1170,7 @@ function GameRoom() {
             return { ...pr.player, name: newName, isEast };
         });
 
-        const sortedFinalPlayers = finalPlayers.sort((a, b) => {
-            const windA = a.name.match(/\(([^)]+)\)/)?.[1] || '';
-            const windB = b.name.match(/\(([^)]+)\)/)?.[1] || '';
-            return windAssignments.indexOf(windA) - windAssignments.indexOf(windB);
-        });
-
-        setPlayers(sortedFinalPlayers);
+        setPlayers(finalPlayers);
         setGameState('pre-roll-banker');
     }, 5500); 
 }
@@ -1295,7 +1297,7 @@ function GameRoom() {
   
   let topPlayer, bottomPlayer, leftPlayer, rightPlayer;
   
-  if (humanPlayerWind) {
+  if (humanPlayer && humanPlayerWind) {
       const windOrder = ['东', '南', '西', '北'];
       const humanIndex = windOrder.indexOf(humanPlayerWind);
       
@@ -1303,11 +1305,12 @@ function GameRoom() {
       rightPlayer = getPlayerByWind(windOrder[(humanIndex + 1) % 4]);
       topPlayer = getPlayerByWind(windOrder[(humanIndex + 2) % 4]);
       leftPlayer = getPlayerByWind(windOrder[(humanIndex + 3) % 4]);
-  } else {
+  } else if (players.length === 4) {
       bottomPlayer = players.find(p => p.id === 0);
-      rightPlayer = players.find(p => p.id === 1);
-      topPlayer = players.find(p => p.id === 2);
-      leftPlayer = players.find(p => p.id === 3);
+      const otherPlayers = players.filter(p => p.id !== 0);
+      rightPlayer = otherPlayers[0];
+      topPlayer = otherPlayers[1];
+      leftPlayer = otherPlayers[2];
   }
 
   const humanPlayerHasGolden = humanPlayer?.hand.some(t => goldenTile && t.suit === goldenTile.suit && t.value === goldenTile.value);
@@ -1638,5 +1641,3 @@ export default function GamePage() {
         </Suspense>
     )
 }
-
-    
